@@ -53,7 +53,8 @@
 #define H_PI        1.57079633f
 #endif
 
-#define CLAMP(x, min, max)	(x < min ? min : x > max ? max : x)
+#define FLOOR(a)            ((a)>0?(int32_t)(a):-(int32_t)(-a))
+#define CLAMP(x, min, max)  (x < min ? min : x > max ? max : x)
 #define ABS(a)              (((a) < 0) ? -(a) : (a))
 #define SIGN(x)             (x >= 0 ? 1 : -1)
 #define MIN(a, b)           (a < b ? a : b)
