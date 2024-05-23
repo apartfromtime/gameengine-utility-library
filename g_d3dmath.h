@@ -34,8 +34,8 @@
 // Vector2
 // Vector3
 // Vector4
-// Matrix4
 // Plane
+// Matrix4
 // Viewport
 //
 //-----------------------------------------------------------------------------
@@ -1348,6 +1348,159 @@ inline constexpr vector2_t TransformVector2Normal(const vector2_t v,
 
 //-----------------------------------------------------------------------------
 //
+// PLANE
+//
+//-----------------------------------------------------------------------------
+
+
+//-----------------------------------------------------------------------------
+// constructs a plane
+//-----------------------------------------------------------------------------
+inline constexpr plane_t Plane(float a = 0, float b = 0, float c = 0,
+    float d = 0)
+{
+    plane_t p = {};
+
+    p.a = a;
+    p.b = b;
+    p.c = c;
+    p.d = d;
+
+    return p;
+}
+
+//-----------------------------------------------------------------------------
+// computes the dot product of a plane and a 4d vector
+//-----------------------------------------------------------------------------
+inline constexpr float DotPlane(const plane_t p, const vector4_t v)
+{
+    return DotVector4(Vector4(p.a, p.b, p.c, p.d), v);
+}
+
+//-----------------------------------------------------------------------------
+// computes the dot product of a plane and a 3D vector. The w parameter of the
+// vector is assumed to be 1.
+//-----------------------------------------------------------------------------
+inline constexpr float DotPlaneCoordinate(const plane_t p,
+    const vector3_t position)
+{
+    return DotVector4(Vector4(p.a, p.b, p.c, p.d),
+        Vector4(position.x, position.y, position.z, 1.0f));
+}
+
+//-----------------------------------------------------------------------------
+// computes the dot product of a plane and a 3D vector. The w parameter of the
+// vector is assumed to be 0.
+//-----------------------------------------------------------------------------
+inline constexpr float DotPlaneNormal(const plane_t p, const vector3_t normal)
+{
+    return DotVector4(Vector4(p.a, p.b, p.c, p.d),
+        Vector4(normal.x, normal.y, normal.z, 0.0f));
+}
+
+//-----------------------------------------------------------------------------
+// constructs a plane from a point and a normal.
+//-----------------------------------------------------------------------------
+inline constexpr plane_t FromPointNormalPlane(const vector3_t point,
+    const vector3_t normal)
+{
+    plane_t p = Plane();
+
+    p.a = normal.x;
+    p.b = normal.y;
+    p.c = normal.z;
+    p.d = -DotVector3(normal, point);
+
+    return p;
+}
+
+//-----------------------------------------------------------------------------
+// constructs a plane from three points.
+//-----------------------------------------------------------------------------
+inline constexpr plane_t FromPointsPlane(const vector3_t v0, const vector3_t v1,
+    const vector3_t v2)
+{
+    plane_t p = Plane();
+    vector3_t n = CrossVector3(SubtractVector3(v1, v0), SubtractVector3(v2, v0));
+    p = FromPointNormalPlane(v0, n);
+
+    return p;
+}
+
+//-----------------------------------------------------------------------------
+// finds the intersection between a plane and a line.
+//-----------------------------------------------------------------------------
+inline vector3_t LineIntersectPlane(const plane_t plane, vector3_t p0,
+    const vector3_t p1)
+{
+    vector3_t v0 = p0;
+    vector3_t v1 = p1;
+    vector3_t v2 = Vector3();
+    vector3_t v3 = Vector3();
+    float d0 = LengthVector3(v0);
+    float d1 = LengthVector3(v1);
+    float d2 = 0.0f;
+
+    if (d1 < d0)
+    {
+        d2 = d0;
+        d0 = d1;
+        d1 = d2;
+        
+        v0 = p1;
+        v1 = p0;
+    }
+
+    if (plane.d > d0 && plane.d < d1)
+    {
+        v2 = Vector3(plane.a, plane.b, plane.c);
+        v3 = SubtractVector3(v1, v0);
+        d0 = DotVector3(v2, v0) + plane.d;
+        d1 = LengthVector3(v3);
+        d2 = d0 / d1;
+
+        v3 = AddVector3(v0, ScaleVector3(v3, d2));
+    }
+    else
+    {
+        v3 = (plane.d - d0) <= (plane.d - d1) ? v0 : v1;
+    }
+
+    return v3;
+}
+
+//-----------------------------------------------------------------------------
+// normalizes the plane coefficients so that the plane normal has unit length
+//-----------------------------------------------------------------------------
+inline plane_t NormalizePlane(const plane_t p)
+{
+    vector3_t v = NormalizeVector3(Vector3(p.a, p.b, p.c));
+
+    return Plane(v.x, v.y, v.z, p.d);
+}
+
+//-----------------------------------------------------------------------------
+// scale the plane with the given scaling factor.
+//-----------------------------------------------------------------------------
+inline constexpr plane_t ScalePlane(const plane_t p, float s)
+{
+    return Plane(p.a * s, p.b * s, p.c * s, p.d * s);
+}
+
+//-----------------------------------------------------------------------------
+// transforms a plane by a matrix. The input matrix is the inverse transpose of
+// the actual transformation
+//-----------------------------------------------------------------------------
+inline constexpr plane_t TransformPlane(plane_t p, matrix4_t m)
+{
+    const vector4_t v = TransformVector4(Vector4(p.a, p.b, p.c, p.d), m);
+
+    return Plane(v.x, v.y, v.z, v.w);
+}
+
+
+//-----------------------------------------------------------------------------
+//
 // MATRIX4
 //
 //-----------------------------------------------------------------------------
@@ -1939,159 +2092,6 @@ inline matrix4_t Transformation3DMatrix4(const vector3_t scalingCenter,
     const matrix4_t t = TranslationMatrix4(translation.x, translation.y, translation.z);
 
     return MultiplyMatrix4(MultiplyMatrix4(r, s), t);
-}
-
-
-//-----------------------------------------------------------------------------
-//
-// PLANE
-//
-//-----------------------------------------------------------------------------
-
-
-//-----------------------------------------------------------------------------
-// constructs a plane
-//-----------------------------------------------------------------------------
-inline constexpr plane_t Plane(float a = 0, float b = 0, float c = 0,
-    float d = 0)
-{
-    plane_t p = {};
-
-    p.a = a;
-    p.b = b;
-    p.c = c;
-    p.d = d;
-
-    return p;
-}
-
-//-----------------------------------------------------------------------------
-// computes the dot product of a plane and a 4d vector
-//-----------------------------------------------------------------------------
-inline constexpr float DotPlane(const plane_t p, const vector4_t v)
-{
-    return DotVector4(Vector4(p.a, p.b, p.c, p.d), v);
-}
-
-//-----------------------------------------------------------------------------
-// computes the dot product of a plane and a 3D vector. The w parameter of the
-// vector is assumed to be 1.
-//-----------------------------------------------------------------------------
-inline constexpr float DotPlaneCoordinate(const plane_t p,
-    const vector3_t position)
-{
-    return DotVector4(Vector4(p.a, p.b, p.c, p.d),
-        Vector4(position.x, position.y, position.z, 1.0f));
-}
-
-//-----------------------------------------------------------------------------
-// computes the dot product of a plane and a 3D vector. The w parameter of the
-// vector is assumed to be 0.
-//-----------------------------------------------------------------------------
-inline constexpr float DotPlaneNormal(const plane_t p, const vector3_t normal)
-{
-    return DotVector4(Vector4(p.a, p.b, p.c, p.d),
-        Vector4(normal.x, normal.y, normal.z, 0.0f));
-}
-
-//-----------------------------------------------------------------------------
-// constructs a plane from a point and a normal.
-//-----------------------------------------------------------------------------
-inline constexpr plane_t FromPointNormalPlane(const vector3_t point,
-    const vector3_t normal)
-{
-    plane_t p = Plane();
-
-    p.a = normal.x;
-    p.b = normal.y;
-    p.c = normal.z;
-    p.d = -DotVector3(normal, point);
-
-    return p;
-}
-
-//-----------------------------------------------------------------------------
-// constructs a plane from three points.
-//-----------------------------------------------------------------------------
-inline constexpr plane_t FromPointsPlane(const vector3_t v0, const vector3_t v1,
-    const vector3_t v2)
-{
-    plane_t p = Plane();
-    vector3_t n = CrossVector3(SubtractVector3(v1, v0), SubtractVector3(v2, v0));
-    p = FromPointNormalPlane(v0, n);
-
-    return p;
-}
-
-//-----------------------------------------------------------------------------
-// finds the intersection between a plane and a line.
-//-----------------------------------------------------------------------------
-inline vector3_t LineIntersectPlane(const plane_t plane, vector3_t p0,
-    const vector3_t p1)
-{
-    vector3_t v0 = p0;
-    vector3_t v1 = p1;
-    vector3_t v2 = Vector3();
-    vector3_t v3 = Vector3();
-    float d0 = LengthVector3(v0);
-    float d1 = LengthVector3(v1);
-    float d2 = 0.0f;
-
-    if (d1 < d0)
-    {
-        d2 = d0;
-        d0 = d1;
-        d1 = d2;
-        
-        v0 = p1;
-        v1 = p0;
-    }
-
-    if (plane.d > d0 && plane.d < d1)
-    {
-        v2 = Vector3(plane.a, plane.b, plane.c);
-        v3 = SubtractVector3(v1, v0);
-        d0 = DotVector3(v2, v0) + plane.d;
-        d1 = LengthVector3(v3);
-        d2 = d0 / d1;
-
-        v3 = AddVector3(v0, ScaleVector3(v3, d2));
-    }
-    else
-    {
-        v3 = (plane.d - d0) <= (plane.d - d1) ? v0 : v1;
-    }
-
-    return v3;
-}
-
-//-----------------------------------------------------------------------------
-// normalizes the plane coefficients so that the plane normal has unit length
-//-----------------------------------------------------------------------------
-inline plane_t NormalizePlane(const plane_t p)
-{
-    vector3_t v = NormalizeVector3(Vector3(p.a, p.b, p.c));
-
-    return Plane(v.x, v.y, v.z, p.d);
-}
-
-//-----------------------------------------------------------------------------
-// scale the plane with the given scaling factor.
-//-----------------------------------------------------------------------------
-inline constexpr plane_t ScalePlane(const plane_t p, float s)
-{
-    return Plane(p.a * s, p.b * s, p.c * s, p.d * s);
-}
-
-//-----------------------------------------------------------------------------
-// transforms a plane by a matrix. The input matrix is the inverse transpose of
-// the actual transformation
-//-----------------------------------------------------------------------------
-inline constexpr plane_t TransformPlane(plane_t p, matrix4_t m)
-{
-    const vector4_t v = TransformVector4(Vector4(p.a, p.b, p.c, p.d), m);
-
-    return Plane(v.x, v.y, v.z, v.w);
 }
 
 
