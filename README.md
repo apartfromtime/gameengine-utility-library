@@ -1,5 +1,3 @@
-# math
- Direct 3D math functions
-
-## contribute
- Bug fixes and improvements welcome
+# GEUL (Game Engine Utility Library)
+ Math functions
+ Texture functions
