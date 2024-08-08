@@ -138,23 +138,8 @@ typedef struct _color
 // RECTANGLE
 typedef struct _rect
 {
-    union {
-        struct
-        {
-            long l;
-            long t;
-            long r;
-            long b;
-        };
-
-        struct
-        {
-            long x;
-            long y;
-            long w;
-            long h;
-        };
-    };
+    long min[2];
+    long max[2];
 } rect_t;
 
 // VECTOR2
@@ -414,67 +399,28 @@ inline byte4_t BGRAColor(color_t& color)
 //-----------------------------------------------------------------------------
 // constructs a rectangle
 //-----------------------------------------------------------------------------
-inline constexpr rect_t RectangleXY(long x = 0, long y = 0, long w = 0,
-    long h = 0)
+inline constexpr rect_t Rectangle(long x0 = 0, long y0 = 0, long x1 = 0,
+    long y1 = 0)
 {
     rect_t r = {};
 
-    r.x = x;
-    r.y = y;
-    r.w = w;
-    r.h = h;
+    r.min[0] = x0;
+    r.min[1] = y0;
+    r.max[0] = x1;
+    r.max[1] = y1;
 
     return r;
 }
 
 //-----------------------------------------------------------------------------
-// constructs a rectangle
-//-----------------------------------------------------------------------------
-inline constexpr rect_t RectangleLT(long l = 0, long t = 0, long r = 0,
-    long b = 0)
-{
-    rect_t rect = {};
-
-    rect.l = l;
-    rect.t = t;
-    rect.r = r;
-    rect.b = b;
-
-    return rect;
-}
-
-//-----------------------------------------------------------------------------
 // tests to see if rectangles intersect
 //-----------------------------------------------------------------------------
-inline constexpr bool IntersectsRectangleXY(const rect_t& r0, const rect_t& r1)
+inline constexpr bool IntersectsRectangle(const rect_t& r0, const rect_t& r1)
 {
-    const long ra = r0.x + r0.w;
-    const long rb = r1.x + r1.w;
-    const long ba = r0.y + r0.h;
-    const long bb = r1.y + r1.h;
-
-    const long minR = ra < rb ? ra : rb;
-    const long minB = ba < bb ? ba : bb;
-    const long maxX = r0.x > r1.x ? r0.x : r1.x;
-    const long maxY = r0.y > r1.y ? r0.y : r1.y;
-
-    if (minR > maxX && minB > maxY)
-    {
-        return true;
-    }
-
-    return false;
-}
-
-//-----------------------------------------------------------------------------
-// tests to see if rectangles intersect
-//-----------------------------------------------------------------------------
-inline constexpr bool IntersectsRectangleLT(const rect_t& r0, const rect_t& r1)
-{
-    const long minR = r0.r < r1.r ? r0.r : r1.r;
-    const long minB = r0.b < r1.b ? r0.b : r1.b;
-    const long maxX = r0.l > r1.l ? r0.l : r1.l;
-    const long maxY = r0.t > r1.t ? r0.t : r1.t;
+    const long minR = r0.max[0] < r1.max[0] ? r0.max[0] : r1.max[0];
+    const long minB = r0.max[1] < r1.max[1] ? r0.max[1] : r1.max[1];
+    const long maxX = r0.min[0] > r1.min[1] ? r0.min[0] : r1.min[0];
+    const long maxY = r0.min[1] > r1.min[1] ? r0.min[1] : r1.min[1];
 
     if (minR > maxX && minB > maxY)
     {
@@ -487,10 +433,9 @@ inline constexpr bool IntersectsRectangleLT(const rect_t& r0, const rect_t& r1)
 //-----------------------------------------------------------------------------
 // returns true if point is outside the specified rectangle
 //-----------------------------------------------------------------------------
-inline constexpr bool ContainsRectangleXY(const rect_t& rect, long x, long y)
+inline constexpr bool ContainsRectangle(const rect_t& rect, long x, long y)
 {
-    if ((rect.x <= x && x < rect.x + rect.w) &&
-        (rect.y <= y && y < rect.y + rect.h))
+    if ((rect.min[0] <= x && x < rect.max[0]) && (rect.min[1] <= y && y < rect.max[1]))
     {
         return true;
     }
@@ -501,36 +446,9 @@ inline constexpr bool ContainsRectangleXY(const rect_t& rect, long x, long y)
 //-----------------------------------------------------------------------------
 // returns true if point is outside the specified rectangle
 //-----------------------------------------------------------------------------
-inline constexpr bool ContainsRectangleLT(const rect_t& rect, long x, long y)
+inline constexpr bool OutsideRectangle(const rect_t& rect, long x, long y)
 {
-    if ((rect.l <= x && x < rect.r) && (rect.t <= y && y < rect.b))
-    {
-        return true;
-    }
-
-    return false;
-}
-
-//-----------------------------------------------------------------------------
-// returns true if point is outside the specified rectangle
-//-----------------------------------------------------------------------------
-inline constexpr bool OutsideRectangleXY(const rect_t& rect, long x, long y)
-{
-    if (x < rect.x || x > rect.x + rect.w ||
-        y < rect.y || y > rect.y + rect.h)
-    {
-        return true;
-    }
-
-    return false;
-}
-
-//-----------------------------------------------------------------------------
-// returns true if point is outside the specified rectangle
-//-----------------------------------------------------------------------------
-inline constexpr bool OutsideRectangleLT(const rect_t& rect, long x, long y)
-{
-    if (x < rect.l || x > rect.r || y < rect.t || y > rect.b)
+    if (x < rect.min[0] || x > rect.max[0] || y < rect.min[1] || y > rect.max[1])
     {
         return true;
     }
@@ -541,43 +459,23 @@ inline constexpr bool OutsideRectangleLT(const rect_t& rect, long x, long y)
 //-----------------------------------------------------------------------------
 // grows the rectangle by a specified amount in x and y
 //-----------------------------------------------------------------------------
-inline void InflateRectangleXY(rect_t rect, long h, long v)
+inline void InflateRectangle(rect_t rect, long h, long v)
 {
-    rect.x -= h >> 1;
-    rect.y -= v >> 1;
-    rect.w += h >> 1;
-    rect.h += v >> 1;
-}
-
-//-----------------------------------------------------------------------------
-// grows the rectangle by a specified amount in x and y
-//-----------------------------------------------------------------------------
-inline void InflateRectangleLT(rect_t rect, long h, long v)
-{
-    rect.l -= h >> 1;
-    rect.t -= v >> 1;
-    rect.r += h >> 1;
-    rect.b += v >> 1;
+    rect.min[0] -= h >> 1;
+    rect.min[1] -= v >> 1;
+    rect.max[0] += h >> 1;
+    rect.max[1] += v >> 1;
 }
 
 //-----------------------------------------------------------------------------
 // moves or offsets the rectangle by moving the upper-left position
 //-----------------------------------------------------------------------------
-inline void OffsetRectangleXY(rect_t rect, long x, long y)
+inline void OffsetRectangle(rect_t rect, long x, long y)
 {
-    rect.x += x;
-    rect.y += y;
-}
-
-//-----------------------------------------------------------------------------
-// moves or offsets the rectangle by moving the upper-left position
-//-----------------------------------------------------------------------------
-inline void OffsetRectangleLT(rect_t rect, long x, long y)
-{
-    rect.l += x;
-    rect.t += y;
-    rect.r += x;
-    rect.b += y;
+    rect.min[0] += x;
+    rect.min[1] += y;
+    rect.max[0] += x;
+    rect.max[1] += y;
 }
 
 
