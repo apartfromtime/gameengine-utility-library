@@ -417,12 +417,12 @@ inline constexpr rect_t Rectangle(long x0 = 0, long y0 = 0, long x1 = 0,
 //-----------------------------------------------------------------------------
 inline constexpr bool IntersectsRectangle(const rect_t& r0, const rect_t& r1)
 {
-    const long minR = r0.max[0] < r1.max[0] ? r0.max[0] : r1.max[0];
-    const long minB = r0.max[1] < r1.max[1] ? r0.max[1] : r1.max[1];
+    const long minX = r0.max[0] < r1.max[0] ? r0.max[0] : r1.max[0];
+    const long minY = r0.max[1] < r1.max[1] ? r0.max[1] : r1.max[1];
     const long maxX = r0.min[0] > r1.min[1] ? r0.min[0] : r1.min[0];
     const long maxY = r0.min[1] > r1.min[1] ? r0.min[1] : r1.min[1];
 
-    if (minR > maxX && minB > maxY)
+    if (minX > maxX && minY > maxY)
     {
         return true;
     }
@@ -435,7 +435,8 @@ inline constexpr bool IntersectsRectangle(const rect_t& r0, const rect_t& r1)
 //-----------------------------------------------------------------------------
 inline constexpr bool ContainsRectangle(const rect_t& rect, long x, long y)
 {
-    if ((rect.min[0] <= x && x < rect.max[0]) && (rect.min[1] <= y && y < rect.max[1]))
+    if ((rect.min[0] <= x && x < rect.max[0]) &&
+        (rect.min[1] <= y && y < rect.max[1]))
     {
         return true;
     }
@@ -448,7 +449,8 @@ inline constexpr bool ContainsRectangle(const rect_t& rect, long x, long y)
 //-----------------------------------------------------------------------------
 inline constexpr bool OutsideRectangle(const rect_t& rect, long x, long y)
 {
-    if (x < rect.min[0] || x > rect.max[0] || y < rect.min[1] || y > rect.max[1])
+    if (x < rect.min[0] || x > rect.max[0] ||
+        y < rect.min[1] || y > rect.max[1])
     {
         return true;
     }
