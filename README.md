@@ -1,3 +1,4 @@
-# GEUL (Game Engine Utility Library)
+# Game Engine Utility Library
  Math functions <br/>
- Texture functions
+ Texture functions <br/>
+ Sprite functions
