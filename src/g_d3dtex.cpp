@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "g_d3dtex.h"
+#include "..\inc\g_d3dtex.h"
 
 //-----------------------------------------------------------------------------
 // Operating System and CPU.
