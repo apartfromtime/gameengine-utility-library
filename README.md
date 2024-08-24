@@ -1,4 +1,3 @@
 # Game Engine Utility Library
  Math functions <br/>
- Texture functions <br/>
- Sprite functions
+ Texture functions
