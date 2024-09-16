@@ -8268,17 +8268,17 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t dstformat,
     rect_t* psrcrect)
 {
     bool result = false;
-    uint8_t* pixels = 0;
+    uint8_t* pixels = NULL;
     pixel_t format = PIXELTYPE_UNKNOWN;
     uint32_t xsize = 0;
     uint32_t ysize = 0;
     uint32_t depth = 0;
 
-    if (psrcimage != 0)
+    if (psrcimage != NULL)
     {
         rect_t rect = {};
         
-        if (psrcrect == 0)
+        if (psrcrect == NULL)
         {
             rect.min[0] = 0;
             rect.min[1] = 0;
@@ -8597,7 +8597,7 @@ GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
     uint8_t colormap = 0;
     file_format_t format = FILEFORMAT_NONE;
 
-    if (psrcinfo != 0) { psrcinfo->fileformat = FILEFORMAT_NONE; }
+    if (psrcinfo != NULL) { psrcinfo->fileformat = FILEFORMAT_NONE; }
     if ((result = GetInfoFromMemoryPNG(&colormap, &xsize, &ysize, &depthbits,
         psrc, psrcsize)) == true)
     {
@@ -8808,7 +8808,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
         // dst stuff
         rect_t rectdst = {};
 
-        if (pdstrect == 0)
+        if (pdstrect == NULL)
         {
             rectdst.min[0] = 0;
             rectdst.min[1] = 0;
@@ -8847,7 +8847,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
         // src stuff
         rect_t rectsrc = {};
 
-        if (psrcrect == 0)
+        if (psrcrect == NULL)
         {
             rectsrc.min[0] = 0;
             rectsrc.min[1] = 0;
@@ -8923,7 +8923,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
             }
         }
 
-        if (srcimage.data != 0)
+        if (srcimage.data != NULL)
         {
             free(srcimage.data);
             srcimage.data = NULL;
