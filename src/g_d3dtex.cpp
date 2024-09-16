@@ -7915,68 +7915,26 @@ ResampleImage(uint8_t** ppdst, rect_t dstrect, pixel_t dstformat,
         case PIXELTYPE_ABGR:
         case PIXELTYPE_BGRA:
         {
-            switch (psrcimage->pixeltype)
-            {
-            case PIXELTYPE_RGBA:
-            case PIXELTYPE_ABGR:
-            case PIXELTYPE_BGRA:
-            case PIXELTYPE_RGB:
-            case PIXELTYPE_BGR:
-            case PIXELTYPE_XBGR1555:
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            case PIXELTYPE_LUMINANCE:
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                PointFilterNbitsTo32BPP(dstbuf, dstpitch, dstxextent,
-                    dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                    srcyextent, psrcimage->pixeltype, ppalette);
-                result = true;
-            } break;
-            }
+            PointFilterNbitsTo32BPP(dstbuf, dstpitch, dstxextent,
+                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
+                srcyextent, psrcimage->pixeltype, ppalette);
+            result = true;
         } break;
         case PIXELTYPE_RGB:
         case PIXELTYPE_BGR:
         {
-            switch (psrcimage->pixeltype)
-            {
-            case PIXELTYPE_RGBA:
-            case PIXELTYPE_ABGR:
-            case PIXELTYPE_BGRA:
-            case PIXELTYPE_RGB:
-            case PIXELTYPE_BGR:
-            case PIXELTYPE_XBGR1555:
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            case PIXELTYPE_LUMINANCE:
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                PointFilterNbitsTo24BPP(dstbuf, dstpitch, dstxextent,
-                    dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                    srcyextent, psrcimage->pixeltype, ppalette);
-                result = true;
-            } break;
-            }
+            PointFilterNbitsTo24BPP(dstbuf, dstpitch, dstxextent,
+                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
+                srcyextent, psrcimage->pixeltype, ppalette);
+            result = true;
         } break;
         case PIXELTYPE_XBGR1555:
         case PIXELTYPE_LUMINANCE_ALPHA:
         {
-            switch (psrcimage->pixeltype)
-            {
-            case PIXELTYPE_RGBA:
-            case PIXELTYPE_ABGR:
-            case PIXELTYPE_BGRA:
-            case PIXELTYPE_RGB:
-            case PIXELTYPE_BGR:
-            case PIXELTYPE_XBGR1555:
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            case PIXELTYPE_LUMINANCE:
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                PointFilterNbitsTo16BPP(dstbuf, dstpitch, dstxextent,
-                    dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                    srcyextent, psrcimage->pixeltype, ppalette);
-                result = true;
-            } break;
-            }
+            PointFilterNbitsTo16BPP(dstbuf, dstpitch, dstxextent,
+                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
+                srcyextent, psrcimage->pixeltype, ppalette);
+            result = true;
         } break;
         case PIXELTYPE_LUMINANCE:
         case PIXELTYPE_COLOUR_INDEX:
@@ -7992,68 +7950,26 @@ ResampleImage(uint8_t** ppdst, rect_t dstrect, pixel_t dstformat,
         case PIXELTYPE_ABGR:
         case PIXELTYPE_BGRA:
         {
-            switch (psrcimage->pixeltype)
-            {
-            case PIXELTYPE_RGBA:
-            case PIXELTYPE_ABGR:
-            case PIXELTYPE_BGRA:
-            case PIXELTYPE_RGB:
-            case PIXELTYPE_BGR:
-            case PIXELTYPE_XBGR1555:
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            case PIXELTYPE_LUMINANCE:
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                LinearFilterNbitsTo32BPP(dstbuf, dstpitch, dstxextent,
-                    dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                    srcyextent, psrcimage->pixeltype, ppalette);
-                result = true;
-            } break;
-            }
+            LinearFilterNbitsTo32BPP(dstbuf, dstpitch, dstxextent,
+                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
+                srcyextent, psrcimage->pixeltype, ppalette);
+            result = true;
         } break;
         case PIXELTYPE_RGB:
         case PIXELTYPE_BGR:
         {
-            switch (psrcimage->pixeltype)
-            {
-            case PIXELTYPE_RGBA:
-            case PIXELTYPE_ABGR:
-            case PIXELTYPE_BGRA:
-            case PIXELTYPE_RGB:
-            case PIXELTYPE_BGR:
-            case PIXELTYPE_XBGR1555:
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            case PIXELTYPE_LUMINANCE:
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                LinearFilterNbitsTo24BPP(dstbuf, dstpitch, dstxextent,
-                    dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                    srcyextent, psrcimage->pixeltype, ppalette);
-                result = true;
-            } break;
-            }
+            LinearFilterNbitsTo24BPP(dstbuf, dstpitch, dstxextent,
+                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
+                srcyextent, psrcimage->pixeltype, ppalette);
+            result = true;
         } break;
         case PIXELTYPE_XBGR1555:
         case PIXELTYPE_LUMINANCE_ALPHA:
         {
-            switch (psrcimage->pixeltype)
-            {
-            case PIXELTYPE_RGBA:
-            case PIXELTYPE_ABGR:
-            case PIXELTYPE_BGRA:
-            case PIXELTYPE_RGB:
-            case PIXELTYPE_BGR:
-            case PIXELTYPE_XBGR1555:
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            case PIXELTYPE_LUMINANCE:
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                LinearFilterNbitsTo16BPP(dstbuf, dstpitch, dstxextent,
-                    dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                    srcyextent, psrcimage->pixeltype, ppalette);
-                result = true;
-            } break;
-            }
+            LinearFilterNbitsTo16BPP(dstbuf, dstpitch, dstxextent,
+                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
+                srcyextent, psrcimage->pixeltype, ppalette);
+            result = true;
         } break;
         case PIXELTYPE_LUMINANCE:
         case PIXELTYPE_COLOUR_INDEX:
@@ -8069,68 +7985,26 @@ ResampleImage(uint8_t** ppdst, rect_t dstrect, pixel_t dstformat,
         case PIXELTYPE_ABGR:
         case PIXELTYPE_BGRA:
         {
-            switch (psrcimage->pixeltype)
-            {
-            case PIXELTYPE_RGBA:
-            case PIXELTYPE_ABGR:
-            case PIXELTYPE_BGRA:
-            case PIXELTYPE_RGB:
-            case PIXELTYPE_BGR:
-            case PIXELTYPE_XBGR1555:
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            case PIXELTYPE_LUMINANCE:
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                BlitNbitsTo32BPP(dstbuf, dstpitch, dstxextent,
-                    dstyextent, dstformat, srcbuf, srcpitch,
-                    srcxextent, srcyextent, psrcimage->pixeltype, ppalette);
-                result = true;
-            } break;
-            }
+            BlitNbitsTo32BPP(dstbuf, dstpitch, dstxextent,
+                dstyextent, dstformat, srcbuf, srcpitch,
+                srcxextent, srcyextent, psrcimage->pixeltype, ppalette);
+            result = true;
         } break;
         case PIXELTYPE_RGB:
         case PIXELTYPE_BGR:
         {
-            switch (psrcimage->pixeltype)
-            {
-            case PIXELTYPE_RGBA:
-            case PIXELTYPE_ABGR:
-            case PIXELTYPE_BGRA:
-            case PIXELTYPE_RGB:
-            case PIXELTYPE_BGR:
-            case PIXELTYPE_XBGR1555:
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            case PIXELTYPE_LUMINANCE:
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                BlitNbitsTo24BPP(dstbuf, dstpitch, dstxextent,
-                    dstyextent, dstformat, srcbuf, srcpitch,
-                    srcxextent, srcyextent, psrcimage->pixeltype, ppalette);
-                result = true;
-            } break;
-            }
+            BlitNbitsTo24BPP(dstbuf, dstpitch, dstxextent,
+                dstyextent, dstformat, srcbuf, srcpitch,
+                srcxextent, srcyextent, psrcimage->pixeltype, ppalette);
+            result = true;
         } break;
         case PIXELTYPE_XBGR1555:
         case PIXELTYPE_LUMINANCE_ALPHA:
         {
-            switch (psrcimage->pixeltype)
-            {
-            case PIXELTYPE_RGBA:
-            case PIXELTYPE_ABGR:
-            case PIXELTYPE_BGRA:
-            case PIXELTYPE_RGB:
-            case PIXELTYPE_BGR:
-            case PIXELTYPE_XBGR1555:
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            case PIXELTYPE_LUMINANCE:
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                BlitNbitsTo16BPP(dstbuf, dstpitch, dstxextent,
-                    dstyextent, dstformat, srcbuf, srcpitch,
-                    srcxextent, srcyextent, psrcimage->pixeltype, ppalette);
-                result = true;
-            } break;
-            }
+            BlitNbitsTo16BPP(dstbuf, dstpitch, dstxextent,
+                dstyextent, dstformat, srcbuf, srcpitch,
+                srcxextent, srcyextent, psrcimage->pixeltype, ppalette);
+            result = true;
         } break;
         case PIXELTYPE_LUMINANCE:
         case PIXELTYPE_COLOUR_INDEX:
