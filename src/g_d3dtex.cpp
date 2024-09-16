@@ -6211,6 +6211,7 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
 #endif // #ifndef _PCX_H
 
+
 //-----------------------------------------------------------------------------
 // Resampling
 //-----------------------------------------------------------------------------
@@ -8168,7 +8169,6 @@ ResampleImage(uint8_t** ppdst, rect_t dstrect, pixel_t dstformat,
                 result = true;
             } break;
             }
-
         } break;
         case PIXELTYPE_RGB:
         case PIXELTYPE_BGR:
@@ -8246,7 +8246,6 @@ ResampleImage(uint8_t** ppdst, rect_t dstrect, pixel_t dstformat,
                 result = true;
             } break;
             }
-
         } break;
         case PIXELTYPE_RGB:
         case PIXELTYPE_BGR:
