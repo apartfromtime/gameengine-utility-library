@@ -8747,6 +8747,11 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
         if ((result = LoadFromMemoryPNG(&srcimage.data, &srcpalette, psrc,
             srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits, &pngcolorkey)) == true)
         {
+            if (depthbits == 32) { srcimage.pixeltype = PIXELTYPE_RGBA; }
+            else if (depthbits == 24) { srcimage.pixeltype = PIXELTYPE_RGB; }
+            else if (depthbits == 16) { srcimage.pixeltype = PIXELTYPE_LUMINANCE_ALPHA; }
+            else if (depthbits <=  8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
+            else if (depthbits <=  8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
             if (colorkey.b != pngcolorkey.b &&
                 colorkey.g != pngcolorkey.g &&
                 colorkey.r != pngcolorkey.r &&
@@ -8758,43 +8763,28 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
         }
         else if ((result = LoadFromMemoryBMP(&srcimage.data, &srcpalette, psrc,
             srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits)) == true)
-        { format = FILEFORMAT_BMP; }
-        else if ((result = LoadFromMemoryPCX(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits)) == true)
-        { format = FILEFORMAT_PCX; }
-        else if ((result = LoadFromMemoryTGA(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits)) == true)
-        { format = FILEFORMAT_TGA; }
-        else { fprintf(stderr, "LoadImage, Unsupported image format\n"); }
-
-        switch (format)
-        {
-        case FILEFORMAT_PNG:
-        {
-            if (depthbits == 32) { srcimage.pixeltype = PIXELTYPE_RGBA; }
-            else if (depthbits == 24) { srcimage.pixeltype = PIXELTYPE_RGB; }
-            else if (depthbits == 16) { srcimage.pixeltype = PIXELTYPE_LUMINANCE_ALPHA; }
-            else if (depthbits <=  8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
-            else if (depthbits <=  8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }            
-        } break;
-        case FILEFORMAT_BMP:
         {
             srcimage.pixeltype = (depthbits == 32) ? PIXELTYPE_BGRA :
                 (depthbits == 24) ? PIXELTYPE_BGR : PIXELTYPE_COLOUR_INDEX;
-        } break;
-        case FILEFORMAT_PCX:
+            format = FILEFORMAT_BMP;
+        }
+        else if ((result = LoadFromMemoryPCX(&srcimage.data, &srcpalette, psrc,
+            srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits)) == true)
         {
             srcimage.pixeltype = (depthbits <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;
-        } break;
-        case FILEFORMAT_TGA:
+            format = FILEFORMAT_PCX;
+        }
+        else if ((result = LoadFromMemoryTGA(&srcimage.data, &srcpalette, psrc,
+            srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits)) == true)
         {
             if (depthbits == 32) { srcimage.pixeltype = PIXELTYPE_BGRA; }
             else if (depthbits == 24) { srcimage.pixeltype = PIXELTYPE_BGR; }
             else if (depthbits == 16) { srcimage.pixeltype = PIXELTYPE_XBGR1555; }
             else if (depthbits ==  8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
             else if (depthbits ==  8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
-        } break;
+            format = FILEFORMAT_TGA;
         }
+        else { fprintf(stderr, "LoadImage, Unsupported image format\n"); }
 
         if (result == true &&& psrcinfo != NULL)
         {
