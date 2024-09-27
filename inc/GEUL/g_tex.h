@@ -20,13 +20,13 @@
 */
 
 
-#ifndef _G_D3DTEX_H_
-#define _G_D3DTEX_H_
+#ifndef _G_TEX_H_
+#define _G_TEX_H_
 
 
 //-----------------------------------------------------------------------------
 //
-// Direct3D texture functions.
+// Texture functions.
 //
 // Support:
 // 8bit formats only (pcx, bmp, tga, png)
@@ -37,7 +37,7 @@
 //-----------------------------------------------------------------------------
 
 
-#include "g_d3dmath.h"
+#include "g_math.h"
 
 
 // pixel type
@@ -258,4 +258,4 @@ LoadImage(image_t* pdstimage, palette_t* pdstpalette,
     rect_t* psrcrect, uint32_t filter, rgb_quad_t colorkey,
     image_info_t* psrcinfo);
 
-#endif // #ifndef _G_D3DTEX_H_
+#endif // #ifndef _G_TEX_H_

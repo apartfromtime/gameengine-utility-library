@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "..\inc\GEUL\g_d3dtex.h"
+#include "..\inc\GEUL\g_tex.h"
 #include "g_geul.h"
 
 
@@ -8881,7 +8881,6 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
 
             if (result == true)
             {
-
                 if (colorkey.b != 0 && colorkey.g != 0 &&
                     colorkey.r != 0 && colorkey.a != 0)
                 {

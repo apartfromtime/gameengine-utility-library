@@ -19,13 +19,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef _G_D3DMATH_H_
-#define _G_D3DMATH_H_
+#ifndef _G_MATH_H_
+#define _G_MATH_H_
 
 
 //-----------------------------------------------------------------------------
 //
-// Direct3D math functions.
+// Math functions.
 //
 // Includes:
 //
@@ -2056,4 +2056,4 @@ inline constexpr vector3_t UnprojectViewport(const vector3_t v,
 }
 
 
-#endif // #ifndef _G_D3DMATH_H_
+#endif // #ifndef _G_MATH_H_
