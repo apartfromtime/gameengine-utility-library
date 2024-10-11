@@ -68,6 +68,9 @@
 //
 //-----------------------------------------------------------------------------
 
+// BYTE1
+typedef unsigned char byte1_t;
+
 // BYTE2
 typedef struct _byte2
 {
