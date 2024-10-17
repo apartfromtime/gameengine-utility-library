@@ -5982,6 +5982,206 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
 
 //-----------------------------------------------------------------------------
+// PointFilter_32bits_32bits
+//-----------------------------------------------------------------------------
+void
+PointFilter_32bits_32bits(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 4;
+    uint32_t srcpitch = srcxsize * 4;
+    uint32_t x0 = 0;
+    uint32_t y0 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        y0 = lroundf(py);
+        bufdst = rawdst;
+        bufsrc = rawsrc + (y0 * srcpitch);
+        x = 0;
+
+        while (x < dstxsize)
+        {
+            x0 = lroundf(px);
+
+            bufdst[x*4+0] = bufsrc[x0*4+0];
+            bufdst[x*4+1] = bufsrc[x0*4+1];
+            bufdst[x*4+2] = bufsrc[x0*4+2];
+            bufdst[x*4+3] = bufsrc[x0*4+3];
+            
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// PointFilter_24bits_24bits
+//-----------------------------------------------------------------------------
+void
+PointFilter_24bits_24bits(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 3;
+    uint32_t srcpitch = srcxsize * 3;
+    uint32_t x0 = 0;
+    uint32_t y0 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        y0 = lroundf(py);
+        bufdst = rawdst;
+        bufsrc = rawsrc + (y0 * srcpitch);
+        x = 0;
+
+        while (x < dstxsize)
+        {
+            x0 = lroundf(px);
+
+            bufdst[x*3+0] = bufsrc[x0*3+0];
+            bufdst[x*3+1] = bufsrc[x0*3+1];
+            bufdst[x*3+2] = bufsrc[x0*3+2];
+            
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// PointFilter_16bits_16bits
+//-----------------------------------------------------------------------------
+void
+PointFilter_16bits_16bits(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 2;
+    uint32_t srcpitch = srcxsize * 2;
+    uint32_t x0 = 0;
+    uint32_t y0 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        y0 = lroundf(py);
+        bufdst = rawdst;
+        bufsrc = rawsrc + (y0 * srcpitch);
+        x = 0;
+
+        while (x < dstxsize)
+        {
+            x0 = lroundf(px);
+
+            bufdst[x*2+0] = bufsrc[x0*2+0];
+            bufdst[x*2+1] = bufsrc[x0*2+1];
+            
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// PointFilter_8bits_8bits
+//-----------------------------------------------------------------------------
+void
+PointFilter_8bits_8bits(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t x0 = 0;
+    uint32_t y0 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        y0 = lroundf(py);
+        bufdst = rawdst;
+        bufsrc = rawsrc + (y0 * srcxsize);
+        x = 0;
+
+        while (x < dstxsize)
+        {
+            x0 = lroundf(px);
+
+            bufdst[x] = bufsrc[x0];
+            
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstxsize;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
 // PointFilterNbitsTo32BPP
 //-----------------------------------------------------------------------------
 void
@@ -6395,6 +6595,429 @@ PointFilterNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
 }
 
 //-----------------------------------------------------------------------------
+// LinearFilter_32bits_32bits
+//-----------------------------------------------------------------------------
+void
+LinearFilter_32bits_32bits(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 4;
+    uint32_t srcpitch = srcxsize * 4;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcpitch);
+        bufsrc1 = rawsrc + (y1 * srcpitch);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+
+            bufdst[x*4+0] = (y1_py * ((x1_px * bufsrc0[x0*4+0]) + (px_x0 * bufsrc0[x1*4+0]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*4+0]) + (px_x0 * bufsrc1[x1*4+0])));
+            bufdst[x*4+1] = (y1_py * ((x1_px * bufsrc0[x0*4+1]) + (px_x0 * bufsrc0[x1*4+1]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*4+1]) + (px_x0 * bufsrc1[x1*4+1])));
+            bufdst[x*4+2] = (y1_py * ((x1_px * bufsrc0[x0*4+2]) + (px_x0 * bufsrc0[x1*4+2]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*4+2]) + (px_x0 * bufsrc1[x1*4+2])));
+            bufdst[x*4+3] = (y1_py * ((x1_px * bufsrc0[x0*4+3]) + (px_x0 * bufsrc0[x1*4+3]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*4+3]) + (px_x0 * bufsrc1[x1*4+3])));
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// LinearFilter_24bits_24bits
+//-----------------------------------------------------------------------------
+void
+LinearFilter_24bits_24bits(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 3;
+    uint32_t srcpitch = srcxsize * 3;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcpitch);
+        bufsrc1 = rawsrc + (y1 * srcpitch);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+
+            bufdst[x*3+0] = (y1_py * ((x1_px * bufsrc0[x0*3+0]) + (px_x0 * bufsrc0[x1*3+0]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*3+0]) + (px_x0 * bufsrc1[x1*3+0])));
+            bufdst[x*3+1] = (y1_py * ((x1_px * bufsrc0[x0*3+1]) + (px_x0 * bufsrc0[x1*3+1]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*3+1]) + (px_x0 * bufsrc1[x1*3+1])));
+            bufdst[x*3+2] = (y1_py * ((x1_px * bufsrc0[x0*3+2]) + (px_x0 * bufsrc0[x1*3+2]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*3+2]) + (px_x0 * bufsrc1[x1*3+2])));
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// LinearFilter_XBGR1555_XBGR1555
+//-----------------------------------------------------------------------------
+void
+LinearFilter_XBGR1555_XBGR1555(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 2;
+    uint32_t srcpitch = srcxsize * 2;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint8_t vx0y0 = 0, vx1y0 = 0, vx0y1 = 0, vx1y1 = 0;
+    uint8_t rx0y0 = 0, gx0y0 = 0, bx0y0 = 0, ax0y0 = 0;
+    uint8_t rx1y0 = 0, gx1y0 = 0, bx1y0 = 0, ax1y0 = 0;
+    uint8_t rx0y1 = 0, gx0y1 = 0, bx0y1 = 0, ax0y1 = 0;
+    uint8_t rx1y1 = 0, gx1y1 = 0, bx1y1 = 0, ax1y1 = 0;
+    float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
+    float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
+    uint16_t rgb1555 = 0;
+    uint8_t r = 0, g = 0, b = 0, a = 255;
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcpitch);
+        bufsrc1 = rawsrc + (y1 * srcpitch);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            rgb1555 = 0;
+            rgb1555 |= bufsrc0[x0*2+0];
+            rgb1555 |= bufsrc0[x0*2+1] << 8;
+
+            b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
+            g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
+            r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
+
+            rx0y0 = r;
+            gx0y0 = g;
+            bx0y0 = b;
+            ax0y0 = a;
+
+            rgb1555 = 0;
+            rgb1555 |= bufsrc0[x1*2+0];
+            rgb1555 |= bufsrc0[x1*2+1] << 8;
+
+            b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
+            g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
+            r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
+
+            rx1y0 = r;
+            gx1y0 = g;
+            bx1y0 = b;
+            ax1y0 = a;
+
+            rgb1555 = 0;
+            rgb1555 |= bufsrc1[x0*2+0];
+            rgb1555 |= bufsrc1[x0*2+1] << 8;
+
+            b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
+            g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
+            r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
+
+            rx0y1 = r;
+            gx0y1 = g;
+            bx0y1 = b;
+            ax0y1 = a;
+
+            rgb1555 = 0;
+            rgb1555 |= bufsrc1[x1*2+0];
+            rgb1555 |= bufsrc1[x1*2+1] << 8;
+
+            b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
+            g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
+            r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
+
+            rx1y1 = r;
+            gx1y1 = g;
+            bx1y1 = b;
+            ax1y1 = a;
+
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+            
+            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
+            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
+            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
+            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
+
+            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
+            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
+            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
+            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
+
+            r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
+            g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
+            b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
+
+            rgb1555 = 0;
+            rgb1555 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+            bufdst[x*2+0] = (rgb1555 & 0x00FF);
+            bufdst[x*2+1] = (rgb1555 & 0xFF00) >> 8;
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// LinearFilter_16bits_16bits
+//-----------------------------------------------------------------------------
+void
+LinearFilter_16bits_16bits(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 2;
+    uint32_t srcpitch = srcxsize * 2;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcpitch);
+        bufsrc1 = rawsrc + (y1 * srcpitch);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+
+            bufdst[x*2+0] = (y1_py * ((x1_px * bufsrc0[x0*2+0]) + (px_x0 * bufsrc0[x1*2+0]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*2+0]) + (px_x0 * bufsrc1[x1*2+0])));
+            bufdst[x*2+1] = (y1_py * ((x1_px * bufsrc0[x0*2+1]) + (px_x0 * bufsrc0[x1*2+1]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*2+1]) + (px_x0 * bufsrc1[x1*2+1])));
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// LinearFilter_8bits_8bits
+//-----------------------------------------------------------------------------
+void
+LinearFilter_8bits_8bits(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcxsize);
+        bufsrc1 = rawsrc + (y1 * srcxsize);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+
+            bufdst[x] = (y1_py * ((x1_px * bufsrc0[x0]) + (px_x0 * bufsrc0[x1]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0]) + (px_x0 * bufsrc1[x1])));
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstxsize;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
 // LinearFilterNbitsTo32BPP
 //-----------------------------------------------------------------------------
 void
@@ -6441,7 +7064,6 @@ LinearFilterNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
         
         float x1_px = 0.0f;
         float px_x0 = 0.0f;
-        float x1_x0 = 0.0f;
 
         px = 0.0f;
         x = 0;
@@ -6789,7 +7411,6 @@ LinearFilterNbitsTo24BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
         
         float x1_px = 0.0f;
         float px_x0 = 0.0f;
-        float x1_x0 = 0.0f;
 
         px = 0.0f;
         x = 0;
@@ -7128,7 +7749,6 @@ LinearFilterNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
         
         float x1_px = 0.0f;
         float px_x0 = 0.0f;
-        float x1_x0 = 0.0f;
 
         px = 0.0f;
         x = 0;
@@ -7425,6 +8045,166 @@ LinearFilterNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
         if (y != dstysize)
         {
             rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_32bit_32bit
+//-----------------------------------------------------------------------------
+void
+Blit_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = dstxsize * 4;
+    uint32_t srcpitch = srcxsize * 4;
+    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
+    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < ysize)
+    {
+        bufdst = rawdst;
+        bufsrc = rawsrc + ((y%srcysize)*srcpitch);
+        x = 0;
+
+        while (x < xsize)
+        {
+            bufdst[x*4+0] = bufsrc[(x%srcxsize)*4+0];
+            bufdst[x*4+1] = bufsrc[(x%srcxsize)*4+1];
+            bufdst[x*4+2] = bufsrc[(x%srcxsize)*4+2];
+            bufdst[x*4+3] = bufsrc[(x%srcxsize)*4+3];
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_24bit_24bit
+//-----------------------------------------------------------------------------
+void
+Blit_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = dstxsize * 3;
+    uint32_t srcpitch = srcxsize * 3;
+    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
+    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < ysize)
+    {
+        bufdst = rawdst;
+        bufsrc = rawsrc + ((y%srcysize)*srcpitch);
+        x = 0;
+
+        while (x < xsize)
+        {
+            bufdst[x*3+0] = bufsrc[(x%srcxsize)*3+0];
+            bufdst[x*3+1] = bufsrc[(x%srcxsize)*3+1];
+            bufdst[x*3+2] = bufsrc[(x%srcxsize)*3+2];
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_16bit_16bit
+//-----------------------------------------------------------------------------
+void
+Blit_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = dstxsize * 2;
+    uint32_t srcpitch = srcxsize * 2;
+    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
+    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < ysize)
+    {
+        bufdst = rawdst;
+        bufsrc = rawsrc + ((y%srcysize)*srcpitch);
+        x = 0;
+
+        while (x < xsize)
+        {
+            bufdst[x*2+0] = bufsrc[(x%srcxsize)*2+0];
+            bufdst[x*2+1] = bufsrc[(x%srcxsize)*2+1];
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_8bit_8bit
+//-----------------------------------------------------------------------------
+void
+Blit_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
+    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < ysize)
+    {
+        bufdst = rawdst;
+        bufsrc = rawsrc + ((y%srcysize)*srcxsize);
+        x = 0;
+
+        while (x < xsize)
+        {
+            bufdst[x] = bufsrc[(x%srcxsize)];
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawdst += dstxsize;
         }
     }
 }
