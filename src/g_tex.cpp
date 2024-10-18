@@ -5982,13 +5982,168 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
 
 //-----------------------------------------------------------------------------
-// PointFilterNbitsTo32BPP
+// Point_32bit_32bit
 //-----------------------------------------------------------------------------
 void
-PointFilterNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
-    uint32_t dstysize, pixel_t dstformat, uint8_t* psrc, uint32_t srcpitch,
-    uint32_t srcxsize, uint32_t srcysize, pixel_t srcformat,
-    palette_t* ppalette)
+Point_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 4;
+    uint32_t srcpitch = srcxsize * 4;
+    uint32_t x0 = 0;
+    uint32_t y0 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        y0 = lroundf(py);
+        bufdst = rawdst;
+        bufsrc = rawsrc + (y0 * srcpitch);
+        x = 0;
+
+        while (x < dstxsize)
+        {
+            x0 = lroundf(px);
+
+            bufdst[x*4+0] = bufsrc[x0*4+0];
+            bufdst[x*4+1] = bufsrc[x0*4+1];
+            bufdst[x*4+2] = bufsrc[x0*4+2];
+            bufdst[x*4+3] = bufsrc[x0*4+3];
+            
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Point_24bit_24bit
+//-----------------------------------------------------------------------------
+void
+Point_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 3;
+    uint32_t srcpitch = srcxsize * 3;
+    uint32_t x0 = 0;
+    uint32_t y0 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        y0 = lroundf(py);
+        bufdst = rawdst;
+        bufsrc = rawsrc + (y0 * srcpitch);
+        x = 0;
+
+        while (x < dstxsize)
+        {
+            x0 = lroundf(px);
+
+            bufdst[x*3+0] = bufsrc[x0*3+0];
+            bufdst[x*3+1] = bufsrc[x0*3+1];
+            bufdst[x*3+2] = bufsrc[x0*3+2];
+            
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Point_16bit_16bit
+//-----------------------------------------------------------------------------
+void
+Point_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 2;
+    uint32_t srcpitch = srcxsize * 2;
+    uint32_t x0 = 0;
+    uint32_t y0 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        y0 = lroundf(py);
+        bufdst = rawdst;
+        bufsrc = rawsrc + (y0 * srcpitch);
+        x = 0;
+
+        while (x < dstxsize)
+        {
+            x0 = lroundf(px);
+
+            bufdst[x*2+0] = bufsrc[x0*2+0];
+            bufdst[x*2+1] = bufsrc[x0*2+1];
+            
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Point_8bit_8bit
+//-----------------------------------------------------------------------------
+void
+Point_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
 {
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
@@ -6002,8 +6157,132 @@ PointFilterNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
     uint32_t y0 = 0;
     uint32_t x = 0;
     uint32_t y = 0;
-    uint16_t rgb1555 = 0;
-    uint8_t v = 0, r = 0, g = 0, b = 0, a = 255;
+
+    while (y < dstysize)
+    {
+        y0 = lroundf(py);
+        bufdst = rawdst;
+        bufsrc = rawsrc + (y0 * srcxsize);
+        x = 0;
+
+        while (x < dstxsize)
+        {
+            x0 = lroundf(px);
+
+            bufdst[x] = bufsrc[x0];
+            
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstxsize;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Point_32bit_Nbit
+//-----------------------------------------------------------------------------
+void
+Point_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize * 4;
+    uint32_t rshift = 0;
+    uint32_t gshift = 0;
+    uint32_t bshift = 0;
+    uint32_t ashift = 0;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
+    uint32_t x0 = 0;
+    uint32_t y0 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint16_t rgb16 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
+
+    switch (srcformat)
+    {
+    case PIXELTYPE_RGBA:
+    {
+        rmask = 0xFF000000;
+        gmask = 0x00FF0000;
+        bmask = 0x0000FF00;
+        amask = 0x000000FF;
+
+        rshift = 24;
+        gshift = 16;
+        bshift =  8;
+        ashift =  0;
+    } break;
+    case PIXELTYPE_ABGR:
+    {
+        amask = 0xFF000000;
+        bmask = 0x00FF0000;
+        gmask = 0x0000FF00;
+        rmask = 0x000000FF;
+
+        rshift =  0;
+        gshift =  8;
+        bshift = 16;
+        ashift = 24;
+    } break;
+    case PIXELTYPE_BGRA:
+    {
+        bmask = 0xFF000000;
+        gmask = 0x00FF0000;
+        rmask = 0x0000FF00;
+        amask = 0x000000FF;
+
+        rshift =  8;
+        gshift = 16;
+        bshift = 24;
+        ashift =  0;
+    } break;
+    }
 
     while (y < dstysize)
     {
@@ -6016,96 +6295,69 @@ PointFilterNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
         {
             x0 = lroundf(px);
 
-            switch (srcformat)
-            {
-            case PIXELTYPE_ABGR:
-            {
-                a = bufsrc[x0*4+0];
-                b = bufsrc[x0*4+1];
-                g = bufsrc[x0*4+2];
-                r = bufsrc[x0*4+3];
-            } break;
-            case PIXELTYPE_RGBA:
-            {
-                r = bufsrc[x0*4+0];
-                g = bufsrc[x0*4+1];
-                b = bufsrc[x0*4+2];
-                a = bufsrc[x0*4+3];
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                b = bufsrc[x0*4+0];
-                g = bufsrc[x0*4+1];
-                r = bufsrc[x0*4+2];
-                a = bufsrc[x0*4+3];
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                r = bufsrc[x0*3+0];
-                g = bufsrc[x0*3+1];
-                b = bufsrc[x0*3+2];
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                b = bufsrc[x0*3+0];
-                g = bufsrc[x0*3+1];
-                r = bufsrc[x0*3+2];
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                rgb1555 = 0;
-                rgb1555 |= bufsrc[x0*2+0];
-                rgb1555 |= bufsrc[x0*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                r = bufsrc[x0*2+0];
-                g = r;
-                b = r;
-                a = bufsrc[x0*2+1];
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                r = bufsrc[x0*1+0];
-                g = bufsrc[x0*1+0];
-                b = bufsrc[x0*1+0];
-            } break;
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                v = bufsrc[x0*1+0];
-                r = ppalette->data[v].r;
-                g = ppalette->data[v].g;
-                b = ppalette->data[v].b;
-                a = ppalette->data[v].a;
-            } break;
-            }
+            uint32_t pixel = (bufsrc[(x0%srcxsize)*4+0] << 24)
+                | (bufsrc[(x0%srcxsize)*4+1] << 16)
+                | (bufsrc[(x0%srcxsize)*4+2] <<  8)
+                | (bufsrc[(x0%srcxsize)*4+3] <<  0);
 
             switch (dstformat)
             {
-            case PIXELTYPE_ABGR:
-            {
-                bufdst[x*4+0] = a;
-                bufdst[x*4+1] = b;
-                bufdst[x*4+2] = g;
-                bufdst[x*4+3] = r;
-            } break;
             case PIXELTYPE_RGBA:
             {
-                bufdst[x*4+0] = r;
-                bufdst[x*4+1] = g;
-                bufdst[x*4+2] = b;
-                bufdst[x*4+3] = a;
+                bufdst[x*4+0] = ((pixel & rmask) >> rshift);
+                bufdst[x*4+1] = ((pixel & gmask) >> gshift);
+                bufdst[x*4+2] = ((pixel & bmask) >> bshift);
+                bufdst[x*4+3] = ((pixel & amask) >> ashift);
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = ((pixel & amask) >> ashift);
+                bufdst[x*4+1] = ((pixel & bmask) >> bshift);
+                bufdst[x*4+2] = ((pixel & gmask) >> gshift);
+                bufdst[x*4+3] = ((pixel & rmask) >> rshift);
             } break;
             case PIXELTYPE_BGRA:
             {
-                bufdst[x*4+0] = b;
-                bufdst[x*4+1] = g;
-                bufdst[x*4+2] = r;
-                bufdst[x*4+3] = a;
+                bufdst[x*4+0] = ((pixel & bmask) >> bshift);
+                bufdst[x*4+1] = ((pixel & gmask) >> gshift);
+                bufdst[x*4+2] = ((pixel & rmask) >> rshift);
+                bufdst[x*4+3] = ((pixel & amask) >> ashift);
+            } break;
+            case PIXELTYPE_RGB:
+            {
+                bufdst[x*3+0] = ((pixel & rmask) >> rshift);
+                bufdst[x*3+1] = ((pixel & gmask) >> gshift);
+                bufdst[x*3+2] = ((pixel & bmask) >> bshift);
+            } break;
+            case PIXELTYPE_BGR:
+            {
+                bufdst[x*3+0] = ((pixel & bmask) >> bshift);
+                bufdst[x*3+1] = ((pixel & gmask) >> gshift);
+                bufdst[x*3+2] = ((pixel & rmask) >> rshift);
+            } break;
+            case PIXELTYPE_XBGR1555:
+            {
+                r = ((pixel & rmask) >> rshift) * 0x1F / 0xFF;
+                g = ((pixel & gmask) >> gshift) * 0x1F / 0xFF;
+                b = ((pixel & bmask) >> bshift) * 0x1F / 0xFF;
+
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF);
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
+            } break;
+            case PIXELTYPE_LUMINANCE_ALPHA:
+            {
+                bufdst[x*2+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                    ((pixel & gmask) >> gshift) * 0.5870f +
+                    ((pixel & bmask) >> bshift) * 0.1140f);
+                bufdst[x*2+1] = 255;
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                bufdst[x*1+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                    ((pixel & gmask) >> gshift) * 0.5870f +
+                    ((pixel & bmask) >> bshift) * 0.1140f);
             } break;
             }
             
@@ -6124,28 +6376,87 @@ PointFilterNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
 }
 
 //-----------------------------------------------------------------------------
-// PointFilterNbitsTo24BPP
+// Point_24bit_Nbit
 //-----------------------------------------------------------------------------
 void
-PointFilterNbitsTo24BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
-    uint32_t dstysize, pixel_t dstformat, uint8_t* psrc, uint32_t srcpitch,
-    uint32_t srcxsize, uint32_t srcysize, pixel_t srcformat,
-    palette_t* ppalette)
+Point_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
 {
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
     float dx = (float)srcxsize / (float)dstxsize;
     float dy = (float)srcysize / (float)dstysize;
     float px = 0.0f;
     float py = 0.0f;
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize * 3;
+    uint32_t rshift = 0;
+    uint32_t gshift = 0;
+    uint32_t bshift = 0;
+    uint32_t ashift = 0;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
     uint32_t x0 = 0;
     uint32_t y0 = 0;
     uint32_t x = 0;
     uint32_t y = 0;
-    uint16_t rgb1555 = 0;
-    uint8_t v = 0, r = 0, g = 0, b = 0, a = 255;
+    uint16_t rgb16 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
+
+    switch (srcformat)
+    {
+    case PIXELTYPE_RGB:
+    {
+        rmask = 0x00FF0000;
+        gmask = 0x0000FF00;
+        bmask = 0x000000FF;
+        
+        rshift = 16;
+        gshift =  8;
+        bshift =  0;
+    } break;
+    case PIXELTYPE_BGR:
+    {
+        bmask = 0x00FF0000;
+        gmask = 0x0000FF00;
+        rmask = 0x000000FF;
+
+        rshift =  0;
+        gshift =  8;
+        bshift = 16;
+    } break;
+    }
 
     while (y < dstysize)
     {
@@ -6158,76 +6469,363 @@ PointFilterNbitsTo24BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
         {
             x0 = lroundf(px);
 
-            switch (srcformat)
-            {
-            case PIXELTYPE_RGBA:
-            {
-                r = bufsrc[x0*4+0];
-                g = bufsrc[x0*4+1];
-                b = bufsrc[x0*4+2];
-                a = bufsrc[x0*4+3];
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                a = bufsrc[x0*4+0];
-                b = bufsrc[x0*4+1];
-                g = bufsrc[x0*4+2];
-                r = bufsrc[x0*4+3];
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                b = bufsrc[x0*4+0];
-                g = bufsrc[x0*4+1];
-                r = bufsrc[x0*4+2];
-                a = bufsrc[x0*4+3];
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                r = bufsrc[x0*3+0];
-                g = bufsrc[x0*3+1];
-                b = bufsrc[x0*3+2];
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                b = bufsrc[x0*3+0];
-                g = bufsrc[x0*3+1];
-                r = bufsrc[x0*3+2];
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                rgb1555 = 0;
-                rgb1555 |= bufsrc[x0*2+0];
-                rgb1555 |= bufsrc[x0*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                r = bufsrc[x0*2+0];
-                g = r;
-                b = r;
-                a = bufsrc[x0*2+1];
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                r = bufsrc[x0*1+0];
-                g = r;
-                b = r;
-            } break;
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                v = bufsrc[x0*1+0];
-
-                r = ppalette->data[v].r;
-                g = ppalette->data[v].g;
-                b = ppalette->data[v].b;
-            } break;
-            }
+            uint32_t pixel = (bufsrc[(x0%srcxsize)*3+0] << 16)
+                | (bufsrc[(x0%srcxsize)*3+1] <<  8)
+                | (bufsrc[(x0%srcxsize)*3+2] <<  0);
 
             switch (dstformat)
             {
+            case PIXELTYPE_RGBA:
+            {
+                bufdst[x*4+0] = ((pixel & rmask) >> rshift);
+                bufdst[x*4+1] = ((pixel & gmask) >> gshift);
+                bufdst[x*4+2] = ((pixel & bmask) >> bshift);
+                bufdst[x*4+3] = ((pixel & amask) >> ashift);
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = ((pixel & amask) >> ashift);
+                bufdst[x*4+1] = ((pixel & bmask) >> bshift);
+                bufdst[x*4+2] = ((pixel & gmask) >> gshift);
+                bufdst[x*4+3] = ((pixel & rmask) >> rshift);
+            } break;
+            case PIXELTYPE_BGRA:
+            {
+                bufdst[x*4+0] = ((pixel & bmask) >> bshift);
+                bufdst[x*4+1] = ((pixel & gmask) >> gshift);
+                bufdst[x*4+2] = ((pixel & rmask) >> rshift);
+                bufdst[x*4+3] = ((pixel & amask) >> ashift);
+            } break;
+            case PIXELTYPE_RGB:
+            {
+                bufdst[x*3+0] = ((pixel & rmask) >> rshift);
+                bufdst[x*3+1] = ((pixel & gmask) >> gshift);
+                bufdst[x*3+2] = ((pixel & bmask) >> bshift);
+            } break;
+            case PIXELTYPE_BGR:
+            {
+                bufdst[x*3+0] = ((pixel & bmask) >> bshift);
+                bufdst[x*3+1] = ((pixel & gmask) >> gshift);
+                bufdst[x*3+2] = ((pixel & rmask) >> rshift);
+            } break;
+            case PIXELTYPE_XBGR1555:
+            {
+                r = ((pixel & rmask) >> rshift) * 0x1F / 0xFF;
+                g = ((pixel & gmask) >> gshift) * 0x1F / 0xFF;
+                b = ((pixel & bmask) >> bshift) * 0x1F / 0xFF;
+
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF);
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
+            } break;
+            case PIXELTYPE_LUMINANCE_ALPHA:
+            {
+                bufdst[x*2+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                    ((pixel & gmask) >> gshift) * 0.5870f +
+                    ((pixel & bmask) >> bshift) * 0.1140f);
+                bufdst[x*2+1] = 255;
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                bufdst[x*1+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                    ((pixel & gmask) >> gshift) * 0.5870f +
+                    ((pixel & bmask) >> bshift) * 0.1140f);
+            } break;
+            }
+            
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Point_16bit_Nbit
+//-----------------------------------------------------------------------------
+void
+Point_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    float rmod = 0.0f;
+    float gmod = 0.0f;
+    float bmod = 0.0f;
+    float amod = 0.0f;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize * 2;
+    uint32_t rshift = 0;
+    uint32_t gshift = 0;
+    uint32_t bshift = 0;
+    uint32_t ashift = 0;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
+    uint32_t x0 = 0;
+    uint32_t y0 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint16_t rgb16 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
+
+    switch (srcformat)
+    {
+    case PIXELTYPE_XBGR1555:
+    {
+        rmask = 0x7C00;
+        gmask = 0x03E0;
+        bmask = 0x001F;
+        amask = 0x8000;
+
+        rshift = 10;
+        gshift =  5;
+        bshift =  0;
+        ashift = 15;
+
+        rmod = 255.0f / 31.0f;
+        gmod = 255.0f / 31.0f;
+        bmod = 255.0f / 31.0f;
+        amod = 0.0f;
+    } break;
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        rmask = 0xFF00;
+        gmask = 0xFF00;
+        bmask = 0xFF00;
+        amask = 0x00FF;
+
+        rshift = 8;
+        gshift = 8;
+        bshift = 8;
+        ashift = 0;
+
+        rmod = 0.2990f;
+        gmod = 0.5870f;
+        bmod = 0.1140f;
+        amod = 1.0f;
+    } break;
+    }
+
+    while (y < dstysize)
+    {
+        y0 = lroundf(py);
+        bufdst = rawdst;
+        bufsrc = rawsrc + (y0 * srcpitch);
+        x = 0;
+
+        while (x < dstxsize)
+        {
+            x0 = lroundf(px);
+
+            uint16_t pixel = (bufsrc[(x0%srcxsize)*2+0] <<  8)
+                | (bufsrc[(x0%srcxsize)*2+1] <<  0);
+
+            switch (dstformat)
+            {
+            case PIXELTYPE_RGBA:
+            {
+                bufdst[x*4+0] = ((pixel & rmask) >> rshift) * rmod;
+                bufdst[x*4+1] = ((pixel & gmask) >> gshift) * gmod;
+                bufdst[x*4+2] = ((pixel & bmask) >> bshift) * bmod;
+                bufdst[x*4+3] = ((pixel & amask) >> ashift) * amod;
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = ((pixel & amask) >> ashift) * amod;
+                bufdst[x*4+1] = ((pixel & bmask) >> bshift) * bmod;
+                bufdst[x*4+2] = ((pixel & gmask) >> gshift) * gmod;
+                bufdst[x*4+3] = ((pixel & rmask) >> rshift) * rmod;
+            } break;
+            case PIXELTYPE_BGRA:
+            {
+                bufdst[x*4+0] = ((pixel & bmask) >> bshift) * bmod;
+                bufdst[x*4+1] = ((pixel & gmask) >> gshift) * gmod;
+                bufdst[x*4+2] = ((pixel & rmask) >> rshift) * rmod;
+                bufdst[x*4+3] = ((pixel & amask) >> ashift) * amod;
+            } break;
+            case PIXELTYPE_RGB:
+            {
+                bufdst[x*3+0] = ((pixel & rmask) >> rshift) * rmod;
+                bufdst[x*3+1] = ((pixel & gmask) >> gshift) * gmod;
+                bufdst[x*3+2] = ((pixel & bmask) >> bshift) * bmod;
+            } break;
+            case PIXELTYPE_BGR:
+            {
+                bufdst[x*3+0] = ((pixel & bmask) >> bshift) * bmod;
+                bufdst[x*3+1] = ((pixel & gmask) >> gshift) * gmod;
+                bufdst[x*3+2] = ((pixel & rmask) >> rshift) * rmod;
+            } break;
+            case PIXELTYPE_XBGR1555:
+            {
+                r = (((pixel & rmask) >> rshift) * rmod) * 0x1F / 0xFF;
+                g = (((pixel & gmask) >> gshift) * gmod) * 0x1F / 0xFF;
+                b = (((pixel & bmask) >> bshift) * bmod) * 0x1F / 0xFF;
+
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF);
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
+            } break;
+            case PIXELTYPE_LUMINANCE_ALPHA:
+            {
+                bufdst[x*2+0] = (uint8_t)((((pixel & rmask) >> rshift) * rmod) * 0.2990f +
+                    (((pixel & gmask) >> gshift) * gmod) * 0.5870f +
+                    (((pixel & bmask) >> bshift) * bmod) * 0.1140f);
+                bufdst[x*2+1] = 255;
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                bufdst[x*1+0] = (uint8_t)((((pixel & rmask) >> rshift) * rmod) * 0.2990f +
+                    (((pixel & gmask) >> gshift) * gmod) * 0.5870f +
+                    (((pixel & bmask) >> bshift) * bmod) * 0.1140f);
+            } break;
+            }
+            
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Point_8bit_Nbit
+//-----------------------------------------------------------------------------
+void
+Point_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize;
+    uint32_t x0 = 0;
+    uint32_t y0 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint16_t rgb16 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+    uint8_t a = 255;
+    uint8_t v = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    }
+
+    while (y < dstysize)
+    {
+        y0 = lroundf(py);
+        bufdst = rawdst;
+        bufsrc = rawsrc + (y0 * srcpitch);
+        x = 0;
+
+        while (x < dstxsize)
+        {
+            x0 = lroundf(px);
+
+            v = bufsrc[x0*1+0];
+            b = v;
+            g = v;
+            r = v;
+
+            switch (dstformat)
+            {
+            case PIXELTYPE_RGBA:
+            {
+                bufdst[x*4+0] = r;
+                bufdst[x*4+1] = g;
+                bufdst[x*4+2] = b;
+                bufdst[x*4+3] = a;
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = a;
+                bufdst[x*4+1] = b;
+                bufdst[x*4+2] = g;
+                bufdst[x*4+3] = r;
+            } break;
+            case PIXELTYPE_BGRA:
+            {
+                bufdst[x*4+0] = b;
+                bufdst[x*4+1] = g;
+                bufdst[x*4+2] = r;
+                bufdst[x*4+3] = a;
+            } break;
             case PIXELTYPE_RGB:
             {
                 bufdst[x*3+0] = r;
@@ -6240,142 +6838,22 @@ PointFilterNbitsTo24BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
                 bufdst[x*3+1] = g;
                 bufdst[x*3+2] = r;
             } break;
-            }
-            
-            px += dx;
-            x++;
-        }
-
-        py += dy;
-        y++;
-
-        if (y != dstysize)
-        {
-            rawdst += dstpitch;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-// PointFilterNbitsTo16BPP
-//-----------------------------------------------------------------------------
-void
-PointFilterNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
-    uint32_t dstysize, pixel_t dstformat, uint8_t* psrc, uint32_t srcpitch,
-    uint32_t srcxsize, uint32_t srcysize, pixel_t srcformat,
-    palette_t* ppalette)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    float dx = (float)srcxsize / (float)dstxsize;
-    float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
-    uint32_t x0 = 0;
-    uint32_t y0 = 0;
-    uint32_t x = 0;
-    uint32_t y = 0;
-    uint16_t rgb1555 = 0;
-    uint8_t v = 0, r = 0, g = 0, b = 0, a = 255;
-
-    while (y < dstysize)
-    {
-        y0 = lroundf(py);
-        bufdst = rawdst;
-        bufsrc = rawsrc + (y0 * srcpitch);
-        x = 0;
-
-        while (x < dstxsize)
-        {
-            x0 = lroundf(px);
-
-            switch (srcformat)
-            {
-            case PIXELTYPE_RGBA:
-            {
-                r = bufsrc[x0*4+0];
-                g = bufsrc[x0*4+1];
-                b = bufsrc[x0*4+2];
-                a = bufsrc[x0*4+3];
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                a = bufsrc[x0*4+0];
-                b = bufsrc[x0*4+1];
-                g = bufsrc[x0*4+2];
-                r = bufsrc[x0*4+3];
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                b = bufsrc[x0*4+0];
-                g = bufsrc[x0*4+1];
-                r = bufsrc[x0*4+2];
-                a = bufsrc[x0*4+3];
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                r = bufsrc[x0*3+0];
-                g = bufsrc[x0*3+1];
-                b = bufsrc[x0*3+2];
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                b = bufsrc[x0*3+0];
-                g = bufsrc[x0*3+1];
-                r = bufsrc[x0*3+2];
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                rgb1555 = 0;
-                rgb1555 |= bufsrc[x0*2+0];
-                rgb1555 |= bufsrc[x0*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                r = bufsrc[x0*2+0];
-                g = r;
-                b = r;
-                a = bufsrc[x0*2+1];
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                r = bufsrc[x0*1+0];
-                g = r;
-                b = r;
-            } break;
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                v = bufsrc[x0*1+0];
-
-                r = ppalette->data[v].r;
-                g = ppalette->data[v].g;
-                b = ppalette->data[v].b;
-            } break;
-            }
-
-            switch (dstformat)
-            {
             case PIXELTYPE_XBGR1555:
             {
                 r = r * 0x1F / 0xFF;
                 g = g * 0x1F / 0xFF;
                 b = b * 0x1F / 0xFF;
 
-                rgb1555 = 0;
-                rgb1555 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
 
-                bufdst[x*2+0] = (rgb1555 & 0x00FF);
-                bufdst[x*2+1] = (rgb1555 & 0xFF00) >> 8;
+                bufdst[x*2+0] = (rgb16 & 0x00FF);
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
-                bufdst[x*2+0] = r;
+                bufdst[x*2+0] = (uint8_t)(r * 0.2990f +
+                    g * 0.5870f +
+                    b * 0.1140f);
                 bufdst[x*2+1] = a;
             } break;
             }
@@ -6395,13 +6873,157 @@ PointFilterNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
 }
 
 //-----------------------------------------------------------------------------
-// LinearFilterNbitsTo32BPP
+// Point_PAL_Nbit
 //-----------------------------------------------------------------------------
 void
-LinearFilterNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
-    uint32_t dstysize, pixel_t dstformat, uint8_t* psrc, uint32_t srcpitch,
-    uint32_t srcxsize, uint32_t srcysize, pixel_t srcformat,
-    palette_t* ppalette)
+Point_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat, palette_t* ppalette)
+{
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize;
+    uint32_t x0 = 0;
+    uint32_t y0 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint16_t rgb16 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+    uint8_t a = 0;
+    uint8_t v = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
+
+    while (y < dstysize)
+    {
+        y0 = lroundf(py);
+        bufdst = rawdst;
+        bufsrc = rawsrc + (y0 * srcpitch);
+        x = 0;
+
+        while (x < dstxsize)
+        {
+            x0 = lroundf(px);
+
+            v = bufsrc[x0*1+0];
+            b = ppalette->data[v].b;
+            g = ppalette->data[v].g;
+            r = ppalette->data[v].r;
+            a = ppalette->data[v].a;
+
+            switch (dstformat)
+            {
+            case PIXELTYPE_RGBA:
+            {
+                bufdst[x*4+0] = r;
+                bufdst[x*4+1] = g;
+                bufdst[x*4+2] = b;
+                bufdst[x*4+3] = a;
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = a;
+                bufdst[x*4+1] = b;
+                bufdst[x*4+2] = g;
+                bufdst[x*4+3] = r;
+            } break;
+            case PIXELTYPE_BGRA:
+            {
+                bufdst[x*4+0] = b;
+                bufdst[x*4+1] = g;
+                bufdst[x*4+2] = r;
+                bufdst[x*4+3] = a;
+            } break;
+            case PIXELTYPE_RGB:
+            {
+                bufdst[x*3+0] = r;
+                bufdst[x*3+1] = g;
+                bufdst[x*3+2] = b;
+            } break;
+            case PIXELTYPE_BGR:
+            {
+                bufdst[x*3+0] = b;
+                bufdst[x*3+1] = g;
+                bufdst[x*3+2] = r;
+            } break;
+            case PIXELTYPE_XBGR1555:
+            {
+                r = r * 0x1F / 0xFF;
+                g = g * 0x1F / 0xFF;
+                b = b * 0x1F / 0xFF;
+
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF);
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
+            } break;
+            case PIXELTYPE_LUMINANCE_ALPHA:
+            {
+                bufdst[x*2+0] = (uint8_t)(r * 0.2990f +
+                    g * 0.5870f +
+                    b * 0.1140f);
+                bufdst[x*2+1] = a;
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                bufdst[x*1+0] = (uint8_t)(r * 0.2990f +
+                    g * 0.5870f +
+                    b * 0.1140f);
+            } break;
+            }
+            
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Linear_32bit_32bit
+//-----------------------------------------------------------------------------
+void
+Linear_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
 {
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
@@ -6413,19 +7035,12 @@ LinearFilterNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
     float dy = (float)srcysize / (float)dstysize;
     float px = 0.0f;
     float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 4;
+    uint32_t srcpitch = srcxsize * 4;
     uint32_t x0 = 0, x1 = 0;
     uint32_t y0 = 0, y1 = 0;
     uint32_t x = 0;
     uint32_t y = 0;
-    uint8_t vx0y0 = 0, vx1y0 = 0, vx0y1 = 0, vx1y1 = 0;
-    uint8_t rx0y0 = 0, gx0y0 = 0, bx0y0 = 0, ax0y0 = 0;
-    uint8_t rx1y0 = 0, gx1y0 = 0, bx1y0 = 0, ax1y0 = 0;
-    uint8_t rx0y1 = 0, gx0y1 = 0, bx0y1 = 0, ax0y1 = 0;
-    uint8_t rx1y1 = 0, gx1y1 = 0, bx1y1 = 0, ax1y1 = 0;
-    float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
-    float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
-    uint16_t rgb1555 = 0;
-    uint8_t v = 0, r = 0, g = 0, b = 0, a = 255;
 
     while (y < dstysize)
     {
@@ -6441,7 +7056,6 @@ LinearFilterNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
         
         float x1_px = 0.0f;
         float px_x0 = 0.0f;
-        float x1_x0 = 0.0f;
 
         px = 0.0f;
         x = 0;
@@ -6451,244 +7065,510 @@ LinearFilterNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
             x0 = FLOOR(px);
             x1 = x0 + 1;
 
-            switch (srcformat)
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+
+            bufdst[x*4+0] = (y1_py * ((x1_px * bufsrc0[x0*4+0]) + (px_x0 * bufsrc0[x1*4+0]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*4+0]) + (px_x0 * bufsrc1[x1*4+0])));
+            bufdst[x*4+1] = (y1_py * ((x1_px * bufsrc0[x0*4+1]) + (px_x0 * bufsrc0[x1*4+1]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*4+1]) + (px_x0 * bufsrc1[x1*4+1])));
+            bufdst[x*4+2] = (y1_py * ((x1_px * bufsrc0[x0*4+2]) + (px_x0 * bufsrc0[x1*4+2]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*4+2]) + (px_x0 * bufsrc1[x1*4+2])));
+            bufdst[x*4+3] = (y1_py * ((x1_px * bufsrc0[x0*4+3]) + (px_x0 * bufsrc0[x1*4+3]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*4+3]) + (px_x0 * bufsrc1[x1*4+3])));
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Linear_24bit_24bit
+//-----------------------------------------------------------------------------
+void
+Linear_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t dstpitch = dstxsize * 3;
+    uint32_t srcpitch = srcxsize * 3;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcpitch);
+        bufsrc1 = rawsrc + (y1 * srcpitch);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+
+            bufdst[x*3+0] = (y1_py * ((x1_px * bufsrc0[x0*3+0]) + (px_x0 * bufsrc0[x1*3+0]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*3+0]) + (px_x0 * bufsrc1[x1*3+0])));
+            bufdst[x*3+1] = (y1_py * ((x1_px * bufsrc0[x0*3+1]) + (px_x0 * bufsrc0[x1*3+1]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*3+1]) + (px_x0 * bufsrc1[x1*3+1])));
+            bufdst[x*3+2] = (y1_py * ((x1_px * bufsrc0[x0*3+2]) + (px_x0 * bufsrc0[x1*3+2]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0*3+2]) + (px_x0 * bufsrc1[x1*3+2])));
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Linear_16bit_16bit
+//-----------------------------------------------------------------------------
+void
+Linear_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    float rmod = 0.0f;
+    float gmod = 0.0f;
+    float bmod = 0.0f;
+    float amod = 0.0f;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
+    float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    uint32_t dstpitch = srcxsize * 2;
+    uint32_t srcpitch = srcxsize * 2;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint16_t rgb16 = 0;
+    uint8_t rx0y0 = 0, gx0y0 = 0, bx0y0 = 0, ax0y0 = 0;
+    uint8_t rx1y0 = 0, gx1y0 = 0, bx1y0 = 0, ax1y0 = 0;
+    uint8_t rx0y1 = 0, gx0y1 = 0, bx0y1 = 0, ax0y1 = 0;
+    uint8_t rx1y1 = 0, gx1y1 = 0, bx1y1 = 0, ax1y1 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+
+    switch (srcformat)
+    {
+    case PIXELTYPE_XBGR1555:
+    {
+        rmask = 0x7C00;
+        gmask = 0x03E0;
+        bmask = 0x001F;
+        amask = 0x8000;
+
+        rmod = 255.0f / 31.0f;
+        gmod = 255.0f / 31.0f;
+        bmod = 255.0f / 31.0f;
+        amod = 0.0f;
+    } break;
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        rmask = 0x00FF;
+        gmask = 0x00FF;
+        bmask = 0x00FF;
+        amask = 0xFF00;
+
+        rmod = 0.2990f;
+        gmod = 0.5870f;
+        bmod = 0.1140f;
+        amod = 1.0f;
+    } break;
+    }
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcpitch);
+        bufsrc1 = rawsrc + (y1 * srcpitch);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            uint32_t pixel0 = (bufsrc0[(x0%srcxsize)*3+0] << 8)
+                | (bufsrc0[(x0%srcxsize)*3+1] << 0);
+            uint32_t pixel1 = (bufsrc0[(x1%srcxsize)*3+0] << 8)
+                | (bufsrc0[(x1%srcxsize)*3+1] << 0);
+            uint32_t pixel2 = (bufsrc1[(x0%srcxsize)*3+0] << 8)
+                | (bufsrc1[(x0%srcxsize)*3+1] << 0);
+            uint32_t pixel3 = (bufsrc1[(x1%srcxsize)*3+0] << 8)
+                | (bufsrc1[(x1%srcxsize)*3+1] << 0);
+
+            rx0y0 = (pixel0 & rmask) * rmod;
+            gx0y0 = (pixel0 & gmask) * gmod;
+            bx0y0 = (pixel0 & bmask) * bmod;
+            ax0y0 = (pixel0 & amask) * amod;
+
+            rx1y0 = (pixel1 & rmask) * rmod;
+            gx1y0 = (pixel1 & gmask) * gmod;
+            bx1y0 = (pixel1 & bmask) * bmod;
+            ax1y0 = (pixel1 & amask) * amod;
+
+            rx0y1 = (pixel2 & rmask) * rmod;
+            gx0y1 = (pixel2 & gmask) * gmod;
+            bx0y1 = (pixel2 & bmask) * bmod;
+            ax0y1 = (pixel2 & amask) * amod;
+
+            rx1y1 = (pixel3 & rmask) * rmod;
+            gx1y1 = (pixel3 & gmask) * gmod;
+            bx1y1 = (pixel3 & bmask) * bmod;
+            ax1y1 = (pixel3 & amask) * amod;
+
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+            
+            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
+            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
+            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
+            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
+
+            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
+            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
+            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
+            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
+
+            switch (dstformat)
             {
-            case PIXELTYPE_RGBA:
-            {
-                rx0y0 = bufsrc0[x0*4+0];
-                gx0y0 = bufsrc0[x0*4+1];
-                bx0y0 = bufsrc0[x0*4+2];
-                ax0y0 = bufsrc0[x0*4+3];
-
-                rx1y0 = bufsrc0[x1*4+0];
-                gx1y0 = bufsrc0[x1*4+1];
-                bx1y0 = bufsrc0[x1*4+2];
-                ax1y0 = bufsrc0[x1*4+3];
-
-                rx0y1 = bufsrc1[x0*4+0];
-                gx0y1 = bufsrc1[x0*4+1];
-                bx0y1 = bufsrc1[x0*4+2];
-                ax0y1 = bufsrc1[x0*4+3];
-
-                rx1y1 = bufsrc1[x1*4+0];
-                gx1y1 = bufsrc1[x1*4+1];
-                bx1y1 = bufsrc1[x1*4+2];
-                ax1y1 = bufsrc1[x1*4+3];
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                ax0y0 = bufsrc0[x0*4+0];
-                bx0y0 = bufsrc0[x0*4+1];
-                gx0y0 = bufsrc0[x0*4+2];
-                rx0y0 = bufsrc0[x0*4+3];
-
-                ax1y0 = bufsrc0[x1*4+0];
-                bx1y0 = bufsrc0[x1*4+1];
-                gx1y0 = bufsrc0[x1*4+2];
-                rx1y0 = bufsrc0[x1*4+3];
-
-                ax0y1 = bufsrc1[x0*4+0];
-                bx0y1 = bufsrc1[x0*4+1];
-                gx0y1 = bufsrc1[x0*4+2];
-                rx0y1 = bufsrc1[x0*4+3];
-
-                ax1y1 = bufsrc1[x1*4+0];
-                bx1y1 = bufsrc1[x1*4+1];
-                gx1y1 = bufsrc1[x1*4+2];
-                rx1y1 = bufsrc1[x1*4+3];
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                bx0y0 = bufsrc0[x0*4+0];
-                gx0y0 = bufsrc0[x0*4+1];
-                rx0y0 = bufsrc0[x0*4+2];
-                ax0y0 = bufsrc0[x0*4+3];
-
-                bx1y0 = bufsrc0[x1*4+0];
-                gx1y0 = bufsrc0[x1*4+1];
-                rx1y0 = bufsrc0[x1*4+2];
-                ax1y0 = bufsrc0[x1*4+3];
-
-                bx0y1 = bufsrc1[x0*4+0];
-                gx0y1 = bufsrc1[x0*4+1];
-                rx0y1 = bufsrc1[x0*4+2];
-                ax0y1 = bufsrc1[x0*4+3];
-
-                bx1y1 = bufsrc1[x1*4+0];
-                gx1y1 = bufsrc1[x1*4+1];
-                rx1y1 = bufsrc1[x1*4+2];
-                ax1y1 = bufsrc1[x1*4+3];
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                rx0y0 = bufsrc0[x0*3+0];
-                gx0y0 = bufsrc0[x0*3+1];
-                bx0y0 = bufsrc0[x0*3+2];
-                ax0y0 = a;
-
-                rx1y0 = bufsrc0[x1*3+0];
-                gx1y0 = bufsrc0[x1*3+1];
-                bx1y0 = bufsrc0[x1*3+2];
-                ax1y0 = a;
-
-                rx0y1 = bufsrc1[x0*3+0];
-                gx0y1 = bufsrc1[x0*3+1];
-                bx0y1 = bufsrc1[x0*3+2];
-                ax0y1 = a;
-
-                rx1y1 = bufsrc1[x1*3+0];
-                gx1y1 = bufsrc1[x1*3+1];
-                bx1y1 = bufsrc1[x1*3+2];
-                ax1y1 = a;
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                bx0y0 = bufsrc0[x0*3+0];
-                gx0y0 = bufsrc0[x0*3+1];
-                rx0y0 = bufsrc0[x0*3+2];
-                ax0y0 = a;
-
-                bx1y0 = bufsrc0[x1*3+0];
-                gx1y0 = bufsrc0[x1*3+1];
-                rx1y0 = bufsrc0[x1*3+2];
-                ax1y0 = a;
-
-                bx0y1 = bufsrc1[x0*3+0];
-                gx0y1 = bufsrc1[x0*3+1];
-                rx0y1 = bufsrc1[x0*3+2];
-                ax0y1 = a;
-
-                bx1y1 = bufsrc1[x1*3+0];
-                gx1y1 = bufsrc1[x1*3+1];
-                rx1y1 = bufsrc1[x1*3+2];
-                ax1y1 = a;
-            } break;
             case PIXELTYPE_XBGR1555:
             {
-                rgb1555 = 0;
-                rgb1555 |= bufsrc0[x0*2+0];
-                rgb1555 |= bufsrc0[x0*2+1] << 8;
+                r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
+                g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
+                b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
 
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
 
-                rx0y0 = r;
-                gx0y0 = g;
-                bx0y0 = b;
-                ax0y0 = a;
-
-                rgb1555 = 0;
-                rgb1555 |= bufsrc0[x1*2+0];
-                rgb1555 |= bufsrc0[x1*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                rx1y0 = r;
-                gx1y0 = g;
-                bx1y0 = b;
-                ax1y0 = a;
-
-                rgb1555 = 0;
-                rgb1555 |= bufsrc1[x0*2+0];
-                rgb1555 |= bufsrc1[x0*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                rx0y1 = r;
-                gx0y1 = g;
-                bx0y1 = b;
-                ax0y1 = a;
-
-                rgb1555 = 0;
-                rgb1555 |= bufsrc1[x1*2+0];
-                rgb1555 |= bufsrc1[x1*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                rx1y1 = r;
-                gx1y1 = g;
-                bx1y1 = b;
-                ax1y1 = a;
+                bufdst[x*2+0] = (rgb16 & 0x00FF) >> 0;
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
-                rx0y0 = bufsrc0[x0*2+0];
-                gx0y0 = rx0y0;
-                bx0y0 = rx0y0;
-                ax0y0 = bufsrc0[x0*2+1];
-
-                rx1y0 = bufsrc0[x1*2+0];
-                gx1y0 = rx1y0;
-                bx1y0 = rx1y0;
-                ax1y0 = bufsrc0[x1*2+1];
-
-                rx0y1 = bufsrc1[x0*2+0];
-                gx0y1 = rx0y1;
-                bx0y1 = rx0y1;
-                ax0y1 = bufsrc1[x0*2+1];
-
-                rx1y1 = bufsrc1[x1*2+0];
-                gx1y1 = rx1y1;
-                bx1y1 = rx1y1;
-                ax1y1 = bufsrc1[x1*2+1];
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                rx0y0 = bufsrc0[x0*1+0];
-                gx0y0 = rx0y0;
-                bx0y0 = rx0y0;
-                ax0y0 = a;
-
-                rx1y0 = bufsrc0[x1*1+0];
-                gx1y0 = rx1y0;
-                bx1y0 = rx1y0;
-                ax1y0 = a;
-
-                rx0y1 = bufsrc1[x0*1+0];
-                gx0y1 = rx0y1;
-                bx0y1 = rx0y1;
-                ax0y1 = a;
-
-                rx1y1 = bufsrc1[x1*1+0];
-                gx1y1 = rx1y1;
-                bx1y1 = rx1y1;
-                ax1y1 = a;
-            } break;
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                vx0y0 = bufsrc0[x0*1+0];
-                vx1y0 = bufsrc0[x1*1+0];
-                vx0y1 = bufsrc1[x0*1+0];
-                vx1y1 = bufsrc1[x1*1+0];
-
-                bx0y0 = ppalette->data[vx0y0].b;
-                gx0y0 = ppalette->data[vx0y0].g;
-                rx0y0 = ppalette->data[vx0y0].r;
-                ax0y0 = ppalette->data[vx0y0].a;
-
-                bx1y0 = ppalette->data[vx1y0].b;
-                gx1y0 = ppalette->data[vx1y0].g;
-                rx1y0 = ppalette->data[vx1y0].r;
-                ax1y0 = ppalette->data[vx1y0].a;
-
-                bx0y1 = ppalette->data[vx0y1].b;
-                gx0y1 = ppalette->data[vx0y1].g;
-                rx0y1 = ppalette->data[vx0y1].r;
-                ax0y1 = ppalette->data[vx0y1].a;
-
-                bx1y1 = ppalette->data[vx1y1].b;
-                gx1y1 = ppalette->data[vx1y1].g;
-                rx1y1 = ppalette->data[vx1y1].r;
-                ax1y1 = ppalette->data[vx1y1].a;
+                r = (y1_py * r0) + (py_y0 * r1);
+                g = (y1_py * g0) + (py_y0 * g1);
+                b = (y1_py * b0) + (py_y0 * b1);
+                
+                bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+                bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
             } break;
             }
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Linear_8bit_8bit
+//-----------------------------------------------------------------------------
+void
+Linear_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcxsize);
+        bufsrc1 = rawsrc + (y1 * srcxsize);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+
+            bufdst[x] = (y1_py * ((x1_px * bufsrc0[x0]) + (px_x0 * bufsrc0[x1]))) +
+                (py_y0 * ((x1_px * bufsrc1[x0]) + (px_x0 * bufsrc1[x1])));
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstxsize;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Linear_32bit_Nbit
+//-----------------------------------------------------------------------------
+void
+Linear_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
+    float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize * 4;
+    uint32_t rshift = 0;
+    uint32_t gshift = 0;
+    uint32_t bshift = 0;
+    uint32_t ashift = 0;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint16_t rgb16 = 0;
+    uint8_t rx0y0 = 0, gx0y0 = 0, bx0y0 = 0, ax0y0 = 0;
+    uint8_t rx1y0 = 0, gx1y0 = 0, bx1y0 = 0, ax1y0 = 0;
+    uint8_t rx0y1 = 0, gx0y1 = 0, bx0y1 = 0, ax0y1 = 0;
+    uint8_t rx1y1 = 0, gx1y1 = 0, bx1y1 = 0, ax1y1 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
+
+    switch (srcformat)
+    {
+    case PIXELTYPE_RGBA:
+    {
+        rmask = 0xFF000000;
+        gmask = 0x00FF0000;
+        bmask = 0x0000FF00;
+        amask = 0x000000FF;
+
+        rshift = 24;
+        gshift = 16;
+        bshift =  8;
+        ashift =  0;
+    } break;
+    case PIXELTYPE_ABGR:
+    {
+        amask = 0xFF000000;
+        bmask = 0x00FF0000;
+        gmask = 0x0000FF00;
+        rmask = 0x000000FF;
+
+        rshift =  0;
+        gshift =  8;
+        bshift = 16;
+        ashift = 24;
+    } break;
+    case PIXELTYPE_BGRA:
+    {
+        bmask = 0xFF000000;
+        gmask = 0x00FF0000;
+        rmask = 0x0000FF00;
+        amask = 0x000000FF;
+
+        rshift =  8;
+        gshift = 16;
+        bshift = 24;
+        ashift =  0;
+    } break;
+    }
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcpitch);
+        bufsrc1 = rawsrc + (y1 * srcpitch);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            uint32_t pixel0 = (bufsrc0[(x0%srcxsize)*4+0] << 24)
+                | (bufsrc0[(x0%srcxsize)*4+1] << 16)
+                | (bufsrc0[(x0%srcxsize)*4+2] <<  8)
+                | (bufsrc0[(x0%srcxsize)*4+3] <<  0);
+            uint32_t pixel1 = (bufsrc0[(x1%srcxsize)*4+0] << 24)
+                | (bufsrc0[(x1%srcxsize)*4+1] << 16)
+                | (bufsrc0[(x1%srcxsize)*4+2] <<  8)
+                | (bufsrc0[(x1%srcxsize)*4+3] <<  0);
+            uint32_t pixel2 = (bufsrc1[(x0%srcxsize)*4+0] << 24)
+                | (bufsrc1[(x0%srcxsize)*4+1] << 16)
+                | (bufsrc1[(x0%srcxsize)*4+2] <<  8)
+                | (bufsrc1[(x0%srcxsize)*4+3] <<  0);
+            uint32_t pixel3 = (bufsrc1[(x1%srcxsize)*4+0] << 24)
+                | (bufsrc1[(x1%srcxsize)*4+1] << 16)
+                | (bufsrc1[(x1%srcxsize)*4+2] <<  8)
+                | (bufsrc1[(x1%srcxsize)*4+3] <<  0);
+
+            rx0y0 = ((pixel0 & rmask) >> rshift);
+            gx0y0 = ((pixel0 & gmask) >> gshift);
+            bx0y0 = ((pixel0 & bmask) >> bshift);
+            ax0y0 = ((pixel0 & amask) >> ashift);
+
+            rx1y0 = ((pixel1 & rmask) >> rshift);
+            gx1y0 = ((pixel1 & gmask) >> gshift);
+            bx1y0 = ((pixel1 & bmask) >> bshift);
+            ax1y0 = ((pixel1 & amask) >> ashift);
+
+            rx0y1 = ((pixel2 & rmask) >> rshift);
+            gx0y1 = ((pixel2 & gmask) >> gshift);
+            bx0y1 = ((pixel2 & bmask) >> bshift);
+            ax0y1 = ((pixel2 & amask) >> ashift);
+
+            rx1y1 = ((pixel3 & rmask) >> rshift);
+            gx1y1 = ((pixel3 & gmask) >> gshift);
+            bx1y1 = ((pixel3 & bmask) >> bshift);
+            ax1y1 = ((pixel3 & amask) >> ashift);
 
             x1_px = x1 - px;
             px_x0 = px - x0;
@@ -6726,333 +7606,6 @@ LinearFilterNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
                 bufdst[x*4+2] = (y1_py * r0) + (py_y0 * r1);
                 bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
             } break;
-            }
-
-            px += dx;
-            x++;
-        }
-
-        py += dy;
-        y++;
-
-        if (y != dstysize)
-        {
-            rawdst += dstpitch;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-// LinearFilterNbitsTo24BPP
-//-----------------------------------------------------------------------------
-void
-LinearFilterNbitsTo24BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
-    uint32_t dstysize, pixel_t dstformat, uint8_t* psrc, uint32_t srcpitch,
-    uint32_t srcxsize, uint32_t srcysize, pixel_t srcformat,
-    palette_t* ppalette)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    uint8_t* bufsrc0 = psrc;
-    uint8_t* bufsrc1 = psrc;
-    float dx = (float)srcxsize / (float)dstxsize;
-    float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
-    uint32_t x0 = 0, x1 = 0;
-    uint32_t y0 = 0, y1 = 0;
-    uint32_t x = 0;
-    uint32_t y = 0;
-    uint8_t vx0y0 = 0, vx1y0 = 0, vx0y1 = 0, vx1y1 = 0;
-    uint8_t rx0y0 = 0, gx0y0 = 0, bx0y0 = 0, ax0y0 = 0;
-    uint8_t rx1y0 = 0, gx1y0 = 0, bx1y0 = 0, ax1y0 = 0;
-    uint8_t rx0y1 = 0, gx0y1 = 0, bx0y1 = 0, ax0y1 = 0;
-    uint8_t rx1y1 = 0, gx1y1 = 0, bx1y1 = 0, ax1y1 = 0;
-    float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
-    float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
-    uint16_t rgb1555 = 0;
-    uint8_t v = 0, r = 0, g = 0, b = 0, a = 255;
-
-    while (y < dstysize)
-    {
-        bufdst = rawdst;
-        y0 = FLOOR(py);
-        y1 = y0 + 1;
-
-        bufsrc0 = rawsrc + (y0 * srcpitch);
-        bufsrc1 = rawsrc + (y1 * srcpitch);
-
-        float y1_py = y1 - py;
-        float py_y0 = py - y0;
-        
-        float x1_px = 0.0f;
-        float px_x0 = 0.0f;
-        float x1_x0 = 0.0f;
-
-        px = 0.0f;
-        x = 0;
-        
-        while (x < dstxsize)
-        {
-            x0 = FLOOR(px);
-            x1 = x0 + 1;
-
-            switch (srcformat)
-            {
-            case PIXELTYPE_RGBA:
-            {
-                rx0y0 = bufsrc0[x0*4+0];
-                gx0y0 = bufsrc0[x0*4+1];
-                bx0y0 = bufsrc0[x0*4+2];
-                ax0y0 = bufsrc0[x0*4+3];
-
-                rx1y0 = bufsrc0[x1*4+0];
-                gx1y0 = bufsrc0[x1*4+1];
-                bx1y0 = bufsrc0[x1*4+2];
-                ax1y0 = bufsrc0[x1*4+3];
-
-                rx0y1 = bufsrc1[x0*4+0];
-                gx0y1 = bufsrc1[x0*4+1];
-                bx0y1 = bufsrc1[x0*4+2];
-                ax0y1 = bufsrc1[x0*4+3];
-
-                rx1y1 = bufsrc1[x1*4+0];
-                gx1y1 = bufsrc1[x1*4+1];
-                bx1y1 = bufsrc1[x1*4+2];
-                ax1y1 = bufsrc1[x1*4+3];
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                ax0y0 = bufsrc0[x0*4+0];
-                bx0y0 = bufsrc0[x0*4+1];
-                gx0y0 = bufsrc0[x0*4+2];
-                rx0y0 = bufsrc0[x0*4+3];
-
-                ax1y0 = bufsrc0[x1*4+0];
-                bx1y0 = bufsrc0[x1*4+1];
-                gx1y0 = bufsrc0[x1*4+2];
-                rx1y0 = bufsrc0[x1*4+3];
-
-                ax0y1 = bufsrc1[x0*4+0];
-                bx0y1 = bufsrc1[x0*4+1];
-                gx0y1 = bufsrc1[x0*4+2];
-                rx0y1 = bufsrc1[x0*4+3];
-
-                ax1y1 = bufsrc1[x1*4+0];
-                bx1y1 = bufsrc1[x1*4+1];
-                gx1y1 = bufsrc1[x1*4+2];
-                rx1y1 = bufsrc1[x1*4+3];
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                bx0y0 = bufsrc0[x0*4+0];
-                gx0y0 = bufsrc0[x0*4+1];
-                rx0y0 = bufsrc0[x0*4+2];
-                ax0y0 = bufsrc0[x0*4+3];
-
-                bx1y0 = bufsrc0[x1*4+0];
-                gx1y0 = bufsrc0[x1*4+1];
-                rx1y0 = bufsrc0[x1*4+2];
-                ax1y0 = bufsrc0[x1*4+3];
-
-                bx0y1 = bufsrc1[x0*4+0];
-                gx0y1 = bufsrc1[x0*4+1];
-                rx0y1 = bufsrc1[x0*4+2];
-                ax0y1 = bufsrc1[x0*4+3];
-
-                bx1y1 = bufsrc1[x1*4+0];
-                gx1y1 = bufsrc1[x1*4+1];
-                rx1y1 = bufsrc1[x1*4+2];
-                ax1y1 = bufsrc1[x1*4+3];
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                rx0y0 = bufsrc0[x0*3+0];
-                gx0y0 = bufsrc0[x0*3+1];
-                bx0y0 = bufsrc0[x0*3+2];
-                ax0y0 = a;
-
-                rx1y0 = bufsrc0[x1*3+0];
-                gx1y0 = bufsrc0[x1*3+1];
-                bx1y0 = bufsrc0[x1*3+2];
-                ax1y0 = a;
-
-                rx0y1 = bufsrc1[x0*3+0];
-                gx0y1 = bufsrc1[x0*3+1];
-                bx0y1 = bufsrc1[x0*3+2];
-                ax0y1 = a;
-
-                rx1y1 = bufsrc1[x1*3+0];
-                gx1y1 = bufsrc1[x1*3+1];
-                bx1y1 = bufsrc1[x1*3+2];
-                ax1y1 = a;
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                bx0y0 = bufsrc0[x0*3+0];
-                gx0y0 = bufsrc0[x0*3+1];
-                rx0y0 = bufsrc0[x0*3+2];
-                ax0y0 = a;
-
-                bx1y0 = bufsrc0[x1*3+0];
-                gx1y0 = bufsrc0[x1*3+1];
-                rx1y0 = bufsrc0[x1*3+2];
-                ax1y0 = a;
-
-                bx0y1 = bufsrc1[x0*3+0];
-                gx0y1 = bufsrc1[x0*3+1];
-                rx0y1 = bufsrc1[x0*3+2];
-                ax0y1 = a;
-
-                bx1y1 = bufsrc1[x1*3+0];
-                gx1y1 = bufsrc1[x1*3+1];
-                rx1y1 = bufsrc1[x1*3+2];
-                ax1y1 = a;
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                rgb1555 = 0;
-                rgb1555 |= bufsrc0[x0*2+0];
-                rgb1555 |= bufsrc0[x0*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                rx0y0 = r;
-                gx0y0 = g;
-                bx0y0 = b;
-                ax0y0 = a;
-
-                rgb1555 = 0;
-                rgb1555 |= bufsrc0[x1*2+0];
-                rgb1555 |= bufsrc0[x1*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                rx1y0 = r;
-                gx1y0 = g;
-                bx1y0 = b;
-                ax1y0 = a;
-
-                rgb1555 = 0;
-                rgb1555 |= bufsrc1[x0*2+0];
-                rgb1555 |= bufsrc1[x0*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                rx0y1 = r;
-                gx0y1 = g;
-                bx0y1 = b;
-                ax0y1 = a;
-
-                rgb1555 = 0;
-                rgb1555 |= bufsrc1[x1*2+0];
-                rgb1555 |= bufsrc1[x1*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                rx1y1 = r;
-                gx1y1 = g;
-                bx1y1 = b;
-                ax1y1 = a;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                rx0y0 = bufsrc0[x0*2+0];
-                gx0y0 = rx0y0;
-                bx0y0 = rx0y0;
-                ax0y0 = bufsrc0[x0*2+1];
-
-                rx1y0 = bufsrc0[x1*2+0];
-                gx1y0 = rx1y0;
-                bx1y0 = rx1y0;
-                ax1y0 = bufsrc0[x1*2+1];
-
-                rx0y1 = bufsrc1[x0*2+0];
-                gx0y1 = rx0y1;
-                bx0y1 = rx0y1;
-                ax0y1 = bufsrc1[x0*2+1];
-
-                rx1y1 = bufsrc1[x1*2+0];
-                gx1y1 = rx1y1;
-                bx1y1 = rx1y1;
-                ax1y1 = bufsrc1[x1*2+1];
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                rx0y0 = bufsrc0[x0*1+0];
-                gx0y0 = rx0y0;
-                bx0y0 = rx0y0;
-                ax0y0 = a;
-
-                rx1y0 = bufsrc0[x1*1+0];
-                gx1y0 = rx1y0;
-                bx1y0 = rx1y0;
-                ax1y0 = a;
-
-                rx0y1 = bufsrc1[x0*1+0];
-                gx0y1 = rx0y1;
-                bx0y1 = rx0y1;
-                ax0y1 = a;
-
-                rx1y1 = bufsrc1[x1*1+0];
-                gx1y1 = rx1y1;
-                bx1y1 = rx1y1;
-                ax1y1 = a;
-            } break;
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                vx0y0 = bufsrc0[x0*1+0];
-                vx1y0 = bufsrc0[x1*1+0];
-                vx0y1 = bufsrc1[x0*1+0];
-                vx1y1 = bufsrc1[x1*1+0];
-
-                bx0y0 = ppalette->data[vx0y0].b;
-                gx0y0 = ppalette->data[vx0y0].g;
-                rx0y0 = ppalette->data[vx0y0].r;
-                ax0y0 = ppalette->data[vx0y0].a;
-
-                bx1y0 = ppalette->data[vx1y0].b;
-                gx1y0 = ppalette->data[vx1y0].g;
-                rx1y0 = ppalette->data[vx1y0].r;
-                ax1y0 = ppalette->data[vx1y0].a;
-
-                bx0y1 = ppalette->data[vx0y1].b;
-                gx0y1 = ppalette->data[vx0y1].g;
-                rx0y1 = ppalette->data[vx0y1].r;
-                ax0y1 = ppalette->data[vx0y1].a;
-
-                bx1y1 = ppalette->data[vx1y1].b;
-                gx1y1 = ppalette->data[vx1y1].g;
-                rx1y1 = ppalette->data[vx1y1].r;
-                ax1y1 = ppalette->data[vx1y1].a;
-            } break;
-            }
-
-            x1_px = x1 - px;
-            px_x0 = px - x0;
-            
-            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
-            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
-            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
-            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
-
-            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
-            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
-            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
-            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
-
-            switch (dstformat)
-            {
             case PIXELTYPE_RGB:
             {
                 bufdst[x*3+0] = (y1_py * r0) + (py_y0 * r1);
@@ -7065,6 +7618,35 @@ LinearFilterNbitsTo24BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
                 bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
                 bufdst[x*3+2] = (y1_py * r0) + (py_y0 * r1);
             } break;
+            case PIXELTYPE_XBGR1555:
+            {
+                r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
+                g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
+                b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
+
+                rgb16 = 0;
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF);
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
+            } break;
+            case PIXELTYPE_LUMINANCE_ALPHA:
+            {
+                r = (y1_py * r0) + (py_y0 * r1);
+                g = (y1_py * g0) + (py_y0 * g1);
+                b = (y1_py * b0) + (py_y0 * b1);
+                
+                bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+                bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                r = (y1_py * r0) + (py_y0 * r1);
+                g = (y1_py * g0) + (py_y0 * g1);
+                b = (y1_py * b0) + (py_y0 * b1);
+                
+                bufdst[x*1+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+            } break;
             }
 
             px += dx;
@@ -7082,37 +7664,95 @@ LinearFilterNbitsTo24BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
 }
 
 //-----------------------------------------------------------------------------
-// LinearFilterNbitsTo16BPP
+// Linear_24bit_Nbit
 //-----------------------------------------------------------------------------
 void
-LinearFilterNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
-    uint32_t dstysize, pixel_t dstformat, uint8_t* psrc, uint32_t srcpitch,
-    uint32_t srcxsize, uint32_t srcysize, pixel_t srcformat,
-    palette_t* ppalette)
+Linear_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
 {
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
+    float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
     uint8_t* bufsrc = psrc;
     uint8_t* bufsrc0 = psrc;
     uint8_t* bufsrc1 = psrc;
-    float dx = (float)srcxsize / (float)dstxsize;
-    float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize * 3;
+    uint32_t rshift = 0;
+    uint32_t gshift = 0;
+    uint32_t bshift = 0;
+    uint32_t ashift = 0;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
     uint32_t x0 = 0, x1 = 0;
     uint32_t y0 = 0, y1 = 0;
     uint32_t x = 0;
     uint32_t y = 0;
-    uint8_t vx0y0 = 0, vx1y0 = 0, vx0y1 = 0, vx1y1 = 0;
+    uint16_t rgb16 = 0;
     uint8_t rx0y0 = 0, gx0y0 = 0, bx0y0 = 0, ax0y0 = 0;
     uint8_t rx1y0 = 0, gx1y0 = 0, bx1y0 = 0, ax1y0 = 0;
     uint8_t rx0y1 = 0, gx0y1 = 0, bx0y1 = 0, ax0y1 = 0;
     uint8_t rx1y1 = 0, gx1y1 = 0, bx1y1 = 0, ax1y1 = 0;
-    float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
-    float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
-    uint16_t rgb1555 = 0;
-    uint8_t v = 0, r = 0, g = 0, b = 0, a = 255;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
+
+    switch (srcformat)
+    {
+    case PIXELTYPE_RGB:
+    {
+        rmask = 0x00FF0000;
+        gmask = 0x0000FF00;
+        bmask = 0x000000FF;
+        
+        rshift = 16;
+        gshift =  8;
+        bshift =  0;
+    } break;
+    case PIXELTYPE_BGR:
+    {
+        bmask = 0x00FF0000;
+        gmask = 0x0000FF00;
+        rmask = 0x000000FF;
+
+        rshift =  0;
+        gshift =  8;
+        bshift = 16;
+    } break;
+    }
 
     while (y < dstysize)
     {
@@ -7128,7 +7768,6 @@ LinearFilterNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
         
         float x1_px = 0.0f;
         float px_x0 = 0.0f;
-        float x1_x0 = 0.0f;
 
         px = 0.0f;
         x = 0;
@@ -7138,244 +7777,38 @@ LinearFilterNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
             x0 = FLOOR(px);
             x1 = x0 + 1;
 
-            switch (srcformat)
-            {
-            case PIXELTYPE_RGBA:
-            {
-                rx0y0 = bufsrc0[x0*4+0];
-                gx0y0 = bufsrc0[x0*4+1];
-                bx0y0 = bufsrc0[x0*4+2];
-                ax0y0 = bufsrc0[x0*4+3];
+            uint32_t pixel0 = (bufsrc0[(x0%srcxsize)*3+0] << 16)
+                | (bufsrc0[(x0%srcxsize)*3+1] <<  8)
+                | (bufsrc0[(x0%srcxsize)*3+2] <<  0);
+            uint32_t pixel1 = (bufsrc0[(x1%srcxsize)*3+0] << 16)
+                | (bufsrc0[(x1%srcxsize)*3+1] <<  8)
+                | (bufsrc0[(x1%srcxsize)*3+2] <<  0);
+            uint32_t pixel2 = (bufsrc1[(x0%srcxsize)*3+0] << 16)
+                | (bufsrc1[(x0%srcxsize)*3+1] <<  8)
+                | (bufsrc1[(x0%srcxsize)*3+2] <<  0);
+            uint32_t pixel3 = (bufsrc1[(x1%srcxsize)*3+0] << 16)
+                | (bufsrc1[(x1%srcxsize)*3+1] <<  8)
+                | (bufsrc1[(x1%srcxsize)*3+2] <<  0);
 
-                rx1y0 = bufsrc0[x1*4+0];
-                gx1y0 = bufsrc0[x1*4+1];
-                bx1y0 = bufsrc0[x1*4+2];
-                ax1y0 = bufsrc0[x1*4+3];
+            rx0y0 = ((pixel0 & rmask) >> rshift);
+            gx0y0 = ((pixel0 & gmask) >> gshift);
+            bx0y0 = ((pixel0 & bmask) >> bshift);
+            ax0y0 = 255;
 
-                rx0y1 = bufsrc1[x0*4+0];
-                gx0y1 = bufsrc1[x0*4+1];
-                bx0y1 = bufsrc1[x0*4+2];
-                ax0y1 = bufsrc1[x0*4+3];
+            rx1y0 = ((pixel1 & rmask) >> rshift);
+            gx1y0 = ((pixel1 & gmask) >> gshift);
+            bx1y0 = ((pixel1 & bmask) >> bshift);
+            ax1y0 = 255;
 
-                rx1y1 = bufsrc1[x1*4+0];
-                gx1y1 = bufsrc1[x1*4+1];
-                bx1y1 = bufsrc1[x1*4+2];
-                ax1y1 = bufsrc1[x1*4+3];
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                ax0y0 = bufsrc0[x0*4+0];
-                bx0y0 = bufsrc0[x0*4+1];
-                gx0y0 = bufsrc0[x0*4+2];
-                rx0y0 = bufsrc0[x0*4+3];
+            rx0y1 = ((pixel2 & rmask) >> rshift);
+            gx0y1 = ((pixel2 & gmask) >> gshift);
+            bx0y1 = ((pixel2 & bmask) >> bshift);
+            ax0y1 = 255;
 
-                ax1y0 = bufsrc0[x1*4+0];
-                bx1y0 = bufsrc0[x1*4+1];
-                gx1y0 = bufsrc0[x1*4+2];
-                rx1y0 = bufsrc0[x1*4+3];
-
-                ax0y1 = bufsrc1[x0*4+0];
-                bx0y1 = bufsrc1[x0*4+1];
-                gx0y1 = bufsrc1[x0*4+2];
-                rx0y1 = bufsrc1[x0*4+3];
-
-                ax1y1 = bufsrc1[x1*4+0];
-                bx1y1 = bufsrc1[x1*4+1];
-                gx1y1 = bufsrc1[x1*4+2];
-                rx1y1 = bufsrc1[x1*4+3];
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                bx0y0 = bufsrc0[x0*4+0];
-                gx0y0 = bufsrc0[x0*4+1];
-                rx0y0 = bufsrc0[x0*4+2];
-                ax0y0 = bufsrc0[x0*4+3];
-
-                bx1y0 = bufsrc0[x1*4+0];
-                gx1y0 = bufsrc0[x1*4+1];
-                rx1y0 = bufsrc0[x1*4+2];
-                ax1y0 = bufsrc0[x1*4+3];
-
-                bx0y1 = bufsrc1[x0*4+0];
-                gx0y1 = bufsrc1[x0*4+1];
-                rx0y1 = bufsrc1[x0*4+2];
-                ax0y1 = bufsrc1[x0*4+3];
-
-                bx1y1 = bufsrc1[x1*4+0];
-                gx1y1 = bufsrc1[x1*4+1];
-                rx1y1 = bufsrc1[x1*4+2];
-                ax1y1 = bufsrc1[x1*4+3];
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                rx0y0 = bufsrc0[x0*3+0];
-                gx0y0 = bufsrc0[x0*3+1];
-                bx0y0 = bufsrc0[x0*3+2];
-                ax0y0 = a;
-
-                rx1y0 = bufsrc0[x1*3+0];
-                gx1y0 = bufsrc0[x1*3+1];
-                bx1y0 = bufsrc0[x1*3+2];
-                ax1y0 = a;
-
-                rx0y1 = bufsrc1[x0*3+0];
-                gx0y1 = bufsrc1[x0*3+1];
-                bx0y1 = bufsrc1[x0*3+2];
-                ax0y1 = a;
-
-                rx1y1 = bufsrc1[x1*3+0];
-                gx1y1 = bufsrc1[x1*3+1];
-                bx1y1 = bufsrc1[x1*3+2];
-                ax1y1 = a;
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                bx0y0 = bufsrc0[x0*3+0];
-                gx0y0 = bufsrc0[x0*3+1];
-                rx0y0 = bufsrc0[x0*3+2];
-                ax0y0 = a;
-
-                bx1y0 = bufsrc0[x1*3+0];
-                gx1y0 = bufsrc0[x1*3+1];
-                rx1y0 = bufsrc0[x1*3+2];
-                ax1y0 = a;
-
-                bx0y1 = bufsrc1[x0*3+0];
-                gx0y1 = bufsrc1[x0*3+1];
-                rx0y1 = bufsrc1[x0*3+2];
-                ax0y1 = a;
-
-                bx1y1 = bufsrc1[x1*3+0];
-                gx1y1 = bufsrc1[x1*3+1];
-                rx1y1 = bufsrc1[x1*3+2];
-                ax1y1 = a;
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                rgb1555 = 0;
-                rgb1555 |= bufsrc0[x0*2+0];
-                rgb1555 |= bufsrc0[x0*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                rx0y0 = r;
-                gx0y0 = g;
-                bx0y0 = b;
-                ax0y0 = a;
-
-                rgb1555 = 0;
-                rgb1555 |= bufsrc0[x1*2+0];
-                rgb1555 |= bufsrc0[x1*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                rx1y0 = r;
-                gx1y0 = g;
-                bx1y0 = b;
-                ax1y0 = a;
-
-                rgb1555 = 0;
-                rgb1555 |= bufsrc1[x0*2+0];
-                rgb1555 |= bufsrc1[x0*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                rx0y1 = r;
-                gx0y1 = g;
-                bx0y1 = b;
-                ax0y1 = a;
-
-                rgb1555 = 0;
-                rgb1555 |= bufsrc1[x1*2+0];
-                rgb1555 |= bufsrc1[x1*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                rx1y1 = r;
-                gx1y1 = g;
-                bx1y1 = b;
-                ax1y1 = a;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                rx0y0 = bufsrc0[x0*2+0];
-                gx0y0 = rx0y0;
-                bx0y0 = rx0y0;
-                ax0y0 = bufsrc0[x0*2+1];
-
-                rx1y0 = bufsrc0[x1*2+0];
-                gx1y0 = rx1y0;
-                bx1y0 = rx1y0;
-                ax1y0 = bufsrc0[x1*2+1];
-
-                rx0y1 = bufsrc1[x0*2+0];
-                gx0y1 = rx0y1;
-                bx0y1 = rx0y1;
-                ax0y1 = bufsrc1[x0*2+1];
-
-                rx1y1 = bufsrc1[x1*2+0];
-                gx1y1 = rx1y1;
-                bx1y1 = rx1y1;
-                ax1y1 = bufsrc1[x1*2+1];
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                rx0y0 = bufsrc0[x0*1+0];
-                gx0y0 = rx0y0;
-                bx0y0 = rx0y0;
-                ax0y0 = a;
-
-                rx1y0 = bufsrc0[x1*1+0];
-                gx1y0 = rx1y0;
-                bx1y0 = rx1y0;
-                ax1y0 = a;
-
-                rx0y1 = bufsrc1[x0*1+0];
-                gx0y1 = rx0y1;
-                bx0y1 = rx0y1;
-                ax0y1 = a;
-
-                rx1y1 = bufsrc1[x1*1+0];
-                gx1y1 = rx1y1;
-                bx1y1 = rx1y1;
-                ax1y1 = a;
-            } break;
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                vx0y0 = bufsrc0[x0*1+0];
-                vx1y0 = bufsrc0[x1*1+0];
-                vx0y1 = bufsrc1[x0*1+0];
-                vx1y1 = bufsrc1[x1*1+0];
-
-                bx0y0 = ppalette->data[vx0y0].b;
-                gx0y0 = ppalette->data[vx0y0].g;
-                rx0y0 = ppalette->data[vx0y0].r;
-                ax0y0 = ppalette->data[vx0y0].a;
-
-                bx1y0 = ppalette->data[vx1y0].b;
-                gx1y0 = ppalette->data[vx1y0].g;
-                rx1y0 = ppalette->data[vx1y0].r;
-                ax1y0 = ppalette->data[vx1y0].a;
-
-                bx0y1 = ppalette->data[vx0y1].b;
-                gx0y1 = ppalette->data[vx0y1].g;
-                rx0y1 = ppalette->data[vx0y1].r;
-                ax0y1 = ppalette->data[vx0y1].a;
-
-                bx1y1 = ppalette->data[vx1y1].b;
-                gx1y1 = ppalette->data[vx1y1].g;
-                rx1y1 = ppalette->data[vx1y1].r;
-                ax1y1 = ppalette->data[vx1y1].a;
-            } break;
-            }
+            rx1y1 = ((pixel3 & rmask) >> rshift);
+            gx1y1 = ((pixel3 & gmask) >> gshift);
+            bx1y1 = ((pixel3 & bmask) >> bshift);
+            ax1y1 = 255;
 
             x1_px = x1 - px;
             px_x0 = px - x0;
@@ -7392,17 +7825,50 @@ LinearFilterNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
 
             switch (dstformat)
             {
+            case PIXELTYPE_RGBA:
+            {
+                bufdst[x*4+0] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+2] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+1] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+2] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+3] = (y1_py * r0) + (py_y0 * r1);
+            } break;
+            case PIXELTYPE_BGRA:
+            {
+                bufdst[x*4+0] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+2] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_RGB:
+            {
+                bufdst[x*3+0] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*3+2] = (y1_py * b0) + (py_y0 * b1);
+            } break;
+            case PIXELTYPE_BGR:
+            {
+                bufdst[x*3+0] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*3+2] = (y1_py * r0) + (py_y0 * r1);
+            } break;
             case PIXELTYPE_XBGR1555:
             {
                 r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
                 g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
                 b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
 
-                rgb1555 = 0;
-                rgb1555 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+                rgb16 = 0;
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
 
-                bufdst[x*2+0] = (rgb1555 & 0x00FF);
-                bufdst[x*2+1] = (rgb1555 & 0xFF00) >> 8;
+                bufdst[x*2+0] = (rgb16 & 0x00FF);
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
@@ -7412,6 +7878,14 @@ LinearFilterNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
                 
                 bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
                 bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                r = (y1_py * r0) + (py_y0 * r1);
+                g = (y1_py * g0) + (py_y0 * g1);
+                b = (y1_py * b0) + (py_y0 * b1);
+                
+                bufdst[x*1+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
             } break;
             }
 
@@ -7430,13 +7904,798 @@ LinearFilterNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
 }
 
 //-----------------------------------------------------------------------------
-// BlitNbitsTo32BPP
+// Linear_16bit_Nbit
 //-----------------------------------------------------------------------------
 void
-BlitNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
-    uint32_t dstysize, pixel_t dstformat, uint8_t* psrc, uint32_t srcpitch,
-    uint32_t srcxsize, uint32_t srcysize, pixel_t srcformat,
-    palette_t* ppalette)
+Linear_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    float rmod = 0.0f;
+    float gmod = 0.0f;
+    float bmod = 0.0f;
+    float amod = 0.0f;
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
+    float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize * 2;
+    uint32_t rshift = 0;
+    uint32_t gshift = 0;
+    uint32_t bshift = 0;
+    uint32_t ashift = 0;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint16_t rgb16 = 0;
+    uint8_t rx0y0 = 0, gx0y0 = 0, bx0y0 = 0, ax0y0 = 0;
+    uint8_t rx1y0 = 0, gx1y0 = 0, bx1y0 = 0, ax1y0 = 0;
+    uint8_t rx0y1 = 0, gx0y1 = 0, bx0y1 = 0, ax0y1 = 0;
+    uint8_t rx1y1 = 0, gx1y1 = 0, bx1y1 = 0, ax1y1 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
+
+    switch (srcformat)
+    {
+    case PIXELTYPE_XBGR1555:
+    {
+        rmask = 0x7C00;
+        gmask = 0x03E0;
+        bmask = 0x001F;
+        amask = 0x8000;
+
+        rshift = 10;
+        gshift =  5;
+        bshift =  0;
+        ashift = 15;
+
+        rmod = 255.0f / 31.0f;
+        gmod = 255.0f / 31.0f;
+        bmod = 255.0f / 31.0f;
+        amod = 0.0f;
+    } break;
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        rmask = 0xFF00;
+        gmask = 0xFF00;
+        bmask = 0xFF00;
+        amask = 0x00FF;
+
+        rshift = 8;
+        gshift = 8;
+        bshift = 8;
+        ashift = 0;
+
+        rmod = 0.2990f;
+        gmod = 0.5870f;
+        bmod = 0.1140f;
+        amod = 1.0f;
+    } break;
+    }
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcpitch);
+        bufsrc1 = rawsrc + (y1 * srcpitch);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            uint32_t pixel0 = (bufsrc0[(x0%srcxsize)*3+0] << 8)
+                | (bufsrc0[(x0%srcxsize)*3+1] << 0);
+            uint32_t pixel1 = (bufsrc0[(x1%srcxsize)*3+0] << 8)
+                | (bufsrc0[(x1%srcxsize)*3+1] << 0);
+            uint32_t pixel2 = (bufsrc1[(x0%srcxsize)*3+0] << 8)
+                | (bufsrc1[(x0%srcxsize)*3+1] << 0);
+            uint32_t pixel3 = (bufsrc1[(x1%srcxsize)*3+0] << 8)
+                | (bufsrc1[(x1%srcxsize)*3+1] << 0);
+
+            rx0y0 = ((pixel0 & rmask) >> rshift) * rmod;
+            gx0y0 = ((pixel0 & gmask) >> gshift) * gmod;
+            bx0y0 = ((pixel0 & bmask) >> bshift) * bmod;
+            ax0y0 = ((pixel0 & amask) >> ashift) * amod;
+
+            rx1y0 = ((pixel1 & rmask) >> rshift) * rmod;
+            gx1y0 = ((pixel1 & gmask) >> gshift) * gmod;
+            bx1y0 = ((pixel1 & bmask) >> bshift) * bmod;
+            ax1y0 = ((pixel1 & amask) >> ashift) * amod;
+
+            rx0y1 = ((pixel2 & rmask) >> rshift) * rmod;
+            gx0y1 = ((pixel2 & gmask) >> gshift) * gmod;
+            bx0y1 = ((pixel2 & bmask) >> bshift) * bmod;
+            ax0y1 = ((pixel2 & amask) >> ashift) * amod;
+
+            rx1y1 = ((pixel3 & rmask) >> rshift) * rmod;
+            gx1y1 = ((pixel3 & gmask) >> gshift) * gmod;
+            bx1y1 = ((pixel3 & bmask) >> bshift) * bmod;
+            ax1y1 = ((pixel3 & amask) >> ashift) * amod;
+
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+            
+            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
+            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
+            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
+            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
+
+            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
+            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
+            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
+            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
+
+            switch (dstformat)
+            {
+            case PIXELTYPE_RGBA:
+            {
+                bufdst[x*4+0] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+2] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+1] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+2] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+3] = (y1_py * r0) + (py_y0 * r1);
+            } break;
+            case PIXELTYPE_BGRA:
+            {
+                bufdst[x*4+0] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+2] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_RGB:
+            {
+                bufdst[x*3+0] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*3+2] = (y1_py * b0) + (py_y0 * b1);
+            } break;
+            case PIXELTYPE_BGR:
+            {
+                bufdst[x*3+0] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*3+2] = (y1_py * r0) + (py_y0 * r1);
+            } break;
+            case PIXELTYPE_XBGR1555:
+            {
+                r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
+                g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
+                b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
+
+                rgb16 = 0;
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF);
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
+            } break;
+            case PIXELTYPE_LUMINANCE_ALPHA:
+            {
+                r = (y1_py * r0) + (py_y0 * r1);
+                g = (y1_py * g0) + (py_y0 * g1);
+                b = (y1_py * b0) + (py_y0 * b1);
+                
+                bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+                bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                r = (y1_py * r0) + (py_y0 * r1);
+                g = (y1_py * g0) + (py_y0 * g1);
+                b = (y1_py * b0) + (py_y0 * b1);
+                
+                bufdst[x*1+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+            } break;
+            }
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Linear_8bit_Nbit
+//-----------------------------------------------------------------------------
+void
+Linear_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
+    float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint16_t rgb16 = 0;
+    uint8_t vx0y0 = 0, vx1y0 = 0, vx0y1 = 0, vx1y1 = 0;
+    uint8_t rx0y0 = 0, gx0y0 = 0, bx0y0 = 0, ax0y0 = 255;
+    uint8_t rx1y0 = 0, gx1y0 = 0, bx1y0 = 0, ax1y0 = 255;
+    uint8_t rx0y1 = 0, gx0y1 = 0, bx0y1 = 0, ax0y1 = 255;
+    uint8_t rx1y1 = 0, gx1y1 = 0, bx1y1 = 0, ax1y1 = 255;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+    uint8_t a = 0;
+    uint8_t v = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    }
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcpitch);
+        bufsrc1 = rawsrc + (y1 * srcpitch);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            vx0y0 = bufsrc0[x0*1+0];
+            vx1y0 = bufsrc0[x1*1+0];
+            vx0y1 = bufsrc1[x0*1+0];
+            vx1y1 = bufsrc1[x1*1+0];
+
+            bx0y0 = vx0y0;
+            gx0y0 = vx0y0;
+            rx0y0 = vx0y0;
+
+            bx1y0 = vx1y0;
+            gx1y0 = vx1y0;
+            rx1y0 = vx1y0;
+
+            bx0y1 = vx0y1;
+            gx0y1 = vx0y1;
+            rx0y1 = vx0y1;
+
+            bx1y1 = vx1y1;
+            gx1y1 = vx1y1;
+            rx1y1 = vx1y1;
+
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+            
+            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
+            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
+            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
+            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
+
+            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
+            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
+            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
+            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
+
+            switch (dstformat)
+            {
+            case PIXELTYPE_RGBA:
+            {
+                bufdst[x*4+0] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+2] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+1] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+2] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+3] = (y1_py * r0) + (py_y0 * r1);
+            } break;
+            case PIXELTYPE_BGRA:
+            {
+                bufdst[x*4+0] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+2] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_RGB:
+            {
+                bufdst[x*3+0] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*3+2] = (y1_py * b0) + (py_y0 * b1);
+            } break;
+            case PIXELTYPE_BGR:
+            {
+                bufdst[x*3+0] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*3+2] = (y1_py * r0) + (py_y0 * r1);
+            } break;
+            case PIXELTYPE_XBGR1555:
+            {
+                r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
+                g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
+                b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
+
+                rgb16 = 0;
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF);
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
+            } break;
+            case PIXELTYPE_LUMINANCE_ALPHA:
+            {
+                r = (y1_py * r0) + (py_y0 * r1);
+                g = (y1_py * g0) + (py_y0 * g1);
+                b = (y1_py * b0) + (py_y0 * b1);
+                
+                bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+                bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                r = (y1_py * r0) + (py_y0 * r1);
+                g = (y1_py * g0) + (py_y0 * g1);
+                b = (y1_py * b0) + (py_y0 * b1);
+                
+                bufdst[x*1+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+            } break;
+            }
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Linear_PAL_Nbit
+//-----------------------------------------------------------------------------
+void
+Linear_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat, palette_t* ppalette)
+{
+    float dx = (float)srcxsize / (float)dstxsize;
+    float dy = (float)srcysize / (float)dstysize;
+    float px = 0.0f;
+    float py = 0.0f;
+    float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
+    float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint8_t* bufsrc0 = psrc;
+    uint8_t* bufsrc1 = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
+    uint32_t x0 = 0, x1 = 0;
+    uint32_t y0 = 0, y1 = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint16_t rgb16 = 0;
+    uint8_t vx0y0 = 0, vx1y0 = 0, vx0y1 = 0, vx1y1 = 0;
+    uint8_t rx0y0 = 0, gx0y0 = 0, bx0y0 = 0, ax0y0 = 0;
+    uint8_t rx1y0 = 0, gx1y0 = 0, bx1y0 = 0, ax1y0 = 0;
+    uint8_t rx0y1 = 0, gx0y1 = 0, bx0y1 = 0, ax0y1 = 0;
+    uint8_t rx1y1 = 0, gx1y1 = 0, bx1y1 = 0, ax1y1 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+    uint8_t a = 0;
+    uint8_t v = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
+
+    while (y < dstysize)
+    {
+        bufdst = rawdst;
+        y0 = FLOOR(py);
+        y1 = y0 + 1;
+
+        bufsrc0 = rawsrc + (y0 * srcpitch);
+        bufsrc1 = rawsrc + (y1 * srcpitch);
+
+        float y1_py = y1 - py;
+        float py_y0 = py - y0;
+        
+        float x1_px = 0.0f;
+        float px_x0 = 0.0f;
+
+        px = 0.0f;
+        x = 0;
+        
+        while (x < dstxsize)
+        {
+            x0 = FLOOR(px);
+            x1 = x0 + 1;
+
+            vx0y0 = bufsrc0[x0*1+0];
+            vx1y0 = bufsrc0[x1*1+0];
+            vx0y1 = bufsrc1[x0*1+0];
+            vx1y1 = bufsrc1[x1*1+0];
+
+            bx0y0 = ppalette->data[vx0y0].b;
+            gx0y0 = ppalette->data[vx0y0].g;
+            rx0y0 = ppalette->data[vx0y0].r;
+            ax0y0 = ppalette->data[vx0y0].a;
+
+            bx1y0 = ppalette->data[vx1y0].b;
+            gx1y0 = ppalette->data[vx1y0].g;
+            rx1y0 = ppalette->data[vx1y0].r;
+            ax1y0 = ppalette->data[vx1y0].a;
+
+            bx0y1 = ppalette->data[vx0y1].b;
+            gx0y1 = ppalette->data[vx0y1].g;
+            rx0y1 = ppalette->data[vx0y1].r;
+            ax0y1 = ppalette->data[vx0y1].a;
+
+            bx1y1 = ppalette->data[vx1y1].b;
+            gx1y1 = ppalette->data[vx1y1].g;
+            rx1y1 = ppalette->data[vx1y1].r;
+            ax1y1 = ppalette->data[vx1y1].a;
+
+            x1_px = x1 - px;
+            px_x0 = px - x0;
+            
+            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
+            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
+            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
+            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
+
+            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
+            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
+            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
+            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
+
+            switch (dstformat)
+            {
+            case PIXELTYPE_RGBA:
+            {
+                bufdst[x*4+0] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+2] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+1] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+2] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+3] = (y1_py * r0) + (py_y0 * r1);
+            } break;
+            case PIXELTYPE_BGRA:
+            {
+                bufdst[x*4+0] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*4+2] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_RGB:
+            {
+                bufdst[x*3+0] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*3+2] = (y1_py * b0) + (py_y0 * b1);
+            } break;
+            case PIXELTYPE_BGR:
+            {
+                bufdst[x*3+0] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
+                bufdst[x*3+2] = (y1_py * r0) + (py_y0 * r1);
+            } break;
+            case PIXELTYPE_XBGR1555:
+            {
+                r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
+                g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
+                b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
+
+                rgb16 = 0;
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF);
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
+            } break;
+            case PIXELTYPE_LUMINANCE_ALPHA:
+            {
+                r = (y1_py * r0) + (py_y0 * r1);
+                g = (y1_py * g0) + (py_y0 * g1);
+                b = (y1_py * b0) + (py_y0 * b1);
+                
+                bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+                bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                r = (y1_py * r0) + (py_y0 * r1);
+                g = (y1_py * g0) + (py_y0 * g1);
+                b = (y1_py * b0) + (py_y0 * b1);
+                
+                bufdst[x*1+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+            } break;
+            }
+
+            px += dx;
+            x++;
+        }
+
+        py += dy;
+        y++;
+
+        if (y != dstysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_32bit_32bit
+//-----------------------------------------------------------------------------
+void
+Blit_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = dstxsize * 4;
+    uint32_t srcpitch = srcxsize * 4;
+    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
+    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < ysize)
+    {
+        bufdst = rawdst;
+        bufsrc = rawsrc + ((y%srcysize)*srcpitch);
+        x = 0;
+
+        while (x < xsize)
+        {
+            bufdst[x*4+0] = bufsrc[(x%srcxsize)*4+0];
+            bufdst[x*4+1] = bufsrc[(x%srcxsize)*4+1];
+            bufdst[x*4+2] = bufsrc[(x%srcxsize)*4+2];
+            bufdst[x*4+3] = bufsrc[(x%srcxsize)*4+3];
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_24bit_24bit
+//-----------------------------------------------------------------------------
+void
+Blit_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = dstxsize * 3;
+    uint32_t srcpitch = srcxsize * 3;
+    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
+    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < ysize)
+    {
+        bufdst = rawdst;
+        bufsrc = rawsrc + ((y%srcysize)*srcpitch);
+        x = 0;
+
+        while (x < xsize)
+        {
+            bufdst[x*3+0] = bufsrc[(x%srcxsize)*3+0];
+            bufdst[x*3+1] = bufsrc[(x%srcxsize)*3+1];
+            bufdst[x*3+2] = bufsrc[(x%srcxsize)*3+2];
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_16bit_16bit
+//-----------------------------------------------------------------------------
+void
+Blit_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = dstxsize * 2;
+    uint32_t srcpitch = srcxsize * 2;
+    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
+    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    while (y < ysize)
+    {
+        bufdst = rawdst;
+        bufsrc = rawsrc + ((y%srcysize)*srcpitch);
+        x = 0;
+
+        while (x < xsize)
+        {
+            bufdst[x*2+0] = bufsrc[(x%srcxsize)*2+0];
+            bufdst[x*2+1] = bufsrc[(x%srcxsize)*2+1];
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_8bit_8bit
+//-----------------------------------------------------------------------------
+void
+Blit_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
 {
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
@@ -7446,8 +8705,122 @@ BlitNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
     uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
     uint32_t x = 0;
     uint32_t y = 0;
-    uint16_t rgb1555 = 0;
-    uint8_t v = 0, r = 0, g = 0, b = 0, a = 255;
+
+    while (y < ysize)
+    {
+        bufdst = rawdst;
+        bufsrc = rawsrc + ((y%srcysize)*srcxsize);
+        x = 0;
+
+        while (x < xsize)
+        {
+            bufdst[x] = bufsrc[(x%srcxsize)];
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawdst += dstxsize;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_32bit_Nbit
+//-----------------------------------------------------------------------------
+void
+Blit_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize * 4;
+    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
+    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint32_t rshift = 0;
+    uint32_t gshift = 0;
+    uint32_t bshift = 0;
+    uint32_t ashift = 0;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
+    uint16_t rgb16 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
+
+    switch (srcformat)
+    {
+    case PIXELTYPE_RGBA:
+    {
+        rmask = 0xFF000000;
+        gmask = 0x00FF0000;
+        bmask = 0x0000FF00;
+        amask = 0x000000FF;
+
+        rshift = 24;
+        gshift = 16;
+        bshift =  8;
+        ashift =  0;
+    } break;
+    case PIXELTYPE_ABGR:
+    {
+        amask = 0xFF000000;
+        bmask = 0x00FF0000;
+        gmask = 0x0000FF00;
+        rmask = 0x000000FF;
+
+        rshift =  0;
+        gshift =  8;
+        bshift = 16;
+        ashift = 24;
+    } break;
+    case PIXELTYPE_BGRA:
+    {
+        bmask = 0xFF000000;
+        gmask = 0x00FF0000;
+        rmask = 0x0000FF00;
+        amask = 0x000000FF;
+
+        rshift =  8;
+        gshift = 16;
+        bshift = 24;
+        ashift =  0;
+    } break;
+    }
 
     while (y < ysize)
     {
@@ -7457,74 +8830,483 @@ BlitNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
 
         while (x < xsize)
         {
-            switch (srcformat)
+            uint32_t pixel = (bufsrc[(x%srcxsize)*4+0] << 24)
+                | (bufsrc[(x%srcxsize)*4+1] << 16)
+                | (bufsrc[(x%srcxsize)*4+2] <<  8)
+                | (bufsrc[(x%srcxsize)*4+3] <<  0);
+
+            switch (dstformat)
             {
             case PIXELTYPE_RGBA:
             {
-                r = bufsrc[(x%srcxsize)*4+0];
-                g = bufsrc[(x%srcxsize)*4+1];
-                b = bufsrc[(x%srcxsize)*4+2];
-                a = bufsrc[(x%srcxsize)*4+3];
+                bufdst[x*4+0] = (pixel & rmask) >> rshift;
+                bufdst[x*4+1] = (pixel & gmask) >> gshift;
+                bufdst[x*4+2] = (pixel & bmask) >> bshift;
+                bufdst[x*4+3] = (pixel & amask) >> ashift;
             } break;
             case PIXELTYPE_ABGR:
             {
-                a = bufsrc[(x%srcxsize)*4+0];
-                b = bufsrc[(x%srcxsize)*4+1];
-                g = bufsrc[(x%srcxsize)*4+2];
-                r = bufsrc[(x%srcxsize)*4+3];
+                bufdst[x*4+0] = (pixel & amask) >> rshift;
+                bufdst[x*4+1] = (pixel & bmask) >> gshift;
+                bufdst[x*4+2] = (pixel & gmask) >> bshift;
+                bufdst[x*4+3] = (pixel & rmask) >> ashift;
             } break;
             case PIXELTYPE_BGRA:
             {
-                b = bufsrc[(x%srcxsize)*4+0];
-                g = bufsrc[(x%srcxsize)*4+1];
-                r = bufsrc[(x%srcxsize)*4+2];
-                a = bufsrc[(x%srcxsize)*4+3];
+                bufdst[x*4+0] = (pixel & bmask) >> bshift;
+                bufdst[x*4+1] = (pixel & gmask) >> gshift;
+                bufdst[x*4+2] = (pixel & rmask) >> rshift;
+                bufdst[x*4+3] = (pixel & amask) >> ashift;
             } break;
             case PIXELTYPE_RGB:
             {
-                r = bufsrc[(x%srcxsize)*3+0];
-                g = bufsrc[(x%srcxsize)*3+1];
-                b = bufsrc[(x%srcxsize)*3+2];
+                bufdst[x*3+0] = (pixel & rmask) >> rshift;
+                bufdst[x*3+1] = (pixel & gmask) >> gshift;
+                bufdst[x*3+2] = (pixel & bmask) >> bshift;
             } break;
             case PIXELTYPE_BGR:
             {
-                b = bufsrc[(x%srcxsize)*3+0];
-                g = bufsrc[(x%srcxsize)*3+1];
-                r = bufsrc[(x%srcxsize)*3+2];
+                bufdst[x*3+0] = (pixel & bmask) >> bshift;
+                bufdst[x*3+1] = (pixel & gmask) >> gshift;
+                bufdst[x*3+2] = (pixel & rmask) >> rshift;
             } break;
             case PIXELTYPE_XBGR1555:
             {
-                rgb1555 = 0;
-                rgb1555 |= bufsrc[(x%srcxsize)*2+0];
-                rgb1555 |= bufsrc[(x%srcxsize)*2+1] << 8;
+                r = (((pixel & rmask) >> rshift) * 0x1F) / 0xFF;
+                g = (((pixel & gmask) >> gshift) * 0x1F) / 0xFF;
+                b = (((pixel & bmask) >> bshift) * 0x1F) / 0xFF;
 
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF) >> 0;
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
-                r = bufsrc[(x%srcxsize)*2+0];
-                g = r;
-                b = r;
-                a = bufsrc[(x%srcxsize)*2+1];
+                bufdst[x*2+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                    ((pixel & gmask) >> gshift) * 0.5870f +
+                    ((pixel & bmask) >> bshift) * 0.1140f);
+                bufdst[x*2+1] = (pixel & amask);
             } break;
             case PIXELTYPE_LUMINANCE:
             {
-                r = bufsrc[(x%srcxsize)*1+0];
-                g = r;
-                b = r;
-            } break;
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                v = bufsrc[(x%srcxsize)*1+0];
-
-                r = ppalette->data[v].r;
-                g = ppalette->data[v].g;
-                b = ppalette->data[v].b;
-                a = ppalette->data[v].a;
+                bufdst[x*1+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                    ((pixel & gmask) >> gshift) * 0.5870f +
+                    ((pixel & bmask) >> bshift) * 0.1140f);
             } break;
             }
+
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_24bit_Nbit
+//-----------------------------------------------------------------------------
+void
+Blit_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize * 3;
+    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
+    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint32_t rshift = 0;
+    uint32_t gshift = 0;
+    uint32_t bshift = 0;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint16_t rgb16 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
+
+    switch (srcformat)
+    {
+    case PIXELTYPE_RGB:
+    {
+        rmask = 0x00FF0000;
+        gmask = 0x0000FF00;
+        bmask = 0x000000FF;
+        
+        rshift = 16;
+        gshift =  8;
+        bshift =  0;
+    } break;
+    case PIXELTYPE_BGR:
+    {
+        bmask = 0x00FF0000;
+        gmask = 0x0000FF00;
+        rmask = 0x000000FF;
+
+        rshift =  0;
+        gshift =  8;
+        bshift = 16;
+    } break;
+    }
+
+    while (y < ysize)
+    {
+        bufdst = rawdst;
+        bufsrc = rawsrc + ((y%srcysize) * srcpitch);
+        x = 0;
+
+        while (x < xsize)
+        {
+            uint32_t pixel = (bufsrc[(x%srcxsize)*3+0] << 16)
+                | (bufsrc[(x%srcxsize)*3+1] <<  8)
+                | (bufsrc[(x%srcxsize)*3+2] <<  0);
+
+            switch (dstformat)
+            {
+            case PIXELTYPE_RGBA:
+            {
+                bufdst[x*4+0] = (pixel & rmask) >> rshift;
+                bufdst[x*4+1] = (pixel & gmask) >> gshift;
+                bufdst[x*4+2] = (pixel & bmask) >> bshift;
+                bufdst[x*4+3] = 255;
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = 255;
+                bufdst[x*4+1] = (pixel & bmask) >> bshift;
+                bufdst[x*4+2] = (pixel & gmask) >> gshift;
+                bufdst[x*4+3] = (pixel & rmask) >> rshift;
+            } break;
+            case PIXELTYPE_BGRA:
+            {
+                bufdst[x*4+0] = (pixel & bmask) >> bshift;
+                bufdst[x*4+1] = (pixel & gmask) >> gshift;
+                bufdst[x*4+2] = (pixel & rmask) >> rshift;
+                bufdst[x*4+3] = 255;
+            } break;
+            case PIXELTYPE_RGB:
+            {
+                bufdst[x*3+0] = (pixel & rmask) >> rshift;
+                bufdst[x*3+1] = (pixel & gmask) >> gshift;
+                bufdst[x*3+2] = (pixel & bmask) >> bshift;
+            } break;
+            case PIXELTYPE_BGR:
+            {
+                bufdst[x*3+0] = (pixel & bmask) >> bshift;
+                bufdst[x*3+1] = (pixel & gmask) >> gshift;
+                bufdst[x*3+2] = (pixel & rmask) >> rshift;
+            } break;
+            case PIXELTYPE_XBGR1555:
+            {
+                r = (((pixel & rmask) >> rshift) * 0x1F) / 0xFF;
+                g = (((pixel & gmask) >> gshift) * 0x1F) / 0xFF;
+                b = (((pixel & bmask) >> bshift) * 0x1F) / 0xFF;
+
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF) >> 0;
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
+            } break;
+            case PIXELTYPE_LUMINANCE_ALPHA:
+            {
+                bufdst[x*2+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                    ((pixel & gmask) >> gshift) * 0.5870f +
+                    ((pixel & bmask) >> bshift) * 0.1140f);
+                bufdst[x*2+1] = 255;
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                bufdst[x*1+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                    ((pixel & gmask) >> gshift) * 0.5870f +
+                    ((pixel & bmask) >> bshift) * 0.1140f);
+            } break;
+            }
+
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_16bit_Nbit
+//-----------------------------------------------------------------------------
+void
+Blit_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    float rmod = 0.0f;
+    float gmod = 0.0f;
+    float bmod = 0.0f;
+    float amod = 0.0f;
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize * 2;
+    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
+    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint32_t rshift = 0;
+    uint32_t gshift = 0;
+    uint32_t bshift = 0;
+    uint32_t ashift = 0;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
+    uint16_t rgb16 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
+
+    switch (srcformat)
+    {
+    case PIXELTYPE_XBGR1555:
+    {
+        rmask = 0x7C00;
+        gmask = 0x03E0;
+        bmask = 0x001F;
+        amask = 0x8000;
+
+        rshift = 10;
+        gshift =  5;
+        bshift =  0;
+        ashift = 15;
+
+        rmod = 255.0f / 31.0f;
+        gmod = 255.0f / 31.0f;
+        bmod = 255.0f / 31.0f;
+        amod = 0.0f;
+    } break;
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        rmask = 0xFF00;
+        gmask = 0xFF00;
+        bmask = 0xFF00;
+        amask = 0x00FF;
+
+        rshift = 8;
+        gshift = 8;
+        bshift = 8;
+        ashift = 0;
+
+        rmod = 0.2990f;
+        gmod = 0.5870f;
+        bmod = 0.1140f;
+        amod = 1.0f;
+    } break;
+    }
+
+    while (y < ysize)
+    {
+        bufdst = rawdst;
+        bufsrc = rawsrc + ((y%srcysize) * srcpitch);
+        x = 0;
+
+        while (x < xsize)
+        {
+            uint16_t pixel = (bufsrc[(x%srcxsize)*2+0] << 8)
+                | (bufsrc[(x%srcxsize)*2+1] << 0);
+
+            switch (dstformat)
+            {
+            case PIXELTYPE_RGBA:
+            {
+                bufdst[x*4+0] = ((pixel & rmask) >> rshift) * rmod;
+                bufdst[x*4+1] = ((pixel & gmask) >> gshift) * gmod;
+                bufdst[x*4+2] = ((pixel & bmask) >> bshift) * bmod;
+                bufdst[x*4+3] = ((pixel & amask) >> ashift) * amod;
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = ((pixel & amask) >> ashift) * amod;
+                bufdst[x*4+1] = ((pixel & bmask) >> bshift) * bmod;
+                bufdst[x*4+2] = ((pixel & gmask) >> gshift) * gmod;
+                bufdst[x*4+3] = ((pixel & rmask) >> rshift) * rmod;
+            } break;
+            case PIXELTYPE_BGRA:
+            {
+                bufdst[x*4+0] = ((pixel & bmask) >> bshift) * bmod;
+                bufdst[x*4+1] = ((pixel & gmask) >> gshift) * gmod;
+                bufdst[x*4+2] = ((pixel & rmask) >> rshift) * rmod;
+                bufdst[x*4+3] = ((pixel & amask) >> ashift) * amod;
+            } break;
+            case PIXELTYPE_RGB:
+            {
+                bufdst[x*3+0] = ((pixel & rmask) >> rshift) * rmod;
+                bufdst[x*3+1] = ((pixel & gmask) >> gshift) * gmod;
+                bufdst[x*3+2] = ((pixel & bmask) >> bshift) * bmod;
+            } break;
+            case PIXELTYPE_BGR:
+            {
+                bufdst[x*3+0] = ((pixel & bmask) >> bshift) * bmod;
+                bufdst[x*3+1] = ((pixel & gmask) >> gshift) * gmod;
+                bufdst[x*3+2] = ((pixel & rmask) >> rshift) * rmod;
+            } break;
+            case PIXELTYPE_XBGR1555:
+            {
+                r = (((pixel & rmask) >> rshift) * 0x1F) / 0xFF;
+                g = (((pixel & gmask) >> gshift) * 0x1F) / 0xFF;
+                b = (((pixel & bmask) >> bshift) * 0x1F) / 0xFF;
+
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF) >> 0;
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
+            } break;
+            case PIXELTYPE_LUMINANCE_ALPHA:
+            {
+                bufdst[x*2+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                    ((pixel & gmask) >> gshift) * 0.5870f +
+                    ((pixel & bmask) >> bshift) * 0.1140f);
+                bufdst[x*2+1] = 255;
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                bufdst[x*1+0] = (uint8_t)((((pixel & rmask) >> rshift) * rmod) * 0.2990f +
+                    (((pixel & gmask) >> gshift) * gmod) * 0.5870f +
+                    (((pixel & bmask) >> bshift) * bmod) * 0.1140f);
+            } break;
+            }
+
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawdst += dstpitch;
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Blit_8bit_Nbit
+//-----------------------------------------------------------------------------
+void
+Blit_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat)
+{
+    uint8_t* rawdst = pdst;
+    uint8_t* rawsrc = psrc;
+    uint8_t* bufdst = pdst;
+    uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize;
+    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
+    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint16_t rgb16 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+    uint8_t a = 255;
+    uint8_t v = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    }
+
+    while (y < ysize)
+    {
+        bufdst = rawdst;
+        bufsrc = rawsrc + ((y%srcysize) * srcpitch);
+        x = 0;
+
+        while (x < xsize)
+        {
+            v = bufsrc[(x%srcxsize)*1+0];
+            b = v;
+            g = v;
+            r = v;
 
             switch (dstformat)
             {
@@ -7549,119 +9331,6 @@ BlitNbitsTo32BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
                 bufdst[x*4+2] = r;
                 bufdst[x*4+3] = a;
             } break;
-            }
-
-            x++;
-        }
-
-        y++;
-
-        if (y != ysize)
-        {
-            rawdst += dstpitch;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-// BlitNbitsTo24BPP
-//-----------------------------------------------------------------------------
-void
-BlitNbitsTo24BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
-    uint32_t dstysize, pixel_t dstformat, uint8_t* psrc, uint32_t srcpitch,
-    uint32_t srcxsize, uint32_t srcysize, pixel_t srcformat,
-    palette_t* ppalette)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
-    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
-    uint32_t x = 0;
-    uint32_t y = 0;
-    uint16_t rgb1555 = 0;
-    uint8_t v = 0, r = 0, g = 0, b = 0, a = 255;
-
-    while (y < ysize)
-    {
-        bufdst = rawdst;
-        bufsrc = rawsrc + ((y%srcysize) * srcpitch);
-        x = 0;
-
-        while (x < xsize)
-        {
-            switch (srcformat)
-            {
-            case PIXELTYPE_RGBA:
-            {
-                r = bufsrc[(x%srcxsize)*4+0];
-                g = bufsrc[(x%srcxsize)*4+1];
-                b = bufsrc[(x%srcxsize)*4+2];
-                a = bufsrc[(x%srcxsize)*4+3];
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                a = bufsrc[(x%srcxsize)*4+0];
-                b = bufsrc[(x%srcxsize)*4+1];
-                g = bufsrc[(x%srcxsize)*4+2];
-                r = bufsrc[(x%srcxsize)*4+3];
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                b = bufsrc[(x%srcxsize)*4+0];
-                g = bufsrc[(x%srcxsize)*4+1];
-                r = bufsrc[(x%srcxsize)*4+2];
-                a = bufsrc[(x%srcxsize)*4+3];
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                r = bufsrc[(x%srcxsize)*3+0];
-                g = bufsrc[(x%srcxsize)*3+1];
-                b = bufsrc[(x%srcxsize)*3+2];
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                b = bufsrc[(x%srcxsize)*3+0];
-                g = bufsrc[(x%srcxsize)*3+1];
-                r = bufsrc[(x%srcxsize)*3+2];
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                rgb1555 = 0;
-                rgb1555 |= bufsrc[(x%srcxsize)*2+0];
-                rgb1555 |= bufsrc[(x%srcxsize)*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                r = bufsrc[(x%srcxsize)*2+0];
-                g = r;
-                b = r;
-                a = bufsrc[(x%srcxsize)*2+1];
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                r = bufsrc[(x%srcxsize)*1+0];
-                g = r;
-                b = r;
-            } break;
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                v = bufsrc[(x%srcxsize)*1+0];
-
-                r = ppalette->data[v].r;
-                g = ppalette->data[v].g;
-                b = ppalette->data[v].b;
-                a = ppalette->data[v].a;
-            } break;
-            }
-
-            switch (dstformat)
-            {
             case PIXELTYPE_RGB:
             {
                 bufdst[x*3+0] = r;
@@ -7674,6 +9343,30 @@ BlitNbitsTo24BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
                 bufdst[x*3+1] = g;
                 bufdst[x*3+2] = r;
             } break;
+            case PIXELTYPE_XBGR1555:
+            {
+                r = (r * 0x1F) / 0xFF;
+                g = (g * 0x1F) / 0xFF;
+                b = (b * 0x1F) / 0xFF;
+
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                bufdst[x*2+0] = (rgb16 & 0x00FF) >> 0;
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
+            } break;
+            case PIXELTYPE_LUMINANCE_ALPHA:
+            {
+                bufdst[x*2+0] = (uint8_t)(r * 0.2990f +
+                    g * 0.5870f +
+                    b * 0.1140f);
+                bufdst[x*2+1] = a;
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                bufdst[x*1+0] = (uint8_t)(r * 0.2990f +
+                    g * 0.5870f +
+                    b * 0.1140f);
+            } break;
             }
 
             x++;
@@ -7689,24 +9382,52 @@ BlitNbitsTo24BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
 }
 
 //-----------------------------------------------------------------------------
-// BlitNbitsTo16BPP
+// Blit_PAL_Nbit
 //-----------------------------------------------------------------------------
 void
-BlitNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
-    uint32_t dstysize, pixel_t dstformat, uint8_t* psrc, uint32_t srcpitch,
-    uint32_t srcxsize, uint32_t srcysize, pixel_t srcformat,
-    palette_t* ppalette)
+Blit_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
+    pixel_t srcformat, palette_t* ppalette)
 {
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
     uint8_t* bufsrc = psrc;
+    uint32_t dstpitch = 0;
+    uint32_t srcpitch = srcxsize;
     uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
     uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
     uint32_t x = 0;
     uint32_t y = 0;
-    uint16_t rgb1555 = 0;
-    uint8_t v = 0, r = 0, g = 0, b = 0, a = 255;
+    uint16_t rgb16 = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+    uint8_t a = 0;
+    uint8_t v = 0;
+
+    switch (dstformat)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    {
+        dstpitch = dstxsize * 4;
+    } break;
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    {
+        dstpitch = dstxsize * 3;
+    } break;
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    {
+        dstpitch = dstxsize * 2;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        dstpitch = dstxsize;
+    } break;
+    }
 
     while (y < ysize)
     {
@@ -7716,93 +9437,70 @@ BlitNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
 
         while (x < xsize)
         {
-            switch (srcformat)
-            {
-            case PIXELTYPE_RGBA:
-            {
-                r = bufsrc[(x%srcxsize)*4+0];
-                g = bufsrc[(x%srcxsize)*4+1];
-                b = bufsrc[(x%srcxsize)*4+2];
-                a = bufsrc[(x%srcxsize)*4+3];
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                a = bufsrc[(x%srcxsize)*4+0];
-                b = bufsrc[(x%srcxsize)*4+1];
-                g = bufsrc[(x%srcxsize)*4+2];
-                r = bufsrc[(x%srcxsize)*4+3];
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                b = bufsrc[(x%srcxsize)*4+0];
-                g = bufsrc[(x%srcxsize)*4+1];
-                r = bufsrc[(x%srcxsize)*4+2];
-                a = bufsrc[(x%srcxsize)*4+3];
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                r = bufsrc[(x%srcxsize)*3+0];
-                g = bufsrc[(x%srcxsize)*3+1];
-                b = bufsrc[(x%srcxsize)*3+2];
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                b = bufsrc[(x%srcxsize)*3+0];
-                g = bufsrc[(x%srcxsize)*3+1];
-                r = bufsrc[(x%srcxsize)*3+2];
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                rgb1555 = 0;
-                rgb1555 |= bufsrc[(x%srcxsize)*2+0];
-                rgb1555 |= bufsrc[(x%srcxsize)*2+1] << 8;
-
-                b = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                g = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                r = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                r = bufsrc[(x%srcxsize)*2+0];
-                g = r;
-                b = r;
-                a = bufsrc[(x%srcxsize)*2+1];
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                r = bufsrc[(x%srcxsize)*1+0];
-                g = r;
-                b = r;
-            } break;
-            case PIXELTYPE_COLOUR_INDEX:
-            {
-                v = bufsrc[(x%srcxsize)*1+0];
-
-                r = ppalette->data[v].r;
-                g = ppalette->data[v].g;
-                b = ppalette->data[v].b;
-                a = ppalette->data[v].a;
-            } break;
-            }
+            v = bufsrc[(x%srcxsize)*1+0];
+            b = ppalette->data[v].b;
+            g = ppalette->data[v].g;
+            r = ppalette->data[v].r;
+            a = ppalette->data[v].a;
 
             switch (dstformat)
             {
+            case PIXELTYPE_RGBA:
+            {
+                bufdst[x*4+0] = r;
+                bufdst[x*4+1] = g;
+                bufdst[x*4+2] = b;
+                bufdst[x*4+3] = a;
+            } break;
+            case PIXELTYPE_ABGR:
+            {
+                bufdst[x*4+0] = a;
+                bufdst[x*4+1] = b;
+                bufdst[x*4+2] = g;
+                bufdst[x*4+3] = r;
+            } break;
+            case PIXELTYPE_BGRA:
+            {
+                bufdst[x*4+0] = b;
+                bufdst[x*4+1] = g;
+                bufdst[x*4+2] = r;
+                bufdst[x*4+3] = a;
+            } break;
+            case PIXELTYPE_RGB:
+            {
+                bufdst[x*3+0] = r;
+                bufdst[x*3+1] = g;
+                bufdst[x*3+2] = b;
+            } break;
+            case PIXELTYPE_BGR:
+            {
+                bufdst[x*3+0] = b;
+                bufdst[x*3+1] = g;
+                bufdst[x*3+2] = r;
+            } break;
             case PIXELTYPE_XBGR1555:
             {
-                r = r * 0x1F / 0xFF;
-                g = g * 0x1F / 0xFF;
-                b = b * 0x1F / 0xFF;
+                r = (r * 0x1F) / 0xFF;
+                g = (g * 0x1F) / 0xFF;
+                b = (b * 0x1F) / 0xFF;
 
-                rgb1555 = 0;
-                rgb1555 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
 
-                bufdst[x*2+0] = (rgb1555 & 0x00FF);
-                bufdst[x*2+1] = (rgb1555 & 0xFF00) >> 8;
+                bufdst[x*2+0] = (rgb16 & 0x00FF) >> 0;
+                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
-                bufdst[x*2+0] = r;
+                bufdst[x*2+0] = (uint8_t)(r * 0.2990f +
+                    g * 0.5870f +
+                    b * 0.1140f);
                 bufdst[x*2+1] = a;
+            } break;
+            case PIXELTYPE_LUMINANCE:
+            {
+                bufdst[x*1+0] = (uint8_t)(r * 0.2990f +
+                    g * 0.5870f +
+                    b * 0.1140f);
             } break;
             }
 
@@ -7817,7 +9515,6 @@ BlitNbitsTo16BPP(uint8_t* pdst, uint32_t dstpitch, uint32_t dstxsize,
         }
     }
 }
-
 
 //-----------------------------------------------------------------------------
 // ResampleImage
@@ -7903,113 +9600,182 @@ ResampleImage(uint8_t** ppdst, rect_t dstrect, pixel_t dstformat,
     uint8_t* srcbuf = psrcimage->data + (srcyorigin * srcpitch) +
         (srcxorigin * srcbytesperpixel);            // start of current row
 
-    bool result = false;
+    bool result = true;
 
     switch (filter)
     {
     case FILTER_POINT:
     {
-        switch (dstformat)
+        if (dstformat == psrcimage->pixeltype)
         {
-        case PIXELTYPE_RGBA:
-        case PIXELTYPE_ABGR:
-        case PIXELTYPE_BGRA:
+            if (srcbytesperpixel == 4)
+            {
+                Point_32bit_32bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 3)
+            {
+                Point_24bit_24bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 2)
+            {
+                Point_16bit_16bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else
+            {
+                Point_8bit_8bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+        }
+        else
         {
-            PointFilterNbitsTo32BPP(dstbuf, dstpitch, dstxextent,
-                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                srcyextent, psrcimage->pixeltype, ppalette);
-            result = true;
-        } break;
-        case PIXELTYPE_RGB:
-        case PIXELTYPE_BGR:
-        {
-            PointFilterNbitsTo24BPP(dstbuf, dstpitch, dstxextent,
-                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                srcyextent, psrcimage->pixeltype, ppalette);
-            result = true;
-        } break;
-        case PIXELTYPE_XBGR1555:
-        case PIXELTYPE_LUMINANCE_ALPHA:
-        {
-            PointFilterNbitsTo16BPP(dstbuf, dstpitch, dstxextent,
-                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                srcyextent, psrcimage->pixeltype, ppalette);
-            result = true;
-        } break;
-        case PIXELTYPE_LUMINANCE:
-        case PIXELTYPE_COLOUR_INDEX:
-        {
-        } break;
+            if (srcbytesperpixel == 4)
+            {
+                Point_32bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 3)
+            {
+                Point_24bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 2)
+            {
+                Point_16bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else
+            {
+                if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
+                {
+                    Point_PAL_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                        srcbuf, srcxextent, srcyextent, psrcimage->pixeltype,
+                        ppalette);
+                }
+                else
+                {
+                    Point_8bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                        srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+                }
+            }
         }
     } break;
     case FILTER_LINEAR:
     {
-        switch (dstformat)
+        if (dstformat == psrcimage->pixeltype)
         {
-        case PIXELTYPE_RGBA:
-        case PIXELTYPE_ABGR:
-        case PIXELTYPE_BGRA:
+            if (srcbytesperpixel == 4)
+            {
+                Linear_32bit_32bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 3)
+            {
+                Linear_24bit_24bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 2)
+            {
+                Linear_16bit_16bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else
+            {
+                Linear_8bit_8bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+        }
+        else
         {
-            LinearFilterNbitsTo32BPP(dstbuf, dstpitch, dstxextent,
-                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                srcyextent, psrcimage->pixeltype, ppalette);
-            result = true;
-        } break;
-        case PIXELTYPE_RGB:
-        case PIXELTYPE_BGR:
-        {
-            LinearFilterNbitsTo24BPP(dstbuf, dstpitch, dstxextent,
-                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                srcyextent, psrcimage->pixeltype, ppalette);
-            result = true;
-        } break;
-        case PIXELTYPE_XBGR1555:
-        case PIXELTYPE_LUMINANCE_ALPHA:
-        {
-            LinearFilterNbitsTo16BPP(dstbuf, dstpitch, dstxextent,
-                dstyextent, dstformat, srcbuf, srcpitch, srcxextent,
-                srcyextent, psrcimage->pixeltype, ppalette);
-            result = true;
-        } break;
-        case PIXELTYPE_LUMINANCE:
-        case PIXELTYPE_COLOUR_INDEX:
-        {
-        } break;
+            if (srcbytesperpixel == 4)
+            {
+                Linear_32bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 3)
+            {
+                Linear_24bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 2)
+            {
+                Linear_16bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else
+            {
+                if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
+                {
+                    Linear_PAL_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                        srcbuf, srcxextent, srcyextent, psrcimage->pixeltype,
+                        ppalette);
+                }
+                else
+                {
+                    Linear_8bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                        srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+                }
+            }
         }
     } break;
     default:
     {
-        switch (dstformat)
+        if (dstformat == psrcimage->pixeltype)
         {
-        case PIXELTYPE_RGBA:
-        case PIXELTYPE_ABGR:
-        case PIXELTYPE_BGRA:
+            if (srcbytesperpixel == 4)
+            {
+                Blit_32bit_32bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 3)
+            {
+                Blit_24bit_24bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 2)
+            {
+                Blit_16bit_16bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else
+            {
+                Blit_8bit_8bit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+        }
+        else
         {
-            BlitNbitsTo32BPP(dstbuf, dstpitch, dstxextent,
-                dstyextent, dstformat, srcbuf, srcpitch,
-                srcxextent, srcyextent, psrcimage->pixeltype, ppalette);
-            result = true;
-        } break;
-        case PIXELTYPE_RGB:
-        case PIXELTYPE_BGR:
-        {
-            BlitNbitsTo24BPP(dstbuf, dstpitch, dstxextent,
-                dstyextent, dstformat, srcbuf, srcpitch,
-                srcxextent, srcyextent, psrcimage->pixeltype, ppalette);
-            result = true;
-        } break;
-        case PIXELTYPE_XBGR1555:
-        case PIXELTYPE_LUMINANCE_ALPHA:
-        {
-            BlitNbitsTo16BPP(dstbuf, dstpitch, dstxextent,
-                dstyextent, dstformat, srcbuf, srcpitch,
-                srcxextent, srcyextent, psrcimage->pixeltype, ppalette);
-            result = true;
-        } break;
-        case PIXELTYPE_LUMINANCE:
-        case PIXELTYPE_COLOUR_INDEX:
-        {
-        } break;
+            if (srcbytesperpixel == 4)
+            {
+                Blit_32bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 3)
+            {
+                Blit_24bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else if (srcbytesperpixel == 2)
+            {
+                Blit_16bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+            }
+            else
+            {
+                if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
+                {
+                    Blit_PAL_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                        srcbuf, srcxextent, srcyextent, psrcimage->pixeltype,
+                        ppalette);
+                }
+                else
+                {
+                    Blit_8bit_Nbit(dstbuf, dstxextent, dstyextent, dstformat,
+                        srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+                }
+            }
         }
     } break;
     }
