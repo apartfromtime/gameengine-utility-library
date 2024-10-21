@@ -10321,6 +10321,10 @@ SaveImage(const char* pdstfile, file_format_t dstformat, encode_t dstcodec,
         result = SaveImageToMemory(&rawdst, &dstsize, dstformat, dstcodec,
             psrcimage, psrcpalette, psrcrect);
     }
+    else
+    {
+        fprintf(stderr, "SaveImage, Couldn't open file %s.\n", pdstfile);
+    }
 
     size_t fileSize = dstsize;
 
@@ -10715,6 +10719,10 @@ LoadImage(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
         fseek(hFile,  0L, SEEK_END);
         end = ftell(hFile);
         fseek(hFile, pos, SEEK_SET);
+    }
+    else
+    {
+        fprintf(stderr, "LoadImage, Couldn't open file %s.\n", psrcfile);
     }
     
     size_t fileSize = (end - pos);
