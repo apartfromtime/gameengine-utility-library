@@ -9787,7 +9787,7 @@ ResampleImage(uint8_t** ppdst, rect_t dstrect, pixel_t dstformat,
 // ReplaceColor
 //-----------------------------------------------------------------------------
 void
-ReplaceColor(uint8_t* ppixels, palette_t palette, uint32_t xsize,
+ReplaceColor(uint8_t* ppixels, palette_t* ppalette, uint32_t xsize,
     uint32_t ysize, pixel_t format, rgb_quad_t dstcolorkey,
     rgb_quad_t srccolorkey)
 {
@@ -9978,24 +9978,24 @@ ReplaceColor(uint8_t* ppixels, palette_t palette, uint32_t xsize,
         int32_t dstcolorindex = -1;
         int32_t srccolorindex = -1;
 
-        for (uint32_t i = 0; i < palette.size; ++i)
+        for (uint32_t i = 0; i < ppalette->size; ++i)
         {
-            if (palette.data[i].r == dstcolorkey.r &&
-                palette.data[i].g == dstcolorkey.g &&
-                palette.data[i].b == dstcolorkey.b &&
-                palette.data[i].a == dstcolorkey.a)
+            if (ppalette->data[i].r == dstcolorkey.r &&
+                ppalette->data[i].g == dstcolorkey.g &&
+                ppalette->data[i].b == dstcolorkey.b &&
+                ppalette->data[i].a == dstcolorkey.a)
             {
                 dstcolorindex = i;
                 break;
             }
         }
 
-        for (uint32_t i = 0; i < palette.size; ++i)
+        for (uint32_t i = 0; i < ppalette->size; ++i)
         {
-            if (palette.data[i].r == srccolorkey.r &&
-                palette.data[i].g == srccolorkey.g &&
-                palette.data[i].b == srccolorkey.b &&
-                palette.data[i].a == srccolorkey.a)
+            if (ppalette->data[i].r == srccolorkey.r &&
+                ppalette->data[i].g == srccolorkey.g &&
+                ppalette->data[i].b == srccolorkey.b &&
+                ppalette->data[i].a == srccolorkey.a)
             {
                 srccolorindex = i;
                 break;
@@ -10320,6 +10320,10 @@ SaveImage(const char* pdstfile, file_format_t dstformat, encode_t dstcodec,
         // save image
         result = SaveImageToMemory(&rawdst, &dstsize, dstformat, dstcodec,
             psrcimage, psrcpalette, psrcrect);
+    }
+    else
+    {
+        fprintf(stderr, "SaveImage, Couldn't open file %s.\n", pdstfile);
     }
 
     size_t fileSize = dstsize;
@@ -10656,7 +10660,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
                         0,
                         255
                     };
-                    ReplaceColor(pdstimage->data, srcpalette,
+                    ReplaceColor(pdstimage->data, &srcpalette,
                         rectdst.max[0]-rectdst.min[0],
                         rectdst.max[1]-rectdst.min[1],
                         dstformat, black, colorkey);
@@ -10715,6 +10719,10 @@ LoadImage(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
         fseek(hFile,  0L, SEEK_END);
         end = ftell(hFile);
         fseek(hFile, pos, SEEK_SET);
+    }
+    else
+    {
+        fprintf(stderr, "LoadImage, Couldn't open file %s.\n", psrcfile);
     }
     
     size_t fileSize = (end - pos);
