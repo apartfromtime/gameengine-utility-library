@@ -214,7 +214,7 @@ typedef struct _viewport
 //-----------------------------------------------------------------------------
 // creates a color
 //-----------------------------------------------------------------------------
-inline color_t Color(float r = 0.0f, float g = 0.0f, float b = 0.0f,
+inline constexpr color_t Color(float r = 0.0f, float g = 0.0f, float b = 0.0f,
     float a = 1.0f)
 {
     color_t c = {};
@@ -230,7 +230,7 @@ inline color_t Color(float r = 0.0f, float g = 0.0f, float b = 0.0f,
 //-----------------------------------------------------------------------------
 // adds two color values together to create a new color value.
 //-----------------------------------------------------------------------------
-inline color_t AddColor(const color_t c0, const color_t c1)
+inline constexpr color_t AddColor(const color_t c0, const color_t c1)
 {
     color_t c = Color();
 
@@ -239,10 +239,10 @@ inline color_t AddColor(const color_t c0, const color_t c1)
     c.b = c0.b + c1.b;
     c.a = c0.a + c1.a;
 
-    c.r = c.r > 1.0f ? 1.0f : c.r;
-    c.g = c.g > 1.0f ? 1.0f : c.g;
-    c.b = c.b > 1.0f ? 1.0f : c.b;
-    c.a = c.a > 1.0f ? 1.0f : c.a;
+    c.r = CLAMP(c.r, 0.0f, 1.0f);
+    c.g = CLAMP(c.g, 0.0f, 1.0f);
+    c.b = CLAMP(c.b, 0.0f, 1.0f);
+    c.a = CLAMP(c.a, 0.0f, 1.0f);
 
     return c;
 }
@@ -250,13 +250,13 @@ inline color_t AddColor(const color_t c0, const color_t c1)
 //-----------------------------------------------------------------------------
 // adjusts the contrast value of a color.
 //-----------------------------------------------------------------------------
-inline color_t AdjustColorContrast(const color_t color, float contrast)
+inline constexpr color_t AdjustColorContrast(const color_t color, float contrast)
 {
     color_t c = Color();
 
-    c.r = 0.5f + contrast * (color.r - 0.5f);
-    c.g = 0.5f + contrast * (color.g - 0.5f);
-    c.b = 0.5f + contrast * (color.b - 0.5f);
+    c.r = CLAMP(0.5f + (contrast * (color.r - 0.5f)), 0.0f, 1.0f);
+    c.g = CLAMP(0.5f + (contrast * (color.g - 0.5f)), 0.0f, 1.0f);
+    c.b = CLAMP(0.5f + (contrast * (color.b - 0.5f)), 0.0f, 1.0f);
     c.a = color.a;
 
     return c;
@@ -265,17 +265,17 @@ inline color_t AdjustColorContrast(const color_t color, float contrast)
 //-----------------------------------------------------------------------------
 // adjusts the saturation value of a color.
 //-----------------------------------------------------------------------------
-inline color_t AdjustColorSaturation(const color_t color, float saturation)
+inline constexpr color_t AdjustColorSaturation(const color_t color, float saturation)
 {
     color_t c = Color();
 
     // Approximate values for each component's contribution to luminance.
     // Based upon the NTSC standard described in ITU-R Recommendation BT.709.
-    float luminance = color.r * 0.2125f + color.g * 0.7154f + color.b * 0.0721f;
+    const float luminance = color.r * 0.2125f + color.g * 0.7154f + color.b * 0.0721f;
 
-    c.r = luminance + saturation * (color.r - luminance);
-    c.g = luminance + saturation * (color.g - luminance);
-    c.b = luminance + saturation * (color.b - luminance);
+    c.r = CLAMP(luminance + (saturation * (color.r - luminance)), 0.0f, 1.0f);
+    c.g = CLAMP(luminance + (saturation * (color.g - luminance)), 0.0f, 1.0f);
+    c.b = CLAMP(luminance + (saturation * (color.b - luminance)), 0.0f, 1.0f);
     c.a = color.a;
 
     return c;
@@ -284,14 +284,14 @@ inline color_t AdjustColorSaturation(const color_t color, float saturation)
 //-----------------------------------------------------------------------------
 // uses linear interpolation to create a color value.
 //-----------------------------------------------------------------------------
-inline color_t InterpolateColor(const color_t c0, const color_t c1, float s)
+inline constexpr color_t InterpolateColor(const color_t c0, const color_t c1, float s)
 {
     color_t c = Color();
 
-    c.r = c0.r + s * (c1.r - c0.r);
-    c.g = c0.g + s * (c1.g - c0.g);
-    c.b = c0.b + s * (c1.b - c0.b);
-    c.a = c0.a + s * (c1.a - c0.a);
+    c.r = CLAMP(c0.r + s * (c1.r - c0.r), 0.0f, 1.0f);
+    c.g = CLAMP(c0.g + s * (c1.g - c0.g), 0.0f, 1.0f);
+    c.b = CLAMP(c0.b + s * (c1.b - c0.b), 0.0f, 1.0f);
+    c.a = CLAMP(c0.a + s * (c1.a - c0.a), 0.0f, 1.0f);
 
     return c;
 }
@@ -299,14 +299,14 @@ inline color_t InterpolateColor(const color_t c0, const color_t c1, float s)
 //-----------------------------------------------------------------------------
 // blends two colors.
 //-----------------------------------------------------------------------------
-inline color_t ModulateColor(const color_t c0, const color_t c1)
+inline constexpr color_t ModulateColor(const color_t c0, const color_t c1)
 {
     color_t c = Color();
 
-    c.r = c0.r * c1.r;
-    c.g = c0.g * c1.g;
-    c.b = c0.b * c1.b;
-    c.a = c0.a * c1.a;
+    c.r = CLAMP(c0.r * c1.r, 0.0f, 1.0f);
+    c.g = CLAMP(c0.g * c1.g, 0.0f, 1.0f);
+    c.b = CLAMP(c0.b * c1.b, 0.0f, 1.0f);
+    c.a = CLAMP(c0.a * c1.a, 0.0f, 1.0f);
 
     return c;
 }
@@ -314,14 +314,14 @@ inline color_t ModulateColor(const color_t c0, const color_t c1)
 //-----------------------------------------------------------------------------
 // creates the negative color value of a color value.
 //-----------------------------------------------------------------------------
-inline color_t NegateColor(const color_t c0)
+inline constexpr color_t NegateColor(const color_t c0)
 {
     color_t c = Color();
 
-    c.r = 1.0f - c0.r;
-    c.g = 1.0f - c0.g;
-    c.b = 1.0f - c0.b;
-    c.a = 1.0f - c0.a;
+    c.r = CLAMP(1.0f - c0.r, 0.0f, 1.0f);
+    c.g = CLAMP(1.0f - c0.g, 0.0f, 1.0f);
+    c.b = CLAMP(1.0f - c0.b, 0.0f, 1.0f);
+    c.a = CLAMP(1.0f - c0.a, 0.0f, 1.0f);
 
     return c;
 }
@@ -329,14 +329,14 @@ inline color_t NegateColor(const color_t c0)
 //-----------------------------------------------------------------------------
 // scales a color value.
 //-----------------------------------------------------------------------------
-inline color_t ScaleColor(const color_t c0, float s)
+inline constexpr color_t ScaleColor(const color_t c0, float s)
 {
     color_t c = Color();
 
-    c.r = c0.r * s;
-    c.g = c0.g * s;
-    c.b = c0.b * s;
-    c.a = c0.a * s;
+    c.r = CLAMP(c0.r * s, 0.0f, 1.0f);
+    c.g = CLAMP(c0.g * s, 0.0f, 1.0f);
+    c.b = CLAMP(c0.b * s, 0.0f, 1.0f);
+    c.a = CLAMP(c0.a * s, 0.0f, 1.0f);
 
     return c;
 }
@@ -344,7 +344,7 @@ inline color_t ScaleColor(const color_t c0, float s)
 //-----------------------------------------------------------------------------
 // subtracts two color values to create a new color value.
 //-----------------------------------------------------------------------------
-inline color_t SubtractColor(const color_t c0, const color_t c1)
+inline constexpr color_t SubtractColor(const color_t c0, const color_t c1)
 {
     color_t c = Color();
 
@@ -353,10 +353,10 @@ inline color_t SubtractColor(const color_t c0, const color_t c1)
     c.b = c0.b - c1.b;
     c.a = c0.a - c1.a;
 
-    c.r = c.r < 0.0f ? 0.0f : c.r;
-    c.g = c.g < 0.0f ? 0.0f : c.g;
-    c.b = c.b < 0.0f ? 0.0f : c.b;
-    c.a = c.a < 0.0f ? 0.0f : c.a;
+    c.r = CLAMP(c.r, 0.0f, 1.0f);
+    c.g = CLAMP(c.g, 0.0f, 1.0f);
+    c.b = CLAMP(c.b, 0.0f, 1.0f);
+    c.a = CLAMP(c.a, 0.0f, 1.0f);
 
     return c;
 }
@@ -364,14 +364,14 @@ inline color_t SubtractColor(const color_t c0, const color_t c1)
 //-----------------------------------------------------------------------------
 // returns color in argb format.
 //-----------------------------------------------------------------------------
-inline byte4_t RGBAColor(color_t& color)
+inline byte4_t RGBAColor(const color_t& color) noexcept
 {
     byte4_t c = {};
     
-    c.n0 = (uint8_t)(MIN(MAX(color.a, 0), 1) * 255);
-    c.n1 = (uint8_t)(MIN(MAX(color.r, 0), 1) * 255);
-    c.n2 = (uint8_t)(MIN(MAX(color.g, 0), 1) * 255);
-    c.n3 = (uint8_t)(MIN(MAX(color.b, 0), 1) * 255);
+    c.n0 = (uint8_t)(CLAMP(color.r, 0.0f, 1.0f) * 255.0f);
+    c.n1 = (uint8_t)(CLAMP(color.g, 0.0f, 1.0f) * 255.0f);
+    c.n2 = (uint8_t)(CLAMP(color.b, 0.0f, 1.0f) * 255.0f);
+    c.n3 = (uint8_t)(CLAMP(color.a, 0.0f, 1.0f) * 255.0f);
 
     return c;
 }
@@ -379,14 +379,14 @@ inline byte4_t RGBAColor(color_t& color)
 //-----------------------------------------------------------------------------
 // returns color in abgr format.
 //-----------------------------------------------------------------------------
-inline byte4_t BGRAColor(color_t& color)
+inline byte4_t BGRAColor(const color_t& color) noexcept
 {
     byte4_t c = {};
 
-    c.n0 = (uint8_t)(MIN(MAX(color.a, 0), 1) * 255);
-    c.n1 = (uint8_t)(MIN(MAX(color.b, 0), 1) * 255);
-    c.n2 = (uint8_t)(MIN(MAX(color.g, 0), 1) * 255);
-    c.n3 = (uint8_t)(MIN(MAX(color.r, 0), 1) * 255);
+    c.n0 = (uint8_t)(CLAMP(color.b, 0.0f, 1.0f) * 255.0f);
+    c.n1 = (uint8_t)(CLAMP(color.g, 0.0f, 1.0f) * 255.0f);
+    c.n2 = (uint8_t)(CLAMP(color.r, 0.0f, 1.0f) * 255.0f);
+    c.n3 = (uint8_t)(CLAMP(color.a, 0.0f, 1.0f) * 255.0f);
 
     return c;
 }
@@ -464,7 +464,7 @@ inline constexpr bool OutsideRectangle(const rect_t& rect, long x, long y)
 //-----------------------------------------------------------------------------
 // grows the rectangle by a specified amount in x and y
 //-----------------------------------------------------------------------------
-inline void InflateRectangle(rect_t rect, long h, long v)
+inline constexpr void InflateRectangle(rect_t rect, long h, long v)
 {
     rect.min[0] -= h >> 1;
     rect.min[1] -= v >> 1;
@@ -475,7 +475,7 @@ inline void InflateRectangle(rect_t rect, long h, long v)
 //-----------------------------------------------------------------------------
 // moves or offsets the rectangle by moving the upper-left position
 //-----------------------------------------------------------------------------
-inline void OffsetRectangle(rect_t rect, long x, long y)
+inline constexpr void OffsetRectangle(rect_t rect, long x, long y)
 {
     rect.min[0] += x;
     rect.min[1] += y;
@@ -546,8 +546,8 @@ inline vector4_t CatmullRomVector4(const vector4_t a, const vector4_t b,
 {
     vector4_t v = Vector4();
 
-    float s2 = powf(s, 2);
-    float s3 = powf(s, 3);
+    const float s2 = powf(s, 2);
+    const float s3 = powf(s, 3);
 
     v.x = (((-s3 + (2 * s2) - s) * a.x) + (((3 * s3) - (5 * s2) + 2) * b.x) +
         (((-3 * s3) + (4 * s2) + s) * c.x) + ((s3 - s2) * d.x)) / 2.0f;
@@ -596,8 +596,8 @@ inline vector4_t HermiteVector4(const vector4_t a, const vector4_t t1,
 {
     vector4_t v = Vector4();
 
-    float s2 = powf(s, 2);
-    float s3 = powf(s, 3);
+    const float s2 = powf(s, 2);
+    const float s3 = powf(s, 3);
 
     v.x = (((2 * s3) - (3 * s2) + 1) * a.x) + (((-2 * s3) + (3 * s2)) * b.x) +
         ((s3 - (2 * s2) + s) * t1.x) + ((s3 - s2) * t2.x);
@@ -681,7 +681,7 @@ inline vector4_t NormalizeVector4(vector4_t a)
 
     if (v.x != 0.0f || v.y != 0.0f || v.z != 0.0f || v.w != 0.0f)
     {
-        float l = sqrtf(DotVector4(v, v));
+        const float l = sqrtf(DotVector4(v, v));
         v.x = a.x * (1.0f / l);
         v.y = a.y * (1.0f / l);
         v.z = a.z * (1.0f / l);
@@ -795,8 +795,8 @@ inline vector3_t CatmullRomVector3(const vector3_t a, const vector3_t b,
 {
     vector3_t v = Vector3();
 
-    float s2 = powf(s, 2);
-    float s3 = powf(s, 3);
+    const float s2 = powf(s, 2);
+    const float s3 = powf(s, 3);
 
     v.x = (((-s3 + (2 * s2) - s) * a.x) + (((3 * s3) - (5 * s2) + 2) * b.x) +
         (((-3 * s3) + (4 * s2) + s) * c.x) + ((s3 - s2) * d.x)) / 2.0f;
@@ -838,8 +838,8 @@ inline vector3_t HermiteVector3(const vector3_t a, const vector3_t t1,
 {
     vector3_t v = Vector3();
 
-    float s2 = powf(s, 2);
-    float s3 = powf(s, 3);
+    const float s2 = powf(s, 2);
+    const float s3 = powf(s, 3);
 
     v.x = (((2 * s3) - (3 * s2) + 1) * a.x) + (((-2 * s3) + (3 * s2)) * b.x) +
         ((s3 - (2 * s2) + s) * t1.x) + ((s3 - s2) * t2.x);
@@ -918,7 +918,7 @@ inline vector3_t NormalizeVector3(vector3_t a)
 
     if (a.x != 0.0f || a.y != 0.0f || a.z != 0.0f)
     {
-        float l = sqrtf(DotVector3(a, a));
+        const float l = sqrtf(DotVector3(a, a));
         v.x = a.x * (1.0f / l);
         v.y = a.y * (1.0f / l);
         v.z = a.z * (1.0f / l);
@@ -1055,8 +1055,8 @@ inline vector2_t CatmullRomVector2(const vector2_t a, const vector2_t b,
 {
     vector2_t v = Vector2();
 
-    float s2 = powf(s, 2);
-    float s3 = powf(s, 3);
+    const float s2 = powf(s, 2);
+    const float s3 = powf(s, 3);
 
     v.x = (((-s3 + (2 * s2) - s) * a.x) + (((3 * s3) - (5 * s2) + 2) * b.x) +
         (((-3 * s3) + (4 * s2) + s) * c.x) + ((s3 - s2) * d.x)) / 2.0f;
@@ -1094,8 +1094,8 @@ inline vector2_t HermiteVector2(const vector2_t a, const vector2_t t1,
 {
     vector2_t v = Vector2();
 
-    float s2 = powf(s, 2);
-    float s3 = powf(s, 3);
+    const float s2 = powf(s, 2);
+    const float s3 = powf(s, 3);
 
     v.x = (((2 * s3) - (3 * s2) + 1) * a.x) + (((-2 * s3) + (3 * s2)) * b.x) +
         ((s3 - (2 * s2) + s) * t1.x) + ((s3 - s2) * t2.x);
@@ -1170,7 +1170,7 @@ inline vector2_t NormalizeVector2(const vector2_t a)
 
     if (a.x != 0.0f || a.y != 0.0f)
     {
-        float l = sqrtf(DotVector2(a, a));
+        const float l = sqrtf(DotVector2(a, a));
         v.x = a.x * (1.0f / l);
         v.y = a.y * (1.0f / l);
     }
@@ -1324,7 +1324,7 @@ inline constexpr plane_t FromPointsPlane(const vector3_t v0, const vector3_t v1,
     const vector3_t v2)
 {
     plane_t p = Plane();
-    vector3_t n = CrossVector3(SubtractVector3(v1, v0), SubtractVector3(v2, v0));
+    const vector3_t n = CrossVector3(SubtractVector3(v1, v0), SubtractVector3(v2, v0));
     p = FromPointNormalPlane(v0, n);
 
     return p;
@@ -1377,7 +1377,7 @@ inline vector3_t LineIntersectPlane(const plane_t plane, vector3_t p0,
 //-----------------------------------------------------------------------------
 inline plane_t NormalizePlane(const plane_t p)
 {
-    vector3_t v = NormalizeVector3(Vector3(p.a, p.b, p.c));
+    const vector3_t v = NormalizeVector3(Vector3(p.a, p.b, p.c));
 
     return Plane(v.x, v.y, v.z, p.d);
 }
@@ -1750,8 +1750,8 @@ inline constexpr matrix4_t PerspectiveRHMatrix4(float w, float h, float zn,
 inline matrix4_t PerspectiveFovLHMatrix4(float fovy, float aspect, float zn,
     float zf)
 {
-    float yScale = tanf((H_PI - (fovy / 2.0f)));
-    float xScale = yScale / aspect;
+    const float yScale = tanf((H_PI - (fovy / 2.0f)));
+    const float xScale = yScale / aspect;
 
     return Matrix4(
         xScale, 0.0f,   0.0f,                 0.0f,
@@ -1767,8 +1767,8 @@ inline matrix4_t PerspectiveFovLHMatrix4(float fovy, float aspect, float zn,
 inline matrix4_t PerspectiveFovRHMatrix4(float fovy, float aspect, float zn,
     float zf)
 {
-    float yScale = tanf((H_PI - (fovy / 2.0f)));
-    float xScale = yScale / aspect;
+    const float yScale = tanf((H_PI - (fovy / 2.0f)));
+    const float xScale = yScale / aspect;
 
     return Matrix4(
         xScale, 0.0f,   0.0f,                 0.0f,
@@ -1811,11 +1811,11 @@ inline constexpr matrix4_t PerspectiveOffCenterMatrix4(float l, float r,
 //-----------------------------------------------------------------------------
 inline matrix4_t ReflectMatrix4(const plane_t plane)
 {
-    plane_t p = NormalizePlane(plane);
+    const plane_t p = NormalizePlane(plane);
 
-    float ta = -2.0f * p.a;
-    float tb = -2.0f * p.b;
-    float tc = -2.0f * p.c;
+    const float ta = -2.0f * p.a;
+    const float tb = -2.0f * p.b;
+    const float tc = -2.0f * p.c;
 
     return Matrix4(ta * p.a + 1, tb * p.a,     tc * p.a,     0,
                    ta * p.b,     tb * p.b + 1, tc * p.b,     0,
@@ -1828,9 +1828,9 @@ inline matrix4_t ReflectMatrix4(const plane_t plane)
 //-----------------------------------------------------------------------------
 inline matrix4_t RotationAxisAngleMatrix4(const vector3_t v, float angle)
 {
-    float ct = sinf(H_PI - angle);
-    float st = sinf(angle);
-    float om = (1.0f - ct);
+    const float ct = sinf(H_PI - angle);
+    const float st = sinf(angle);
+    const float om = (1.0f - ct);
 
     return Matrix4(
         v.x * v.x * om + ct, v.x * v.y * om + v.z * st, v.x * v.z * om - v.y * st, 0.0f,
@@ -2031,7 +2031,7 @@ inline constexpr vector3_t ProjectViewport(const vector3_t v,
     const matrix4_t world)
 {
     // multiply world, view, projection, viewport
-    matrix4_t t = MultiplyMatrix4(OrthographicOffCenterLHMatrix4((float)viewport.x,
+    const matrix4_t t = MultiplyMatrix4(OrthographicOffCenterLHMatrix4((float)viewport.x,
         (float)(viewport.x + viewport.w), (float)viewport.y,
         (float)(viewport.y + viewport.h), viewport.minZ,
         viewport.maxZ), MultiplyMatrix4(projection, MultiplyMatrix4(view, world)));
@@ -2046,7 +2046,7 @@ inline constexpr vector3_t UnprojectViewport(const vector3_t v,
     const matrix4_t world)
 {
     // multiply viewport, projection, view, world
-    matrix4_t t = MultiplyMatrix4(world,
+    const matrix4_t t = MultiplyMatrix4(world,
         MultiplyMatrix4(view,
         MultiplyMatrix4(projection,
         OrthographicOffCenterLHMatrix4((float)viewport.x,
