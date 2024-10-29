@@ -85,18 +85,18 @@ enum file_format_t
 };
 
 // rgba type
-typedef struct _rgb_quad
+typedef struct _rgba
 {
     unsigned char b;
     unsigned char g;
     unsigned char r;
     unsigned char a;
-} rgb_quad_t;
+} rgba_t;
 
 // palette
 typedef struct _palette
 {
-    rgb_quad_t data[256];
+    rgba_t data[256];
     uint32_t size;
     uint32_t bits;
 } palette_t;
@@ -223,7 +223,7 @@ GetImageInfo(image_info_t* psrcinfo, const char* psrcfile);
 bool
 LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
     rect_t *pdstrect, uint8_t* psrc, uint32_t srcsize, pixel_t format,
-    rect_t *psrcrect, uint32_t filter, rgb_quad_t colorkey,
+    rect_t *psrcrect, uint32_t filter, rgba_t colorkey,
     image_info_t* psrcinfo);
 
 //-----------------------------------------------------------------------------
@@ -253,9 +253,9 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
 //                        null.
 //-----------------------------------------------------------------------------
 bool
-LoadImage(image_t* pdstimage, palette_t* pdstpalette,
+LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette,
     rect_t* pdstrect, const char* psrcfile, pixel_t format,
-    rect_t* psrcrect, uint32_t filter, rgb_quad_t colorkey,
+    rect_t* psrcrect, uint32_t filter, rgba_t colorkey,
     image_info_t* psrcinfo);
 
 #endif // #ifndef _G_TEX_H_
