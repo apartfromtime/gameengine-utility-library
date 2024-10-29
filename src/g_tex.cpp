@@ -511,7 +511,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
             uint16_t s = 0;
             uint8_t enc = filtermode;
 
-            if ((y-1)!=0 && (x-1) != 0) { pri1buf = raw1buf - srcyskip; }
+            if ((y-1)!=0) { pri1buf = raw1buf - srcyskip; }
             if ((y-1)!=0) { pri0buf = raw0buf - srcyskip; }
 
             if (filtermode == PNG_FILTER_ADAPTIVE)
@@ -793,7 +793,7 @@ ShrinkInterlacedPNG(uint8_t* dstptr, uint32_t* pdstlen, uint8_t filtermode,
 bool
 SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize, uint8_t srcdepthbits,
-    palette_t* psrcpalette, rgb_quad_t* pcolorkey)
+    palette_t* psrcpalette, rgba_t* pcolorkey)
 {
     if (ppdst == NULL || ppdstsize == 0)
     {
@@ -1864,7 +1864,7 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
             int16_t pc = 0;
             uint16_t s = 0;
 
-            if (y!=0 && x!=0) { pri1buf = raw1buf - dstyskip; }
+            if (y!=0) { pri1buf = raw1buf - dstyskip; }
             if (y!=0) { pri0buf = raw0buf - dstyskip; }
 
             while (x < xsize)
@@ -1950,12 +1950,12 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
                     bpp++;
                 }
 
-                x++;
-
                 if (y!=0 && x!=0) { pri1buf += inc; }
                 if (x!=0) { raw1buf += inc; }
                 pri0buf += inc;
                 raw0buf += inc;
+
+                x++;
             }
 
             y++;
@@ -2006,7 +2006,7 @@ ExpandInterlacedPNG(uint8_t* dstptr, uint32_t dstlen, uint32_t dstxsize,
 bool
 LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize,
-    uint8_t* srcdepthbits, rgb_quad_t* pcolorkey)
+    uint8_t* srcdepthbits, rgba_t* pcolorkey)
 {
     if (ppdst == NULL || psrc == NULL || psrcsize < 8)
     {
@@ -2227,7 +2227,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 // 2 and 6; it must not appear for color types 0 and 4.
                 if (pdstpalette != 0)
                 {
-                    memset(&pdstpalette->data, 0, 256 * sizeof(rgb_quad_t));
+                    memset(&pdstpalette->data, 0, 256 * sizeof(rgba_t));
 
                     for (uint32_t i = 0; i < palnum; ++i)
                     {
@@ -2336,11 +2336,12 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                     return false;
                 }
 
-                char fourcc[4] = {};
+                char fourcc[5] = {};
                 fourcc[0] = (uint8_t)((t >> 24) & 0xFF);
                 fourcc[1] = (uint8_t)((t >> 16) & 0xFF);
                 fourcc[2] = (uint8_t)((t >>  8) & 0xFF);
                 fourcc[3] = (uint8_t)((t >>  0) & 0xFF);
+                fourcc[4] = '\0';
                 
                 fprintf(stderr, "PNG, chunk not supported: %s\n", fourcc);
 
@@ -2467,13 +2468,13 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t* odatbuf = odatptr;
     memset(odatptr, 0, ((odatlen + 1) & ~1) * sizeof(uint8_t));
 
-    size_t oabsrem = 0;         // absolute remaining output
+    size_t oabsrem = odatlen - inflator.total_out;         // absolute remaining output
     size_t odatrem = 0;         // relative remaining output
-    size_t iabsrem = 0;         // absolute remaining input
+    size_t iabsrem = idatlen - inflator.total_in;         // absolute remaining input
     size_t idatrem = 0;         // relative remaining input
 
-    idatrem = MIN(32768, idatlen);
-    odatrem = MIN(32768, odatlen);
+    idatrem = MIN(32767, idatlen);
+    odatrem = MIN(32767, odatlen);
 
     do
     {
@@ -2487,27 +2488,18 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         // input
         iabsrem = idatlen - inflator.total_in;
         idatbuf = idatptr + inflator.total_in;
-        idatrem = MIN(32768, iabsrem);
+        idatrem = MIN(32767, iabsrem);
         bytesdecoded = inflator.total_in;
 
         // output
         oabsrem = odatlen - inflator.total_out;
         odatbuf = odatptr + inflator.total_out;
-        odatrem = MIN(32768, oabsrem);
+        odatrem = MIN(32767, oabsrem);
         bytesencoded = inflator.total_out;
 
-        if (status <= Z_STREAM_END)
+        if (status == Z_STREAM_END)
         {
-            if (status == Z_STREAM_END)
-            {
-                fprintf(stdout, "PNG, Inflate: completed successfully\n");
-            }
-            else
-            {
-                fprintf(stderr, "PNG, Inflate: failed with status %i.\n",
-                    status);
-            }
-
+            fprintf(stdout, "PNG, Inflate: completed successfully\n");
             break;
         }
 
@@ -2530,6 +2522,9 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     // decompression failed
     if (status != Z_STREAM_END)
     {
+        fprintf(stderr, "PNG, Inflate: failed with status %i.\n",
+            status);
+
         // free un-compressed data and return
         if (odatptr != NULL)
         {
@@ -3729,7 +3724,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             
             if (pdstpalette != 0)
             {
-                memset(&pdstpalette->data, 0, 256 * sizeof(rgb_quad_t));
+                memset(&pdstpalette->data, 0, 256 * sizeof(rgba_t));
 
                 if (tgafile.colormap_size == 15 || tgafile.colormap_size == 16)
                 {
@@ -4078,7 +4073,7 @@ typedef struct _bmp_v5_header
 bool
 SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize, uint32_t srcdepthbits,
-    palette_t* psrcpalette, rgb_quad_t* pcolorkey, bool invertY)
+    palette_t* psrcpalette, rgba_t* pcolorkey, bool invertY)
 {
     if (ppdst == NULL || ppdstsize == 0)
     {
@@ -4782,7 +4777,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
         if (pdstpalette != 0)
         {
-            memset(&pdstpalette->data, 0, 256 * sizeof(rgb_quad_t));
+            memset(&pdstpalette->data, 0, 256 * sizeof(rgba_t));
 
             for (uint32_t i = 0; i < palnum; ++i)
             {
@@ -5116,7 +5111,7 @@ typedef struct _pcx_v5_info_s
 #pragma pack(pop)
 
 // default 64 color ega palette
-static rgb_quad_t ega_palette[64] = {
+static rgba_t ega_palette[64] = {
     {   0,   0,   0, 255 },
     {   0,   0, 170, 255 },
     {   0, 170,   0, 255 },
@@ -5812,7 +5807,7 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
         if (pdstpalette != 0)
         {
-            memset(&pdstpalette->data, 0, 256 * sizeof(rgb_quad_t));
+            memset(&pdstpalette->data, 0, 256 * sizeof(rgba_t));
 
             for (uint32_t i = 0; i < palnum; ++i)
             {
@@ -5836,7 +5831,7 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             fprintf(stderr, "PCX, No palette information, defaulting to ega \
                 palette.\n");
 
-            memcpy(&pdstpalette->data, &ega_palette, 16 * sizeof(rgb_quad_t));
+            memcpy(&pdstpalette->data, &ega_palette, 16 * sizeof(rgba_t));
             pdstpalette->size = 16;
             pdstpalette->bits = 24;
         }
@@ -9850,8 +9845,8 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
 // ReplaceColor
 //-----------------------------------------------------------------------------
 void
-ReplaceColor(image_t* image, palette_t* ppalette, rgb_quad_t dstcolorkey,
-    rgb_quad_t srccolorkey)
+ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolorkey,
+    rgba_t srccolorkey)
 {
     uint8_t* rawsrc = NULL;
     uint8_t* bufdst = NULL;
@@ -9881,7 +9876,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgb_quad_t dstcolorkey,
         pitch = xsize * 4;
         while (y < ysize)
         {
-            bufdst = rawsrc + (y * pitch);
+            bufdst = rawsrc;
             x = 0;
             while (x < xsize)
             {
@@ -9910,7 +9905,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgb_quad_t dstcolorkey,
         pitch = xsize * 3;
         while (y < ysize)
         {
-            bufdst = rawsrc + (y * pitch);
+            bufdst = rawsrc;
             x = 0;
             while (x < xsize)
             {
@@ -9937,7 +9932,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgb_quad_t dstcolorkey,
         pitch = xsize * 4;
         while (y < ysize)
         {
-            bufdst = rawsrc + (y * pitch);
+            bufdst = rawsrc;
             x = 0;
             while (x < xsize)
             {
@@ -9966,7 +9961,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgb_quad_t dstcolorkey,
         pitch = xsize * 4;
         while (y < ysize)
         {
-            bufdst = rawsrc + (y * pitch);
+            bufdst = rawsrc;
             x = 0;
             while (x < xsize)
             {
@@ -9995,7 +9990,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgb_quad_t dstcolorkey,
         pitch = xsize * 3;
         while (y < ysize)
         {
-            bufdst = rawsrc + (y * pitch);
+            bufdst = rawsrc;
             x = 0;
             while (x < xsize)
             {
@@ -10031,7 +10026,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgb_quad_t dstcolorkey,
 
         while (y < ysize)
         {
-            bufdst = rawsrc + (y * pitch);
+            bufdst = rawsrc;
             x = 0;
             while (x < xsize)
             {                
@@ -10057,7 +10052,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgb_quad_t dstcolorkey,
         pitch = xsize * 2;
         while (y < ysize)
         {
-            bufdst = rawsrc + (y * pitch);
+            bufdst = rawsrc;
             x = 0;
             while (x < xsize)
             {
@@ -10082,7 +10077,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgb_quad_t dstcolorkey,
         pitch = xsize * 1;
         while (y < ysize)
         {
-            bufdst = rawsrc + (y * pitch);
+            bufdst = rawsrc;
             x = 0;
             while (x < xsize)
             {
@@ -10140,7 +10135,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgb_quad_t dstcolorkey,
         {
             while (y < ysize)
             {
-                bufdst = rawsrc + (y * pitch);
+                bufdst = rawsrc;
                 x = 0;
                 while (x < xsize)
                 {
@@ -10589,7 +10584,7 @@ GetImageInfo(image_info_t* psrcinfo, const char* psrcfile)
 bool
 LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
     rect_t* pdstrect, uint8_t* psrc, uint32_t srcsize, pixel_t dstformat,
-    rect_t* psrcrect, uint32_t filter, rgb_quad_t colorkey,
+    rect_t* psrcrect, uint32_t filter, rgba_t colorkey,
     image_info_t* psrcinfo)
 {
     bool result = false;
@@ -10607,7 +10602,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
 
     if (pdstimage != NULL)
     {
-        rgb_quad_t pngcolorkey = { 0, 0, 0, 0 };
+        rgba_t pngcolorkey = { 0, 0, 0, 0 };
 
         if ((result = LoadFromMemoryPNG(&srcimage.data, &srcpalette, psrc,
             srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits, &pngcolorkey)) == true)
@@ -10617,10 +10612,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
             else if (depthbits == 16) { srcimage.pixeltype = PIXELTYPE_LUMINANCE_ALPHA; }
             else if (depthbits <=  8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
             else if (depthbits <=  8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
-            if (colorkey.b != pngcolorkey.b ||
-                colorkey.g != pngcolorkey.g ||
-                colorkey.r != pngcolorkey.r ||
-                colorkey.a != pngcolorkey.a)
+            if (pngcolorkey.b != 0 && pngcolorkey.g != 0 && pngcolorkey.r != 0 && pngcolorkey.a != 0)
             {
                 colorkey = pngcolorkey;
             }
@@ -10675,7 +10667,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
                 if (colorkey.b != 0 || colorkey.g != 0 || colorkey.r != 0 ||
                     colorkey.a != 0)
                 {
-                    const rgb_quad_t transparent_black = { 0, 0, 0, 0 };
+                    const rgba_t transparent_black = { 0, 0, 0, 0 };
                     ReplaceColor(pdstimage, &srcpalette, transparent_black, colorkey);
                 }
 
@@ -10706,9 +10698,9 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
 // LoadImage
 //-----------------------------------------------------------------------------
 bool
-LoadImage(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
+LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
     const char* psrcfile, pixel_t format, rect_t* psrcrect, uint32_t filter,
-    rgb_quad_t colorkey, image_info_t* psrcinfo)
+    rgba_t colorkey, image_info_t* psrcinfo)
 {
     bool result = false;
 
