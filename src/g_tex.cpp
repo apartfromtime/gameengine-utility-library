@@ -26,6 +26,8 @@
 #include "..\inc\GEUL\g_tex.h"
 #include "g_geul.h"
 
+#pragma warning (disable : 4244)            // conversion from <type> to <type>
+#pragma warning (disable : 4996)            // deprecation warning
 
 //-----------------------------------------------------------------------------
 // Sampling
@@ -729,7 +731,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                     } break;
                     }
 
-                    *dstbuf++ = sample;
+                    *dstbuf++ = (sample & 0xFF);
                     bytesencoded++;
                 }
             
@@ -993,7 +995,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     byteswritten += 13;
 
     // CRC
-    crc = Crc(crcbuf, (dstbuf - crcbuf));
+    crc = Crc(crcbuf, (int)(dstbuf - crcbuf));
     WriteU32ToBE(dstbuf, crc); dstbuf += 4;
     byteswritten += 4;
 
@@ -1018,7 +1020,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         }
 
         // CRC
-        crc = Crc(crcbuf, (dstbuf - crcbuf));
+        crc = Crc(crcbuf, (int)(dstbuf - crcbuf));
         WriteU32ToBE(dstbuf, crc); dstbuf += 4;
         byteswritten += 4;
     }
@@ -1094,7 +1096,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         }
 
         // CRC
-        crc = Crc(crcbuf, (dstbuf - crcbuf));
+        crc = Crc(crcbuf, (int)(dstbuf - crcbuf));
         WriteU32ToBE(dstbuf, crc); dstbuf += 4;
         byteswritten += 4;
     }
@@ -1161,13 +1163,13 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint8_t* odatbuf = odatptr;
     memset(odatptr, 0, ((odatlen + 1) & ~1) * sizeof(uint8_t));
 
-    size_t oabsrem = 0;         // absolute remaining output
-    size_t odatrem = 0;         // relative remaining output
-    size_t iabsrem = 0;         // absolute remaining input
-    size_t idatrem = 0;         // relative remaining input
+    unsigned int oabsrem = 0;         // absolute remaining output
+    unsigned int odatrem = 0;         // relative remaining output
+    unsigned int iabsrem = 0;         // absolute remaining input
+    unsigned int idatrem = 0;         // relative remaining input
 
-    idatrem = MIN(32768, idatlen);
-    odatrem = MIN(32768, odatlen);
+    idatrem = MIN(32767, idatlen);
+    odatrem = MIN(32767, odatlen);
 
     do
     {
@@ -1181,13 +1183,13 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         // input
         iabsrem = idatlen - deflator.total_in;
         idatbuf = idatptr + deflator.total_in;
-        idatrem = MIN(32768, iabsrem);
+        idatrem = MIN(32767, iabsrem);
         bytesdecoded = deflator.total_in;
 
         // output
         oabsrem = odatlen - deflator.total_out;
         odatbuf = odatptr + deflator.total_out;
-        odatrem = MIN(32768, oabsrem);
+        odatrem = MIN(32767, oabsrem);
         bytesencoded = deflator.total_out;
 
         if (status <= Z_STREAM_END)
@@ -1257,7 +1259,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
             }
 
             // CRC
-            crc = Crc(crcbuf, (dstbuf - crcbuf));
+            crc = Crc(crcbuf, (int)(dstbuf - crcbuf));
             WriteU32ToBE(dstbuf, crc); dstbuf += 4;
             byteswritten += 4;
         }
@@ -1273,7 +1275,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     byteswritten += 8;
 
     // CRC
-    crc = Crc(crcbuf, (dstbuf - crcbuf));
+    crc = Crc(crcbuf, (int)(dstbuf - crcbuf));
     WriteU32ToBE(dstbuf, crc); dstbuf += 4;
     byteswritten += 4;
 
@@ -1940,11 +1942,11 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
 
                     if (depth < 8)
                     {
-                        BlitNbitsToIndex8(raw0buf, dstxskip, sample, run, bit);
+                        BlitNbitsToIndex8(raw0buf, dstxskip, (sample & 0xFF), run, bit);
                     }
                     else
                     {
-                        raw0buf[s++] = sample;
+                        raw0buf[s++] = (sample & 0xFF);
                     }
 
                     bpp++;
@@ -2468,10 +2470,10 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t* odatbuf = odatptr;
     memset(odatptr, 0, ((odatlen + 1) & ~1) * sizeof(uint8_t));
 
-    size_t oabsrem = odatlen - inflator.total_out;         // absolute remaining output
-    size_t odatrem = 0;         // relative remaining output
-    size_t iabsrem = idatlen - inflator.total_in;         // absolute remaining input
-    size_t idatrem = 0;         // relative remaining input
+    unsigned int oabsrem = odatlen - inflator.total_out;         // absolute remaining output
+    unsigned int odatrem = 0;         // relative remaining output
+    unsigned int iabsrem = idatlen - inflator.total_in;         // absolute remaining input
+    unsigned int idatrem = 0;         // relative remaining input
 
     idatrem = MIN(32767, idatlen);
     odatrem = MIN(32767, odatlen);
@@ -4841,7 +4843,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     *ppdst = pixels;
     if (srcxsize != 0) { *srcxsize = xsize; }
     if (srcysize != 0) { *srcysize = ABS(ysize); }
-    if (srcdepthbits != 0) { *srcdepthbits = bmpinfo.bits; }
+    if (srcdepthbits != 0) { *srcdepthbits = (bmpinfo.bits & 0xFF); }
 
     if (rle)            // run-length encoding
     {
@@ -5206,8 +5208,8 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     int32_t xextent = srcxsize;
     int32_t yextent = srcysize;
 
-    uint16_t colorplanes = 1;            // color-planes
-    uint16_t palettetype = 0;            // palette-type
+    uint8_t colorplanes = 1;            // color-planes
+    uint8_t palettetype = 0;            // palette-type
 
     // version and number of color planes
     if (srcdepthbits <= 8)
@@ -10389,7 +10391,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
 // SaveImage
 //-----------------------------------------------------------------------------
 bool
-SaveImage(const char* pdstfile, file_format_t dstformat, encode_t dstcodec,
+SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec,
     image_t* psrcimage, palette_t* psrcpalette, rect_t* psrcrect)
 {
     bool result = false;
@@ -10510,7 +10512,7 @@ GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
 // GetImageInfo
 //-----------------------------------------------------------------------------
 bool
-GetImageInfo(image_info_t* psrcinfo, const char* psrcfile)
+GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
 {
     bool result = false;
 
@@ -10521,8 +10523,8 @@ GetImageInfo(image_info_t* psrcinfo, const char* psrcfile)
 
     // open file
     FILE* hFile = fopen(psrcfile, "rb");
-    size_t end = 0;
-    size_t pos = 0;
+    long end = 0;
+    long pos = 0;
 
     // file size
     if (hFile != NULL)
@@ -10564,7 +10566,7 @@ GetImageInfo(image_info_t* psrcinfo, const char* psrcfile)
     if (fileSize == bytesRead && srcbuf != NULL)
     {
         // image info
-        result = GetImageInfoFromMemory(psrcinfo, rawsrc, bytesRead);
+        result = GetImageInfoFromMemory(psrcinfo, rawsrc, (uint32_t)bytesRead);
     }
 
     if (srcbuf != NULL)
@@ -10657,7 +10659,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
         {
             pdstimage->xsize = srcimage.xsize;
             pdstimage->ysize = srcimage.ysize;
-            pdstimage->pixeltype = dstformat;
+            pdstimage->pixeltype = dstformat == PIXELTYPE_UNKNOWN ? PIXELTYPE_RGBA : dstformat;
 
             result = ResampleImage(pdstimage, pdstrect, &srcimage,
                 &srcpalette, psrcrect, filter);
@@ -10711,8 +10713,8 @@ LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
 
     // open file
     FILE* hFile = fopen(psrcfile, "rb");
-    size_t end = 0;
-    size_t pos = 0;
+    long end = 0;
+    long pos = 0;
 
     // file size
     if (hFile != NULL)
@@ -10759,7 +10761,7 @@ LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
     {
         // load image
         result = LoadImageFromMemory(pdstimage, pdstpalette, pdstrect, rawsrc,
-            bytesRead, format, psrcrect, filter, colorkey, psrcinfo);
+            (uint32_t)bytesRead, format, psrcrect, filter, colorkey, psrcinfo);
     }
 
     if (srcbuf != NULL)
