@@ -146,7 +146,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t dstformat,
     rect_t* psrcrect);
 
 //-----------------------------------------------------------------------------
-// SaveImage
+// SaveImageToFile
 //
 // Saves an image to a file.
 //
@@ -164,7 +164,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t dstformat,
 //                        entire image.
 //-----------------------------------------------------------------------------
 bool
-SaveImage(const char* pdstfile, file_format_t dstformat, encode_t dstcodec,
+SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec,
     image_t* psrcimage, palette_t* psrcpalette, rect_t* psrcrect);
 
 //-----------------------------------------------------------------------------
@@ -190,7 +190,7 @@ GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
 // [in    ] psrcfile    - Pointer to a string that specifies the filename.
 //-----------------------------------------------------------------------------
 bool
-GetImageInfo(image_info_t* psrcinfo, const char* psrcfile);
+GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile);
 
 //-----------------------------------------------------------------------------
 // LoadImageFromMemory
@@ -227,7 +227,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
     image_info_t* psrcinfo);
 
 //-----------------------------------------------------------------------------
-// LoadImage
+// LoadImageFromFile
 //
 // Loads an image from a file.
 //
