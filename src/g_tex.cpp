@@ -23,11 +23,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "..\inc\GEUL\g_tex.h"
-#include "g_geul.h"
+#include "..\inc\GEUL\g_geul.h"
 
 #pragma warning (disable : 4244)            // conversion from <type> to <type>
 #pragma warning (disable : 4996)            // deprecation warning
+
 
 //-----------------------------------------------------------------------------
 // Sampling
@@ -10159,7 +10159,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolorkey,
 }
 
 //-----------------------------------------------------------------------------
-// SaveImage
+// SaveImageToMemory
 //-----------------------------------------------------------------------------
 bool
 SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
@@ -10388,7 +10388,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
 }
 
 //-----------------------------------------------------------------------------
-// SaveImage
+// SaveImageToFile
 //-----------------------------------------------------------------------------
 bool
 SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec,
@@ -10447,7 +10447,7 @@ SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec
 }
 
 //-----------------------------------------------------------------------------
-// GetImageInfo
+// GetImageInfoFromMemory
 //-----------------------------------------------------------------------------
 bool
 GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
@@ -10509,7 +10509,7 @@ GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
 }
 
 //-----------------------------------------------------------------------------
-// GetImageInfo
+// GetImageInfoFromFile
 //-----------------------------------------------------------------------------
 bool
 GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
@@ -10581,7 +10581,7 @@ GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
 }
 
 //-----------------------------------------------------------------------------
-// LoadImage
+// LoadImageFromMemory
 //-----------------------------------------------------------------------------
 bool
 LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
@@ -10645,7 +10645,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
         }
         else { fprintf(stderr, "LoadImage, Unsupported image format\n"); }
 
-        if (result == true &&& psrcinfo != NULL)
+        if (result == true && psrcinfo != NULL)
         {
             psrcinfo->xsize = srcimage.xsize;
             psrcinfo->ysize = srcimage.ysize;
@@ -10697,7 +10697,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
 }
 
 //-----------------------------------------------------------------------------
-// LoadImage
+// LoadImageFromFile
 //-----------------------------------------------------------------------------
 bool
 LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,

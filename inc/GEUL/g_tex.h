@@ -38,6 +38,7 @@
 
 
 #include "g_math.h"
+#include "g_geul.h"
 
 
 // pixel type
@@ -140,7 +141,7 @@ typedef struct _image_info
 //                        rectangle. Set this parameter to null to specify the
 //                        entire image.
 //-----------------------------------------------------------------------------
-bool
+GEUL_DECLSPEC bool
 SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t dstformat,
     encode_t dstcodec, image_t* psrcimage, palette_t* psrcpalette,
     rect_t* psrcrect);
@@ -163,7 +164,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t dstformat,
 //                        rectangle. Set this parameter to null to specify the
 //                        entire image.
 //-----------------------------------------------------------------------------
-bool
+GEUL_DECLSPEC bool
 SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec,
     image_t* psrcimage, palette_t* psrcpalette, rect_t* psrcrect);
 
@@ -177,7 +178,7 @@ SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec
 // [in ] psrc       - Pointer to source file in memory.
 // [in ] psrcsize   - Size of file in memory, in bytes.
 //-----------------------------------------------------------------------------
-bool
+GEUL_DECLSPEC bool
 GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize);
 
 //-----------------------------------------------------------------------------
@@ -189,7 +190,7 @@ GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
 //                        desription of the data in the source file.
 // [in    ] psrcfile    - Pointer to a string that specifies the filename.
 //-----------------------------------------------------------------------------
-bool
+GEUL_DECLSPEC bool
 GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile);
 
 //-----------------------------------------------------------------------------
@@ -220,7 +221,7 @@ GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile);
 //                        a description of the data in the source image file or
 //                        null.
 //-----------------------------------------------------------------------------
-bool
+GEUL_DECLSPEC bool
 LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
     rect_t *pdstrect, uint8_t* psrc, uint32_t srcsize, pixel_t format,
     rect_t *psrcrect, uint32_t filter, rgba_t colorkey,
@@ -252,7 +253,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
 //                        a description of the data in the source image file or
 //                        null.
 //-----------------------------------------------------------------------------
-bool
+GEUL_DECLSPEC bool
 LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette,
     rect_t* pdstrect, const char* psrcfile, pixel_t format,
     rect_t* psrcrect, uint32_t filter, rgba_t colorkey,

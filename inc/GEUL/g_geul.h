@@ -22,28 +22,44 @@
 #ifndef _G_GEUL_H_
 #define _G_GEUL_H_
 
+#include <stdint.h>
+
 //-----------------------------------------------------------------------------
 // Operating System and CPU.
 //-----------------------------------------------------------------------------
 
-#if defined _WIN32
-#define OS_WIN32    1
-#endif
+#if defined (_WIN32)
+#define GUEL_OS_WIN32    1
+#else
+#error Unsupported operating system
+#endif // #if defined (_WIN32)
 
-#if defined __X86__ || defined __i386__ || defined i386 || defined _M_IX86 || defined __386__
-#define CPU_X86     1
-#endif
-#if defined __x86_64__ || defined _M_X64
-#define CPU_X64     1
-#endif
+#if defined (GUEL_OS_WIN32)
+#if defined (_M_IX86)
+#define GUEL_CPU_X86     1
+#endif // #if defined (_M_IX86)
 
-#if defined CPU_X86 || defined CPU_X64 || defined OS_WIN32
-#define LITTLE_ENDIAN       1
+#if defined (_M_X64)
+#define GUEL_CPU_X64     1
+#endif // #if defined (_M_X64)
+#endif // #if defined (GUEL_OS_WIN32)
+
+#if defined (GUEL_CPU_X86) || defined (GUEL_CPU_X64) || defined (GUEL_OS_WIN32)
+#define GUEL_LITTLE_ENDIAN       1
+#endif // #if defined (GUEL_CPU_X86) || defined (GUEL_CPU_X64) || defined (GUEL_OS_WIN32)
+
+#if defined (GUEL_OS_WIN32)
+#if defined (GEUL_DLL)
+#define GEUL_DECLSPEC __declspec(dllexport)
+#else
+#define GEUL_DECLSPEC __declspec(dllimport)
+#endif
 #endif
 
 //-----------------------------------------------------------------------------
 // Endianess utility functions.
 //-----------------------------------------------------------------------------
+
 inline uint16_t
 SwapU16(uint16_t v)
 {
@@ -65,7 +81,7 @@ SwapU32(uint32_t v)
 {
     uint32_t swapped;
 
-    swapped  = (v & 0xFF)  << 24;
+    swapped = (v & 0xFF) << 24;
     swapped |= (v & 0xFF00) << 8;
     swapped |= (v >> 8) & 0xFF00;
     swapped |= (v >> 24);
@@ -79,7 +95,7 @@ SwapI32(int32_t v)
     return (int32_t)SwapU32((uint32_t)v);
 }
 
-#if defined LITTLE_ENDIAN
+#if defined (GUEL_LITTLE_ENDIAN)
 #define LittleU16(x)    (x)
 #define LittleU32(x)    (x)
 #define LittleI16(x)    (x)
@@ -103,7 +119,7 @@ inline uint16_t*
 WriteU16ToLE(void* dst, uint16_t val)
 {
     uint16_t* p16 = (uint16_t*)dst;
-    uint8_t * p   = (uint8_t *)dst;
+    uint8_t* p = (uint8_t*)dst;
 
     val = LittleU16(val);
 
@@ -123,13 +139,13 @@ inline uint32_t*
 WriteU32ToLE(void* dst, uint32_t val)
 {
     uint32_t* p32 = (uint32_t*)dst;
-    uint8_t * p   = (uint8_t *)dst;
+    uint8_t* p = (uint8_t*)dst;
 
     val = LittleU32(val);
 
     p[0] = (val & 0xFF);
-    p[1] = (val & 0xFF00)     >>  8;
-    p[2] = (val & 0xFF0000)   >> 16;
+    p[1] = (val & 0xFF00) >> 8;
+    p[2] = (val & 0xFF0000) >> 16;
     p[3] = (val & 0xFF000000) >> 24;
 
     return p32;
@@ -145,7 +161,7 @@ inline uint16_t*
 WriteU16ToBE(void* dst, uint16_t val)
 {
     uint16_t* p16 = (uint16_t*)dst;
-    uint8_t * p   = (uint8_t *)dst;
+    uint8_t* p = (uint8_t*)dst;
 
     val = BigU16(val);
 
@@ -165,13 +181,13 @@ inline uint32_t*
 WriteU32ToBE(void* dst, uint32_t val)
 {
     uint32_t* p32 = (uint32_t*)dst;
-    uint8_t * p   = (uint8_t *)dst;
+    uint8_t* p = (uint8_t*)dst;
 
     val = BigU32(val);
 
     p[0] = (val & 0xFF);
-    p[1] = (val & 0xFF00)     >>  8;
-    p[2] = (val & 0xFF0000)   >> 16;
+    p[1] = (val & 0xFF00) >> 8;
+    p[2] = (val & 0xFF0000) >> 16;
     p[3] = (val & 0xFF000000) >> 24;
 
     return p32;
@@ -183,7 +199,7 @@ WriteI32ToBE(void* dst, int32_t val)
     return (int32_t*)WriteU32ToBE(dst, (uint32_t)val);
 }
 
-inline uint16_t  
+inline uint16_t
 ReadU16FromLE(const void* src)
 {
     uint16_t v = 0;
@@ -195,33 +211,33 @@ ReadU16FromLE(const void* src)
     return LittleU16(v);
 }
 
-inline int16_t  
+inline int16_t
 ReadI16FromLE(const void* src)
 {
     return (int16_t)ReadU16FromLE(src);
 }
 
-inline uint32_t  
+inline uint32_t
 ReadU32FromLE(const void* src)
 {
     uint32_t v = 0;
     uint8_t* p = (uint8_t*)src;
 
     v |= p[0];
-    v |= ((uint32_t)p[1]) <<  8;
+    v |= ((uint32_t)p[1]) << 8;
     v |= ((uint32_t)p[2]) << 16;
     v |= ((uint32_t)p[3]) << 24;
 
     return LittleU32(v);
 }
 
-inline int32_t  
+inline int32_t
 ReadI32FromLE(const void* src)
 {
     return (int32_t)ReadU32FromLE(src);
 }
 
-inline uint16_t  
+inline uint16_t
 ReadU16FromBE(const void* src)
 {
     uint16_t v = 0;
@@ -233,30 +249,33 @@ ReadU16FromBE(const void* src)
     return BigU16(v);
 }
 
-inline int16_t  
+inline int16_t
 ReadI16FromBE(const void* src)
 {
     return (int16_t)ReadU16FromBE(src);
 }
 
-inline uint32_t  
+inline uint32_t
 ReadU32FromBE(const void* src)
 {
     uint32_t v = 0;
     uint8_t* p = (uint8_t*)src;
 
     v |= p[0];
-    v |= ((uint32_t)p[1]) <<  8;
+    v |= ((uint32_t)p[1]) << 8;
     v |= ((uint32_t)p[2]) << 16;
     v |= ((uint32_t)p[3]) << 24;
 
     return BigU32(v);
 }
 
-inline int32_t  
+inline int32_t
 ReadI32FromBE(const void* src)
 {
     return (int32_t)ReadU32FromBE(src);
 }
+
+#include "g_math.h"
+#include "g_tex.h"
 
 #endif // #ifndef _G_GEUL_H_
