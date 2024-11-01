@@ -1,4 +1,11 @@
 build/
 build.bat
+msvc/.vs
+msvc/geul
+msvc/Debug
+msvc/Release
+msvc/x64
+*.vcxproj.filters
+*.vcxproj.user
 *.sublime-project
 *.sublime-workspace
