@@ -9646,199 +9646,215 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
 
     bool result = true;
 
-    switch (filter)
+    if (dstxorigin == srcxorigin && dstxextent == srcxextent &&
+        dstyorigin == srcyorigin && dstyextent == srcyextent &&
+        pdstimage->pixeltype == psrcimage->pixeltype)
     {
-    case FILTER_POINT:
+        memcpy(&dstbuf, &srcbuf, dstyextent * dstpitch);
+    }
+    else
     {
-        if (pdstimage->pixeltype == psrcimage->pixeltype)
+        switch (filter)
         {
-            if (srcbytesperpixel == 4)
-            {
-                Point_32bit_32bit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 3)
-            {
-                Point_24bit_24bit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 2)
-            {
-                Point_16bit_16bit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-            }
-            else
-            {
-                Point_8bit_8bit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-            }
-        }
-        else
+        case FILTER_POINT:
         {
-            if (srcbytesperpixel == 4)
+            if (pdstimage->pixeltype == psrcimage->pixeltype)
             {
-                Point_32bit_Nbit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 3)
-            {
-                Point_24bit_Nbit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 2)
-            {
-                Point_16bit_Nbit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-            }
-            else
-            {
-                if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
+                if (srcbytesperpixel == 4)
                 {
-                    Point_PAL_Nbit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
-                        srcbuf, srcxextent, srcyextent, psrcimage->pixeltype,
-                        ppalette);
+                    Point_32bit_32bit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 3)
+                {
+                    Point_24bit_24bit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 2)
+                {
+                    Point_16bit_16bit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
                 }
                 else
                 {
-                    Point_8bit_Nbit(dstbuf, dstxextent, dstyextent,
+                    Point_8bit_8bit(dstbuf, dstxextent, dstyextent,
                         pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
                         psrcimage->pixeltype);
                 }
             }
-        }
-    } break;
-    case FILTER_LINEAR:
-    {
-        if (pdstimage->pixeltype == psrcimage->pixeltype)
-        {
-            if (srcbytesperpixel == 4)
-            {
-                Linear_32bit_32bit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 3)
-            {
-                Linear_24bit_24bit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 2)
-            {
-                Linear_16bit_16bit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
             else
             {
-                Linear_8bit_8bit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-        }
-        else
-        {
-            if (srcbytesperpixel == 4)
-            {
-                Linear_32bit_Nbit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 3)
-            {
-                Linear_24bit_Nbit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 2)
-            {
-                Linear_16bit_Nbit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-            else
-            {
-                if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
+                if (srcbytesperpixel == 4)
                 {
-                    Linear_PAL_Nbit(dstbuf, dstxextent, dstyextent,
+                    Point_32bit_Nbit(dstbuf, dstxextent, dstyextent,
                         pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype, ppalette);
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 3)
+                {
+                    Point_24bit_Nbit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 2)
+                {
+                    Point_16bit_Nbit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
                 }
                 else
                 {
-                    Linear_8bit_Nbit(dstbuf, dstxextent, dstyextent,
+                    if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
+                    {
+                        Point_PAL_Nbit(dstbuf, dstxextent, dstyextent,
+                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                            psrcimage->pixeltype, ppalette);
+                    }
+                    else
+                    {
+                        Point_8bit_Nbit(dstbuf, dstxextent, dstyextent,
+                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                            psrcimage->pixeltype);
+                    }
+                }
+            }
+        } break;
+        case FILTER_LINEAR:
+        {
+            if (pdstimage->pixeltype == psrcimage->pixeltype)
+            {
+                if (srcbytesperpixel == 4)
+                {
+                    Linear_32bit_32bit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 3)
+                {
+                    Linear_24bit_24bit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 2)
+                {
+                    Linear_16bit_16bit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else
+                {
+                    Linear_8bit_8bit(dstbuf, dstxextent, dstyextent,
                         pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
                         psrcimage->pixeltype);
                 }
             }
-        }
-    } break;
-    default:
-    {
-        if (pdstimage->pixeltype == psrcimage->pixeltype)
-        {
-            if (srcbytesperpixel == 4)
-            {
-                Blit_32bit_32bit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 3)
-            {
-                Blit_24bit_24bit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 2)
-            {
-                Blit_16bit_16bit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
             else
             {
-                Blit_8bit_8bit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-        }
-        else
-        {
-            if (srcbytesperpixel == 4)
-            {
-                Blit_32bit_Nbit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 3)
-            {
-                Blit_24bit_Nbit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 2)
-            {
-                Blit_16bit_Nbit(dstbuf, dstxextent, dstyextent,
-                    pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                    psrcimage->pixeltype);
-            }
-            else
-            {
-                if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
+                if (srcbytesperpixel == 4)
                 {
-                    Blit_PAL_Nbit(dstbuf, dstxextent, dstyextent,
+                    Linear_32bit_Nbit(dstbuf, dstxextent, dstyextent,
                         pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype, ppalette);
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 3)
+                {
+                    Linear_24bit_Nbit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 2)
+                {
+                    Linear_16bit_Nbit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
                 }
                 else
                 {
-                    Blit_8bit_Nbit(dstbuf, dstxextent, dstyextent,
+                    if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
+                    {
+                        Linear_PAL_Nbit(dstbuf, dstxextent, dstyextent,
+                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                            psrcimage->pixeltype, ppalette);
+                    }
+                    else
+                    {
+                        Linear_8bit_Nbit(dstbuf, dstxextent, dstyextent,
+                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                            psrcimage->pixeltype);
+                    }
+                }
+            }
+        } break;
+        default:
+        {
+            if (pdstimage->pixeltype == psrcimage->pixeltype)
+            {
+                if (srcbytesperpixel == 4)
+                {
+                    Blit_32bit_32bit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 3)
+                {
+                    Blit_24bit_24bit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 2)
+                {
+                    Blit_16bit_16bit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else
+                {
+                    Blit_8bit_8bit(dstbuf, dstxextent, dstyextent,
                         pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
                         psrcimage->pixeltype);
                 }
             }
+            else
+            {
+                if (srcbytesperpixel == 4)
+                {
+                    Blit_32bit_Nbit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 3)
+                {
+                    Blit_24bit_Nbit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 2)
+                {
+                    Blit_16bit_Nbit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else
+                {
+                    if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
+                    {
+                        Blit_PAL_Nbit(dstbuf, dstxextent, dstyextent,
+                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                            psrcimage->pixeltype, ppalette);
+                    }
+                    else
+                    {
+                        Blit_8bit_Nbit(dstbuf, dstxextent, dstyextent,
+                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                            psrcimage->pixeltype);
+                    }
+                }
+            }
+        } break;
         }
-    } break;
     }
 
     return result;
