@@ -63,11 +63,6 @@ void ExpandNbitsToIndex8(uint8_t* pdst, uint32_t dstskip, uint8_t sample,
 
 #define PIXELS_PER_BYTE(depthbits) ((8.0f / (float)(depthbits)))
 
-typedef uint8_t   byte;
-typedef uint16_t  word;
-typedef uint32_t dword;
-
-
 #ifndef _PNG_H
 #define _PNG_H
 
@@ -103,7 +98,6 @@ enum
 static const uint8_t PNG_IDENTIFIER[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A,
     0x1A, 0x0A };
 
-#pragma pack(push, 1)
 typedef struct _png_chunk_s
 {
     uint32_t size;          // size
@@ -120,7 +114,6 @@ typedef struct _png_header
     uint8_t filter;         // filter method
     uint8_t interlace;          // interlace method
 } png_header_t;
-#pragma pack(pop)
 
 
 //------------------------------------------------------------------------------
@@ -221,61 +214,42 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
     uint32_t srcyskip, uint32_t srcxsize, uint32_t srcysize, uint32_t srcdepthbits,
     uint8_t* psrc)
 {
-    // image layout - indexed, grayscale, truecolor
-    // alpha channel - 8-bit per sample only
-
     // filtering
     uint32_t bytesencoded = 0;
-    uint32_t xsize = 0;         // xsize
-    uint32_t ysize = 0;         // ysize
+    uint32_t width = 0;
+    uint32_t xsize = 0;
+    uint32_t ysize = 0;
     uint32_t x = 0;
     uint32_t y = 0;
-    int32_t run = 0;            // run-length
-    int32_t bit = 0;            // bit-offset start or shift-bit start
-    int32_t inc = 0;            // pixel-to-pixel increment (interlace pattern increment)
+    uint32_t i = 0;
     uint8_t bytesperpixel = 0;
 
     // pixels
     uint16_t sample = 0;
-    uint8_t* raw0buf = 0;           // Raw(x) buffer
-    uint8_t* raw1buf = 0;           // Raw(x-bpp) buffer
-    uint8_t* pri0buf = 0;           // Pri(x) buffer
-    uint8_t* pri1buf = 0;           // Pri(x-bpp) buffer
+    uint8_t* raw0buf = 0;           // Raw(x)
+    uint8_t* raw1buf = 0;           // Raw(x-bpp)
+    uint8_t* pri0buf = 0;           // Pri(x)
+    uint8_t* pri1buf = 0;           // Pri(x-bpp)
     uint8_t* dstbuf = pdst;
     uint8_t* srcbuf = psrc;
 
     // empty image
     if (srcxsize != 0 && srcysize != 0)
     {
+        xsize = srcxsize;
         ysize = srcysize;
 
         if (srcdepthbits < 8)
         {
-            if (srcdepthbits == 1)         // 1-bit indexed
-            {
-                run = 8;
-                bit = 7;
-            }
-            else if (srcdepthbits == 2)            // 2-bit indexed
-            {
-                run = 4;
-                bit = 6;
-            }
-            else if (srcdepthbits == 4)            // 4-bit indexed
-            {
-                run = 2;
-                bit = 4;
-            }
-
             bytesperpixel = 1;
-            xsize = ((srcxsize * srcdepthbits) + 7) >> 3;          // width in bytes
-            inc = srcxskip * run;
+            width = ((srcxsize * srcdepthbits) + 7) >> 3;          // width in bytes
+            i = srcxskip;
         }
         else            // 8bit
         {
             bytesperpixel = (srcdepthbits >> 3);
-            xsize = srcxsize;
-            inc = srcxskip * (srcdepthbits >> 3);
+            width = srcxsize;
+            i = srcxskip * (srcdepthbits >> 3);
         }
 
         // filtering - None = 0; Sub = 1; Up = 2; Average = 3; Paeth = 4
@@ -315,7 +289,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                     x = 0;
                     sum[1] = 0;
 
-                    while (x++ < xsize)
+                    while (x++ < width)
                     {
                         bpp = 0;
                         raw0 = 0;
@@ -326,45 +300,22 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
 
                         while (bpp++ < bytesperpixel)
                         {
-                            if (srcdepthbits < 8)
+                            if ((y-1) != 0 && (x-1) != 0)
                             {
-                                if ((y-1) != 0 && (x-1) != 0)
-                                {
-                                    ExpandNbitsToIndex8((uint8_t*)&pri1, srcxskip, *pri1buf, run, bit);
-                                }
-
-
-                                if ((y-1) != 0)
-                                {
-                                    ExpandNbitsToIndex8((uint8_t*)&pri0, srcxskip, *pri0buf, run, bit);
-                                }
-
-                                if ((x-1) != 0)
-                                {
-                                    ExpandNbitsToIndex8((uint8_t*)&raw1, srcxskip, *raw1buf, run, bit);
-                                }
-
-                                ExpandNbitsToIndex8((uint8_t*)&raw0, srcxskip, *raw0buf, run, bit);
+                                pri1 = pri1buf[s];
                             }
-                            else
+
+                            if ((y-1) != 0)
                             {
-                                if ((y-1) != 0 && (x-1) != 0)
-                                {
-                                    pri1 = pri1buf[s];
-                                }
-
-                                if ((y-1) != 0)
-                                {
-                                    pri0 = pri0buf[s];
-                                }
-
-                                if ((x-1) != 0)
-                                {
-                                    raw1 = raw1buf[s];
-                                }
-
-                                raw0 = raw0buf[s++];
+                                pri0 = pri0buf[s];
                             }
+
+                            if ((x-1) != 0)
+                            {
+                                raw1 = raw1buf[s];
+                            }
+
+                            raw0 = raw0buf[s++];
 
                             switch (f)
                             {
@@ -426,7 +377,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
             *dstbuf++ = enc;           // filter-type byte
             bytesencoded++;
 
-            while (x++ < xsize)
+            while (x++ < width)
             {
                 bpp = 0;
                 raw0 = 0;
@@ -437,45 +388,22 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
 
                 while (bpp++ < bytesperpixel)
                 {
-                    if (srcdepthbits < 8)
+                    if ((y-1) != 0 && (x-1) != 0)
                     {
-                        if ((y-1) != 0 && (x-1) != 0)
-                        {
-                            ExpandNbitsToIndex8((uint8_t*)&pri1, srcxskip, *pri1buf, run, bit);
-                        }
-
-                        if ((y-1) != 0)
-                        {
-                            ExpandNbitsToIndex8((uint8_t*)&pri0, srcxskip, *pri0buf, run, bit);
-                        }
-
-
-                        if ((x-1) != 0)
-                        {
-                            ExpandNbitsToIndex8((uint8_t*)&raw1, srcxskip, *raw1buf, run, bit);
-                        }
-
-                        ExpandNbitsToIndex8((uint8_t*)&raw0, srcxskip, *raw0buf, run, bit);
+                        pri1 = pri1buf[s];
                     }
-                    else
+
+                    if ((y-1) != 0)
                     {
-                        if ((y-1) != 0 && (x-1) != 0)
-                        {
-                            pri1 = pri1buf[s];
-                        }
-
-                        if ((y-1) != 0)
-                        {
-                            pri0 = pri0buf[s];
-                        }
-
-                        if ((x-1) != 0)
-                        {
-                            raw1 = raw1buf[s];
-                        }
-
-                        raw0 = raw0buf[s++];
+                        pri0 = pri0buf[s];
                     }
+
+                    if ((x-1) != 0)
+                    {
+                        raw1 = raw1buf[s];
+                    }
+
+                    raw0 = raw0buf[s++];
 
                     switch (enc)
                     {
@@ -524,10 +452,10 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                     bytesencoded++;
                 }
             
-                if ((y-1) != 0 && (x-1) != 0) { pri1buf += inc; }
-                if ((x-1) != 0) { raw1buf += inc; }
-                if (x!=xsize) { pri0buf += inc; }
-                if (x!=xsize) { raw0buf += inc; }
+                if ((y-1) != 0 && (x-1) != 0) { pri1buf += i; }
+                if ((x-1) != 0) { raw1buf += i; }
+                if (x!=xsize) { pri0buf += i; }
+                if (x!=xsize) { raw0buf += i; }
             }
 
             if (y != ysize)
@@ -621,26 +549,6 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     case  1:
     {
         dstdepth = srcdepthbits;
-
-        if (psrcpalette != NULL)
-        {
-            if (psrcpalette->size <= 256 && psrcpalette->size > 16)
-            {
-                dstdepth = 8;
-            }
-            else if (psrcpalette->size <= 16 && psrcpalette->size > 4)
-            {
-                dstdepth = 4;
-            }
-            else if (psrcpalette->size <= 4 && psrcpalette->size > 2)
-            {
-                dstdepth = 2;
-            }
-            else if (psrcpalette->size <= 2)
-            {
-                dstdepth = 1;
-            }
-        }
     } break;
     }
 
@@ -957,8 +865,8 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     unsigned int iabsrem = 0;         // absolute remaining input
     unsigned int idatrem = 0;         // relative remaining input
 
-    idatrem = MIN(32767, idatlen);
-    odatrem = MIN(32767, odatlen);
+    idatrem = MIN(32768, idatlen);
+    odatrem = MIN(32768, odatlen);
 
     do
     {
@@ -972,13 +880,13 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         // input
         iabsrem = idatlen - deflator.total_in;
         idatbuf = idatptr + deflator.total_in;
-        idatrem = MIN(32767, iabsrem);
+        idatrem = MIN(32768, iabsrem);
         bytesdecoded = deflator.total_in;
 
         // output
         oabsrem = odatlen - deflator.total_out;
         odatbuf = odatptr + deflator.total_out;
-        odatrem = MIN(32767, oabsrem);
+        odatrem = MIN(32768, oabsrem);
         bytesencoded = deflator.total_out;
 
         if (status <= Z_STREAM_END)
@@ -2264,8 +2172,8 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     unsigned int iabsrem = idatlen - inflator.total_in;         // absolute remaining input
     unsigned int idatrem = 0;         // relative remaining input
 
-    idatrem = MIN(32767, idatlen);
-    odatrem = MIN(32767, odatlen);
+    idatrem = MIN(32768, idatlen);
+    odatrem = MIN(32768, odatlen);
 
     do
     {
@@ -2279,13 +2187,13 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         // input
         iabsrem = idatlen - inflator.total_in;
         idatbuf = idatptr + inflator.total_in;
-        idatrem = MIN(32767, iabsrem);
+        idatrem = MIN(32768, iabsrem);
         bytesdecoded = inflator.total_in;
 
         // output
         oabsrem = odatlen - inflator.total_out;
         odatbuf = odatptr + inflator.total_out;
-        odatrem = MIN(32767, oabsrem);
+        odatrem = MIN(32768, oabsrem);
         bytesencoded = inflator.total_out;
 
         if (status == Z_STREAM_END)
@@ -2462,23 +2370,21 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 #define TGA_RGB_RLE                 10
 #define TGA_BLACK_AND_WHITE_RLE     11
 
-#pragma pack(push, 1)
 typedef struct _tga_file
 {
-    byte    id_length;
-    byte    colormap_type;
-    byte    image_type;
-    word    colormap_index;
-    word    colormap_length;
-    byte    colormap_size;
-    word    x_origin;
-    word    y_origin;
-    word    width;
-    word    height;
-    byte    pixel_size;
-    byte    image_descriptor;
+    uint8_t  id_length;
+    uint8_t  colormap_type;
+    uint8_t  image_type;
+    uint16_t colormap_index;
+    uint16_t colormap_length;
+    uint8_t  colormap_size;
+    uint16_t x_origin;
+    uint16_t y_origin;
+    uint16_t width;
+    uint16_t height;
+    uint8_t  pixel_size;
+    uint8_t  image_descriptor;
 } tga_file_t;
-#pragma pack(pop)
 
 //------------------------------------------------------------------------------
 // SaveTGA
@@ -2819,7 +2725,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -2838,7 +2744,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -2965,7 +2871,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -2982,7 +2888,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3086,7 +2992,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3101,7 +3007,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3194,7 +3100,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3207,7 +3113,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             *dstbuf++ = sample0;
@@ -3296,7 +3202,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3309,7 +3215,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             *dstbuf++ = sample0;
@@ -3751,98 +3657,29 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
 #define BMP_IDENTIFIER          0x4D42
 
-#pragma pack(push, 1)
 typedef struct _bmp_file
 {
-    unsigned short  type;
-    unsigned long   size;
-    unsigned short  reserved1;
-    unsigned short  reserved2;
-    unsigned long   offset;
+    uint16_t type;
+    uint32_t size;
+    uint16_t reserved1;
+    uint16_t reserved2;
+    uint32_t offset;
 } bmp_file_t;
 
 typedef struct _bmp_info
 {
-    unsigned long   size;
-    long            width;
-    long            height;
-    unsigned short  planes;
-    unsigned short  bits;
-    unsigned long   compression;
-    unsigned long   imagesize;
-    long            xresolution;
-    long            yresolution;
-    unsigned long   num_colours;
-    unsigned long   num_colour_indexes;
-} bmp_info_t;
-
-typedef struct _bmp_v3_header
-{
-    unsigned long   size;
-    long            width;
-    long            height;
-    unsigned short  planes;
-    unsigned short  bits;
-    unsigned long   compression;
-    unsigned long   imagesize;
-    long            xresolution;
-    long            yresolution;
-    unsigned long   num_colours;
-    unsigned long   num_colour_indexes;
-} bmp_v3_header_t;
-
-typedef struct _bmp_v4_header
-{
-  unsigned long size;
-  long          width;
-  long          height;
-  short         planes;
-  short         bitCount;
-  unsigned long compression;
-  unsigned long sizeImage;
-  long          xPelsPerMeter;
-  long          yPelsPerMeter;
-  unsigned long clrUsed;
-  unsigned long clrImportant;
-  unsigned long redMask;
-  unsigned long greenMask;
-  unsigned long blueMask;
-  unsigned long alphaMask;
-  unsigned long csType;
-  long          endpoints[9];         // CIEXYZTRIPLE 3x3 fixed-point long type
-  unsigned long gammaRed;
-  unsigned long gammaGreen;
-  unsigned long gammaBlue;
-} bmp_v4_header_t;
-
-typedef struct _bmp_v5_header
-{
-  unsigned long size;
-  long          width;
-  long          height;
-  short         planes;
-  short         bitCount;
-  unsigned long compression;
-  unsigned long sizeImage;
-  long          xPelsPerMeter;
-  long          yPelsPerMeter;
-  unsigned long clrUsed;
-  unsigned long clrImportant;
-  unsigned long redMask;
-  unsigned long greenMask;
-  unsigned long blueMask;
-  unsigned long alphaMask;
-  unsigned long csType;
-  long          endpoints[9];         // CIEXYZTRIPLE 3x3 fixed-point long type
-  unsigned long gammaRed;
-  unsigned long gammaGreen;
-  unsigned long gammaBlue;
-  unsigned long intent;
-  unsigned long profileData;
-  unsigned long profileSize;
-  unsigned long reserved;
-} bmp_v5_header_t;
-#pragma pack(pop)
+    uint32_t size;
+    int32_t  width;
+    int32_t  height;
+    uint16_t planes;
+    uint16_t bits;
+    uint32_t compression;
+    uint32_t imagesize;
+    int32_t  xresolution;
+    int32_t  yresolution;
+    uint32_t num_colours;
+    uint32_t num_colour_indexes;
+} bmp_v3_info_t;
 
 //------------------------------------------------------------------------------
 // SaveBMP
@@ -3922,7 +3759,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     int32_t type = 0x4D42;          // 'BM'
     // total bytes per scanline required to encode bmp data
     // big array for true-color images
-    int32_t datasize = sizeof(bmp_file_t) + sizeof(bmp_info_t) +
+    int32_t datasize = sizeof(bmp_file_t) + sizeof(bmp_v3_info_t) +
         ((yextent * dstpitch) * sizeof(unsigned char)) + dstpalettesize;          // bmp data size
     uint8_t* data = (uint8_t*)malloc(datasize);
     memset(data, 0, datasize * sizeof(uint8_t));
@@ -3936,10 +3773,10 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     bmp_file_t bmpfile = {};
     bmpfile.type = type;
     bmpfile.size = datasize;
-    bmpfile.offset = sizeof(bmp_file_t) + sizeof(bmp_info_t) + dstpalettesize;
+    bmpfile.offset = sizeof(bmp_file_t) + sizeof(bmp_v3_info_t) + dstpalettesize;
 
-    bmp_info_t bmpinfo = {};
-    bmpinfo.size = sizeof(bmp_info_t);
+    bmp_v3_info_t bmpinfo = {};
+    bmpinfo.size = sizeof(bmp_v3_info_t);
     bmpinfo.width = xextent;
     bmpinfo.height = (invertY == true) ? yextent : -yextent;          // bottom-up dib
     bmpinfo.planes = 1;
@@ -4130,7 +3967,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                                 if (abscount >= 3 && abscount >= rlecount)
                                 {
-                                    rlevalue = (abscount == 0) ? 1 : abscount;
+                                    rlevalue = abscount;
                                     
                                     *dstbuf++ = 0x00;
                                     *dstbuf++ = rlevalue;
@@ -4155,7 +3992,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                                 }
                                 else
                                 {
-                                    rlevalue = (rlecount == 0) ? 1 : rlecount;
+                                    rlevalue = rlecount;
 
                                     if (rlevalue == 1)
                                     {
@@ -4251,7 +4088,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                                 if (abscount >= 3 && abscount >= rlecount)
                                 {
-                                    rlevalue = (abscount == 0) ? 1 : abscount;
+                                    rlevalue = abscount;
 
                                     *dstbuf++ = 0x00;
                                     *dstbuf++ = rlevalue;
@@ -4273,7 +4110,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                                 }
                                 else
                                 {
-                                    rlevalue = (rlecount == 0) ? 1 : rlecount;
+                                    rlevalue = rlecount;
 
                                     if (sample0 == colorkey)
                                     {
@@ -4343,7 +4180,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         }
     }
 
-    datasize = sizeof(bmp_file_t) + sizeof(bmp_info_t) + dstpalettesize +
+    datasize = sizeof(bmp_file_t) + sizeof(bmp_v3_info_t) + dstpalettesize +
         (bytesencoded * sizeof(uint8_t));
 
     // rewrite file struct size
@@ -4376,7 +4213,7 @@ GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize,
     uint8_t* srcend = psrc + srclen;
 
     bmp_file_t bmpfile = {};
-    bmp_info_t bmpinfo = {};
+    bmp_v3_info_t bmpinfo = {};
 
     // file struct
     bmpfile.type    = ReadU16FromLE(srcbuf);    srcbuf += 2;           // type - 0x4D4 = 'BM'
@@ -4433,7 +4270,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t* srcend = psrc + srclen;
 
     bmp_file_t bmpfile = {};
-    bmp_info_t bmpinfo = {};
+    bmp_v3_info_t bmpinfo = {};
 
     // file struct
     bmpfile.type    = ReadU16FromLE(srcbuf);    srcbuf += 2;           // type - 0x4D4 = 'BM'
@@ -4463,7 +4300,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     if (bmpinfo.bits == 1 || bmpinfo.bits == 4 || bmpinfo.bits == 8)
     {
         uint8_t* palptr = srcptr + sizeof(bmp_file_t) +
-            sizeof(bmp_info_t);
+            sizeof(bmp_v3_info_t);
         uint32_t palnum = bmpinfo.num_colours;
 
         if (pdstpalette != 0)
@@ -4777,29 +4614,27 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 //-----------------------------------------------------------------------------
 
 
-#pragma pack(push, 1)
 typedef struct _pcx_v5_info_s
 {
-    byte identifier;         // PCX Id Number (Always 0x0A)
-    byte version;            // Version Number
-    byte encoding;           // Encoding Format
-    byte bitsPerPixel;       // Bits Per Pixel
-    word xMin;               // Left of image
-    word yMin;               // Top of image
-    word xMax;               // Right of image
-    word yMax;               // Bottom of image
-    word horzRes;            // Horizontal Resolution
-    word vertRes;            // Vertical Resolution
-    byte palette[48];        // 16-Color EGA Palette
-    byte reserved1;          // Reserved (Always 0)
-    byte numBitPlanes;       // Number of Bit Planes
-    word bytesPerLine;       // Bytes Per Scan-line
-    word paletteType;        // Palette Type
-    word horzScreenSize;     // Horizontal Screen Size
-    word vertScreenSize;     // Vertical Screen Size
-    byte reserved2[54];      // Reserved (Always 0)
+    uint8_t  identifier;         // PCX Id Number (Always 0x0A)
+    uint8_t  version;            // Version Number
+    uint8_t  encoding;           // Encoding Format
+    uint8_t  bitsPerPixel;       // Bits Per Pixel
+    uint16_t xMin;               // Left of image
+    uint16_t yMin;               // Top of image
+    uint16_t xMax;               // Right of image
+    uint16_t yMax;               // Bottom of image
+    uint16_t horzRes;            // Horizontal Resolution
+    uint16_t vertRes;            // Vertical Resolution
+    uint8_t  palette[48];        // 16-Color EGA Palette
+    uint8_t  reserved1;          // Reserved (Always 0)
+    uint8_t  numBitPlanes;       // Number of Bit Planes
+    uint16_t bytesPerLine;       // Bytes Per Scan-line
+    uint16_t paletteType;        // Palette Type
+    uint16_t horzScreenSize;     // Horizontal Screen Size
+    uint16_t vertScreenSize;     // Vertical Screen Size
+    uint8_t  reserved2[54];      // Reserved (Always 0)
 } pcx_v5_info_t;
-#pragma pack(pop)
 
 // default 64 color ega palette
 static rgba_t ega_palette[64] = {
@@ -5026,7 +4861,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                     if (abscount >= rlecount)
                     {
-                        rlevalue = (abscount == 0) ? 1 : abscount;
+                        rlevalue = abscount;
 
                         if ((0xC0 != (0xC0 & sample0)))
                         {
@@ -5043,7 +4878,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     }
                     else
                     {
-                        rlevalue = (rlecount == 0) ? 1 : rlecount;
+                        rlevalue = rlecount;
 
                         *dstbuf++ = rlevalue | 0xC0;
                         *dstbuf++ = sample0;
@@ -5126,7 +4961,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                     if (abscount >= rlecount)
                     {
-                        rlevalue = (abscount == 0) ? 1 : abscount;
+                        rlevalue = abscount;
 
                         if ((0xC0 != (0xC0 & sample0)))
                         {
@@ -5143,7 +4978,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     }
                     else
                     {
-                        rlevalue = (rlecount == 0) ? 1 : rlecount;
+                        rlevalue = rlecount;
 
                         *dstbuf++ = rlevalue | 0xC0;
                         *dstbuf++ = sample0;
