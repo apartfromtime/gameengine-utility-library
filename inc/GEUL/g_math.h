@@ -214,7 +214,7 @@ typedef struct _viewport
 //-----------------------------------------------------------------------------
 // creates a color
 //-----------------------------------------------------------------------------
-inline constexpr color_t Color(float r = 0.0f, float g = 0.0f, float b = 0.0f,
+inline color_t Color(float r = 0.0f, float g = 0.0f, float b = 0.0f,
     float a = 1.0f)
 {
     color_t c = {};
@@ -230,7 +230,7 @@ inline constexpr color_t Color(float r = 0.0f, float g = 0.0f, float b = 0.0f,
 //-----------------------------------------------------------------------------
 // adds two color values together to create a new color value.
 //-----------------------------------------------------------------------------
-inline constexpr color_t AddColor(const color_t c0, const color_t c1)
+inline color_t AddColor(const color_t c0, const color_t c1)
 {
     color_t c = Color();
 
@@ -250,7 +250,7 @@ inline constexpr color_t AddColor(const color_t c0, const color_t c1)
 //-----------------------------------------------------------------------------
 // adjusts the contrast value of a color.
 //-----------------------------------------------------------------------------
-inline constexpr color_t AdjustColorContrast(const color_t color, float contrast)
+inline color_t AdjustColorContrast(const color_t color, float contrast)
 {
     color_t c = Color();
 
@@ -265,7 +265,7 @@ inline constexpr color_t AdjustColorContrast(const color_t color, float contrast
 //-----------------------------------------------------------------------------
 // adjusts the saturation value of a color.
 //-----------------------------------------------------------------------------
-inline constexpr color_t AdjustColorSaturation(const color_t color, float saturation)
+inline color_t AdjustColorSaturation(const color_t color, float saturation)
 {
     color_t c = Color();
 
@@ -284,7 +284,7 @@ inline constexpr color_t AdjustColorSaturation(const color_t color, float satura
 //-----------------------------------------------------------------------------
 // uses linear interpolation to create a color value.
 //-----------------------------------------------------------------------------
-inline constexpr color_t InterpolateColor(const color_t c0, const color_t c1, float s)
+inline color_t InterpolateColor(const color_t c0, const color_t c1, float s)
 {
     color_t c = Color();
 
@@ -299,7 +299,7 @@ inline constexpr color_t InterpolateColor(const color_t c0, const color_t c1, fl
 //-----------------------------------------------------------------------------
 // blends two colors.
 //-----------------------------------------------------------------------------
-inline constexpr color_t ModulateColor(const color_t c0, const color_t c1)
+inline color_t ModulateColor(const color_t c0, const color_t c1)
 {
     color_t c = Color();
 
@@ -314,7 +314,7 @@ inline constexpr color_t ModulateColor(const color_t c0, const color_t c1)
 //-----------------------------------------------------------------------------
 // creates the negative color value of a color value.
 //-----------------------------------------------------------------------------
-inline constexpr color_t NegateColor(const color_t c0)
+inline color_t NegateColor(const color_t c0)
 {
     color_t c = Color();
 
@@ -329,7 +329,7 @@ inline constexpr color_t NegateColor(const color_t c0)
 //-----------------------------------------------------------------------------
 // scales a color value.
 //-----------------------------------------------------------------------------
-inline constexpr color_t ScaleColor(const color_t c0, float s)
+inline color_t ScaleColor(const color_t c0, float s)
 {
     color_t c = Color();
 
@@ -344,7 +344,7 @@ inline constexpr color_t ScaleColor(const color_t c0, float s)
 //-----------------------------------------------------------------------------
 // subtracts two color values to create a new color value.
 //-----------------------------------------------------------------------------
-inline constexpr color_t SubtractColor(const color_t c0, const color_t c1)
+inline color_t SubtractColor(const color_t c0, const color_t c1)
 {
     color_t c = Color();
 
@@ -402,7 +402,7 @@ inline byte4_t BGRAColor(const color_t& color) noexcept
 //-----------------------------------------------------------------------------
 // constructs a rectangle
 //-----------------------------------------------------------------------------
-inline constexpr rect_t Rectangle(long x0 = 0, long y0 = 0, long x1 = 0,
+inline rect_t Rectangle(long x0 = 0, long y0 = 0, long x1 = 0,
     long y1 = 0)
 {
     rect_t r = {};
@@ -418,7 +418,7 @@ inline constexpr rect_t Rectangle(long x0 = 0, long y0 = 0, long x1 = 0,
 //-----------------------------------------------------------------------------
 // tests to see if rectangles intersect
 //-----------------------------------------------------------------------------
-inline constexpr bool IntersectsRectangle(const rect_t& r0, const rect_t& r1)
+inline bool IntersectsRectangle(const rect_t& r0, const rect_t& r1)
 {
     const long minX = r0.max[0] < r1.max[0] ? r0.max[0] : r1.max[0];
     const long minY = r0.max[1] < r1.max[1] ? r0.max[1] : r1.max[1];
@@ -436,7 +436,7 @@ inline constexpr bool IntersectsRectangle(const rect_t& r0, const rect_t& r1)
 //-----------------------------------------------------------------------------
 // returns true if point is outside the specified rectangle
 //-----------------------------------------------------------------------------
-inline constexpr bool ContainsRectangle(const rect_t& rect, long x, long y)
+inline bool ContainsRectangle(const rect_t& rect, long x, long y)
 {
     if ((rect.min[0] <= x && x < rect.max[0]) &&
         (rect.min[1] <= y && y < rect.max[1]))
@@ -450,7 +450,7 @@ inline constexpr bool ContainsRectangle(const rect_t& rect, long x, long y)
 //-----------------------------------------------------------------------------
 // returns true if point is outside the specified rectangle
 //-----------------------------------------------------------------------------
-inline constexpr bool OutsideRectangle(const rect_t& rect, long x, long y)
+inline bool OutsideRectangle(const rect_t& rect, long x, long y)
 {
     if (x < rect.min[0] || x > rect.max[0] ||
         y < rect.min[1] || y > rect.max[1])
@@ -464,7 +464,7 @@ inline constexpr bool OutsideRectangle(const rect_t& rect, long x, long y)
 //-----------------------------------------------------------------------------
 // grows the rectangle by a specified amount in x and y
 //-----------------------------------------------------------------------------
-inline constexpr void InflateRectangle(rect_t rect, long h, long v)
+inline void InflateRectangle(rect_t rect, long h, long v)
 {
     rect.min[0] -= h >> 1;
     rect.min[1] -= v >> 1;
@@ -475,7 +475,7 @@ inline constexpr void InflateRectangle(rect_t rect, long h, long v)
 //-----------------------------------------------------------------------------
 // moves or offsets the rectangle by moving the upper-left position
 //-----------------------------------------------------------------------------
-inline constexpr void OffsetRectangle(rect_t rect, long x, long y)
+inline void OffsetRectangle(rect_t rect, long x, long y)
 {
     rect.min[0] += x;
     rect.min[1] += y;
@@ -494,7 +494,7 @@ inline constexpr void OffsetRectangle(rect_t rect, long x, long y)
 //-----------------------------------------------------------------------------
 // constructs a 4d vector
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t Vector4(float x = 0, float y = 0, float z = 0,
+inline vector4_t Vector4(float x = 0, float y = 0, float z = 0,
     float w = 0)
 {
     vector4_t v = {};
@@ -510,7 +510,7 @@ inline constexpr vector4_t Vector4(float x = 0, float y = 0, float z = 0,
 //-----------------------------------------------------------------------------
 // add two 4d vectors (a + b)
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t AddVector4(vector4_t a, vector4_t b)
+inline vector4_t AddVector4(vector4_t a, vector4_t b)
 {
     vector4_t v = Vector4();
 
@@ -525,7 +525,7 @@ inline constexpr vector4_t AddVector4(vector4_t a, vector4_t b)
 //-----------------------------------------------------------------------------
 // returns a point in barycentric coordinates, using the specified 4d vectors.
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t BaryCentricVector4(const vector4_t a,
+inline vector4_t BaryCentricVector4(const vector4_t a,
     const vector4_t b, const vector4_t c, float f, float g)
 {
     vector4_t v = Vector4();
@@ -564,7 +564,7 @@ inline vector4_t CatmullRomVector4(const vector4_t a, const vector4_t b,
 //-----------------------------------------------------------------------------
 // determines the cross-product of two 4d vectors
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t CrossVector4(vector4_t a, vector4_t b, vector4_t c)
+inline vector4_t CrossVector4(vector4_t a, vector4_t b, vector4_t c)
 {
     vector4_t v = Vector4();
 
@@ -583,7 +583,7 @@ inline constexpr vector4_t CrossVector4(vector4_t a, vector4_t b, vector4_t c)
 //-----------------------------------------------------------------------------
 // dot product of two 4d vectors
 //-----------------------------------------------------------------------------
-inline constexpr float DotVector4(vector4_t a, vector4_t b)
+inline float DotVector4(vector4_t a, vector4_t b)
 {
     return (a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w);
 }
@@ -622,7 +622,7 @@ inline float LengthVector4(vector4_t a)
 //-----------------------------------------------------------------------------
 // square of the length of a 4d vector
 //-----------------------------------------------------------------------------
-inline constexpr float LengthSquareVector4(vector4_t a)
+inline float LengthSquareVector4(vector4_t a)
 {
     return DotVector4(a, a);
 }
@@ -630,7 +630,7 @@ inline constexpr float LengthSquareVector4(vector4_t a)
 //-----------------------------------------------------------------------------
 // performs a linear interpolation between two 4d vectors
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t LerpVector4(vector4_t a, vector4_t b, float s)
+inline vector4_t LerpVector4(vector4_t a, vector4_t b, float s)
 {
     vector4_t v = Vector4();
 
@@ -645,7 +645,7 @@ inline constexpr vector4_t LerpVector4(vector4_t a, vector4_t b, float s)
 //-----------------------------------------------------------------------------
 // 4d vector that is made up of the largest components of two 4d vectors
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t MaximizeVector4(vector4_t a, vector4_t b)
+inline vector4_t MaximizeVector4(vector4_t a, vector4_t b)
 {
     vector4_t v = Vector4();
 
@@ -660,7 +660,7 @@ inline constexpr vector4_t MaximizeVector4(vector4_t a, vector4_t b)
 //-----------------------------------------------------------------------------
 // 4d vector that is made up of the smallest components of two 4d vectors
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t MinimizeVector4(vector4_t a, vector4_t b)
+inline vector4_t MinimizeVector4(vector4_t a, vector4_t b)
 {
     vector4_t v = Vector4();
 
@@ -694,7 +694,7 @@ inline vector4_t NormalizeVector4(vector4_t a)
 //-----------------------------------------------------------------------------
 // scales a 4d vector
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t ScaleVector4(vector4_t a, float s)
+inline vector4_t ScaleVector4(vector4_t a, float s)
 {
     vector4_t v = Vector4();
 
@@ -709,7 +709,7 @@ inline constexpr vector4_t ScaleVector4(vector4_t a, float s)
 //-----------------------------------------------------------------------------
 // subtract two 4d vectors (a - b)
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t SubtractVector4(vector4_t a, vector4_t b)
+inline vector4_t SubtractVector4(vector4_t a, vector4_t b)
 {
     vector4_t v = Vector4();
 
@@ -724,7 +724,7 @@ inline constexpr vector4_t SubtractVector4(vector4_t a, vector4_t b)
 //-----------------------------------------------------------------------------
 // transforms a 4d vector by a given matrix
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t TransformVector4(vector4_t v, matrix4_t m)
+inline vector4_t TransformVector4(vector4_t v, matrix4_t m)
 {
     vector4_t a = Vector4();
 
@@ -747,7 +747,7 @@ inline constexpr vector4_t TransformVector4(vector4_t v, matrix4_t m)
 //-----------------------------------------------------------------------------
 // constructs a 3d vector
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t Vector3(float x = 0, float y = 0, float z = 0)
+inline vector3_t Vector3(float x = 0, float y = 0, float z = 0)
 {
     vector3_t v = {};
 
@@ -761,7 +761,7 @@ inline constexpr vector3_t Vector3(float x = 0, float y = 0, float z = 0)
 //-----------------------------------------------------------------------------
 // add two 3d vectors (a + b)
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t AddVector3(vector3_t a, vector3_t b)
+inline vector3_t AddVector3(vector3_t a, vector3_t b)
 {
     vector3_t v = Vector3();
 
@@ -775,7 +775,7 @@ inline constexpr vector3_t AddVector3(vector3_t a, vector3_t b)
 //-----------------------------------------------------------------------------
 // returns a point in barycentric coordinates, using the specified 3d vectors.
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t BaryCentricVector3(const vector3_t a,
+inline vector3_t BaryCentricVector3(const vector3_t a,
     const vector3_t b, const vector3_t c, float f, float g)
 {
     vector3_t v = Vector3();
@@ -811,7 +811,7 @@ inline vector3_t CatmullRomVector3(const vector3_t a, const vector3_t b,
 //-----------------------------------------------------------------------------
 // determines the cross-product of two 3d vectors
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t CrossVector3(vector3_t a, vector3_t b)
+inline vector3_t CrossVector3(vector3_t a, vector3_t b)
 {
     vector3_t v = Vector3();
 
@@ -825,7 +825,7 @@ inline constexpr vector3_t CrossVector3(vector3_t a, vector3_t b)
 //-----------------------------------------------------------------------------
 // dot product of two 3d vectors
 //-----------------------------------------------------------------------------
-inline constexpr float DotVector3(vector3_t a, vector3_t b)
+inline float DotVector3(vector3_t a, vector3_t b)
 {
     return (a.x * b.x + a.y * b.y + a.z * b.z);
 }
@@ -862,7 +862,7 @@ inline float LengthVector3(vector3_t a)
 //-----------------------------------------------------------------------------
 // square of the length of a 3d vector
 //-----------------------------------------------------------------------------
-inline constexpr float LengthSquareVector3(vector3_t a)
+inline float LengthSquareVector3(vector3_t a)
 {
     return DotVector3(a, a);
 }
@@ -870,7 +870,7 @@ inline constexpr float LengthSquareVector3(vector3_t a)
 //-----------------------------------------------------------------------------
 // performs a linear interpolation between two 3d vectors
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t InterpolateVector3(vector3_t a, vector3_t b, float s)
+inline vector3_t InterpolateVector3(vector3_t a, vector3_t b, float s)
 {
     vector3_t v = Vector3();
 
@@ -884,7 +884,7 @@ inline constexpr vector3_t InterpolateVector3(vector3_t a, vector3_t b, float s)
 //-----------------------------------------------------------------------------
 // 3d vector that is made up of the largest components of two 3d vectors
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t MaximizeVector3(vector3_t a, vector3_t b)
+inline vector3_t MaximizeVector3(vector3_t a, vector3_t b)
 {
     vector3_t v = Vector3();
 
@@ -898,7 +898,7 @@ inline constexpr vector3_t MaximizeVector3(vector3_t a, vector3_t b)
 //-----------------------------------------------------------------------------
 // 3d vector that is made up of the smallest components of two 3d vectors
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t MinimizeVector3(vector3_t a, vector3_t b)
+inline vector3_t MinimizeVector3(vector3_t a, vector3_t b)
 {
     vector3_t v = Vector3();
 
@@ -930,7 +930,7 @@ inline vector3_t NormalizeVector3(vector3_t a)
 //-----------------------------------------------------------------------------
 // scales a 3d vector
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t ScaleVector3(vector3_t a, float s)
+inline vector3_t ScaleVector3(vector3_t a, float s)
 {
     vector3_t v = Vector3();
 
@@ -944,7 +944,7 @@ inline constexpr vector3_t ScaleVector3(vector3_t a, float s)
 //-----------------------------------------------------------------------------
 // subtract two 3d vectors (a - b)
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t SubtractVector3(vector3_t a, vector3_t b)
+inline vector3_t SubtractVector3(vector3_t a, vector3_t b)
 {
     vector3_t v = Vector3();
 
@@ -958,7 +958,7 @@ inline constexpr vector3_t SubtractVector3(vector3_t a, vector3_t b)
 //-----------------------------------------------------------------------------
 // transforms a 3d vector by a given matrix
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t TransformVector3(vector3_t v, matrix4_t m)
+inline vector4_t TransformVector3(vector3_t v, matrix4_t m)
 {
     vector4_t a = Vector4();
 
@@ -973,7 +973,7 @@ inline constexpr vector4_t TransformVector3(vector3_t v, matrix4_t m)
 //-----------------------------------------------------------------------------
 // transforms a 3d vector by a given matrix
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t TransformVector3Coord(vector3_t v, matrix4_t m)
+inline vector3_t TransformVector3Coord(vector3_t v, matrix4_t m)
 {
     vector3_t a = Vector3();
 
@@ -987,7 +987,7 @@ inline constexpr vector3_t TransformVector3Coord(vector3_t v, matrix4_t m)
 //-----------------------------------------------------------------------------
 // transforms the 3d vector normal by the given matrix.
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t TransformVector3Normal(const vector3_t v,
+inline vector3_t TransformVector3Normal(const vector3_t v,
     const matrix4_t m)
 {
     vector3_t a = Vector3();
@@ -1010,7 +1010,7 @@ inline constexpr vector3_t TransformVector3Normal(const vector3_t v,
 //-----------------------------------------------------------------------------
 // constructs a 2d vector
 //-----------------------------------------------------------------------------
-inline constexpr vector2_t Vector2(float x = 0, float y = 0)
+inline vector2_t Vector2(float x = 0, float y = 0)
 {
     vector2_t v = {};
 
@@ -1023,7 +1023,7 @@ inline constexpr vector2_t Vector2(float x = 0, float y = 0)
 //-----------------------------------------------------------------------------
 // add two 2d vectors (a + b)
 //-----------------------------------------------------------------------------
-inline constexpr vector2_t AddVector2(vector2_t a, vector2_t b)
+inline vector2_t AddVector2(vector2_t a, vector2_t b)
 {
     vector2_t v = Vector2();
 
@@ -1036,7 +1036,7 @@ inline constexpr vector2_t AddVector2(vector2_t a, vector2_t b)
 //-----------------------------------------------------------------------------
 // returns a point in barycentric coordinates, using the specified 2D vectors.
 //-----------------------------------------------------------------------------
-inline constexpr vector2_t BaryCentricVector2(const vector2_t a,
+inline vector2_t BaryCentricVector2(const vector2_t a,
     const vector2_t b, const vector2_t c, float f, float g)
 {
     vector2_t v = Vector2();
@@ -1072,7 +1072,7 @@ inline vector2_t CatmullRomVector2(const vector2_t a, const vector2_t b,
 // counterclockwise from the vector V1. This information is useful for
 // back-face culling.
 //-----------------------------------------------------------------------------
-inline constexpr float CounterClockwiseWindingVector2(const vector2_t a,
+inline float CounterClockwiseWindingVector2(const vector2_t a,
     const vector2_t b)
 {
     return (a.x * b.y) - (a.y * b.x);
@@ -1081,7 +1081,7 @@ inline constexpr float CounterClockwiseWindingVector2(const vector2_t a,
 //-----------------------------------------------------------------------------
 // dot product of two 2d vectors
 //-----------------------------------------------------------------------------
-inline constexpr float DotVector2(vector2_t a, vector2_t b)
+inline float DotVector2(vector2_t a, vector2_t b)
 {
     return (a.x * b.x) + (a.y * b.y);
 }
@@ -1116,7 +1116,7 @@ inline float LengthVector2(const vector2_t a)
 //-----------------------------------------------------------------------------
 // square of the length of a 2d vector
 //-----------------------------------------------------------------------------
-inline constexpr float LengthSquaredVector2(const vector2_t a)
+inline float LengthSquaredVector2(const vector2_t a)
 {
     return DotVector2(a, a);
 }
@@ -1124,7 +1124,7 @@ inline constexpr float LengthSquaredVector2(const vector2_t a)
 //-----------------------------------------------------------------------------
 // performs a linear interpolation between two 2d vectors
 //-----------------------------------------------------------------------------
-inline constexpr vector2_t InterpolateVector2(const vector2_t a,
+inline vector2_t InterpolateVector2(const vector2_t a,
     const vector2_t b, float s)
 {
     vector2_t v = Vector2();
@@ -1138,7 +1138,7 @@ inline constexpr vector2_t InterpolateVector2(const vector2_t a,
 //-----------------------------------------------------------------------------
 // 2d vector that is made up of the largest components of two 2d vectors
 //-----------------------------------------------------------------------------
-inline constexpr vector2_t MaximizeVector2(const vector2_t a, const vector2_t b)
+inline vector2_t MaximizeVector2(const vector2_t a, const vector2_t b)
 {
     vector2_t v = Vector2();
 
@@ -1151,7 +1151,7 @@ inline constexpr vector2_t MaximizeVector2(const vector2_t a, const vector2_t b)
 //-----------------------------------------------------------------------------
 // 2d vector that is made up of the smallest components of two 2d vectors
 //-----------------------------------------------------------------------------
-inline constexpr vector2_t MinimizeVector2(const vector2_t a, const vector2_t b)
+inline vector2_t MinimizeVector2(const vector2_t a, const vector2_t b)
 {
     vector2_t v = Vector2();
 
@@ -1181,7 +1181,7 @@ inline vector2_t NormalizeVector2(const vector2_t a)
 //-----------------------------------------------------------------------------
 // scales a 2d vector
 //-----------------------------------------------------------------------------
-inline constexpr vector2_t ScaleVector2(const vector2_t a, float s)
+inline vector2_t ScaleVector2(const vector2_t a, float s)
 {
     vector2_t v = Vector2();
 
@@ -1194,7 +1194,7 @@ inline constexpr vector2_t ScaleVector2(const vector2_t a, float s)
 //-----------------------------------------------------------------------------
 // subtract two 2d vectors (a - b)
 //-----------------------------------------------------------------------------
-inline constexpr vector2_t SubtractVector2(const vector2_t a, const vector2_t b)
+inline vector2_t SubtractVector2(const vector2_t a, const vector2_t b)
 {
     vector2_t v = Vector2();
 
@@ -1207,7 +1207,7 @@ inline constexpr vector2_t SubtractVector2(const vector2_t a, const vector2_t b)
 //-----------------------------------------------------------------------------
 // transforms a 2d vector by a given matrix
 //-----------------------------------------------------------------------------
-inline constexpr vector4_t TransformVector2(const vector2_t v,
+inline vector4_t TransformVector2(const vector2_t v,
     const matrix4_t m)
 {
     vector4_t a = Vector4();
@@ -1223,7 +1223,7 @@ inline constexpr vector4_t TransformVector2(const vector2_t v,
 //-----------------------------------------------------------------------------
 // transforms a 2d vector by a given matrix, projecting the result back into w = 1
 //-----------------------------------------------------------------------------
-inline constexpr vector2_t TransformVector2Coord(const vector2_t v,
+inline vector2_t TransformVector2Coord(const vector2_t v,
     const matrix4_t m)
 {
     vector2_t a = Vector2();
@@ -1237,7 +1237,7 @@ inline constexpr vector2_t TransformVector2Coord(const vector2_t v,
 //-----------------------------------------------------------------------------
 // transforms the 2d vector normal by the given matrix.
 //-----------------------------------------------------------------------------
-inline constexpr vector2_t TransformVector2Normal(const vector2_t v,
+inline vector2_t TransformVector2Normal(const vector2_t v,
     const matrix4_t m)
 {
     vector2_t a = Vector2();
@@ -1259,7 +1259,7 @@ inline constexpr vector2_t TransformVector2Normal(const vector2_t v,
 //-----------------------------------------------------------------------------
 // constructs a plane
 //-----------------------------------------------------------------------------
-inline constexpr plane_t Plane(float a = 0, float b = 0, float c = 0,
+inline plane_t Plane(float a = 0, float b = 0, float c = 0,
     float d = 0)
 {
     plane_t p = {};
@@ -1275,7 +1275,7 @@ inline constexpr plane_t Plane(float a = 0, float b = 0, float c = 0,
 //-----------------------------------------------------------------------------
 // computes the dot product of a plane and a 4d vector
 //-----------------------------------------------------------------------------
-inline constexpr float DotPlane(const plane_t p, const vector4_t v)
+inline float DotPlane(const plane_t p, const vector4_t v)
 {
     return DotVector4(Vector4(p.a, p.b, p.c, p.d), v);
 }
@@ -1284,7 +1284,7 @@ inline constexpr float DotPlane(const plane_t p, const vector4_t v)
 // computes the dot product of a plane and a 3D vector. The w parameter of the
 // vector is assumed to be 1.
 //-----------------------------------------------------------------------------
-inline constexpr float DotPlaneCoordinate(const plane_t p,
+inline float DotPlaneCoordinate(const plane_t p,
     const vector3_t position)
 {
     return DotVector4(Vector4(p.a, p.b, p.c, p.d),
@@ -1295,7 +1295,7 @@ inline constexpr float DotPlaneCoordinate(const plane_t p,
 // computes the dot product of a plane and a 3D vector. The w parameter of the
 // vector is assumed to be 0.
 //-----------------------------------------------------------------------------
-inline constexpr float DotPlaneNormal(const plane_t p, const vector3_t normal)
+inline float DotPlaneNormal(const plane_t p, const vector3_t normal)
 {
     return DotVector4(Vector4(p.a, p.b, p.c, p.d),
         Vector4(normal.x, normal.y, normal.z, 0.0f));
@@ -1304,7 +1304,7 @@ inline constexpr float DotPlaneNormal(const plane_t p, const vector3_t normal)
 //-----------------------------------------------------------------------------
 // constructs a plane from a point and a normal.
 //-----------------------------------------------------------------------------
-inline constexpr plane_t FromPointNormalPlane(const vector3_t point,
+inline plane_t FromPointNormalPlane(const vector3_t point,
     const vector3_t normal)
 {
     plane_t p = Plane();
@@ -1320,7 +1320,7 @@ inline constexpr plane_t FromPointNormalPlane(const vector3_t point,
 //-----------------------------------------------------------------------------
 // constructs a plane from three points.
 //-----------------------------------------------------------------------------
-inline constexpr plane_t FromPointsPlane(const vector3_t v0, const vector3_t v1,
+inline plane_t FromPointsPlane(const vector3_t v0, const vector3_t v1,
     const vector3_t v2)
 {
     plane_t p = Plane();
@@ -1385,7 +1385,7 @@ inline plane_t NormalizePlane(const plane_t p)
 //-----------------------------------------------------------------------------
 // scale the plane with the given scaling factor.
 //-----------------------------------------------------------------------------
-inline constexpr plane_t ScalePlane(const plane_t p, float s)
+inline plane_t ScalePlane(const plane_t p, float s)
 {
     return Plane(p.a * s, p.b * s, p.c * s, p.d * s);
 }
@@ -1394,7 +1394,7 @@ inline constexpr plane_t ScalePlane(const plane_t p, float s)
 // transforms a plane by a matrix. The input matrix is the inverse transpose of
 // the actual transformation
 //-----------------------------------------------------------------------------
-inline constexpr plane_t TransformPlane(plane_t p, matrix4_t m)
+inline plane_t TransformPlane(plane_t p, matrix4_t m)
 {
     const vector4_t v = TransformVector4(Vector4(p.a, p.b, p.c, p.d), m);
 
@@ -1415,7 +1415,7 @@ inline constexpr plane_t TransformPlane(plane_t p, matrix4_t m)
 //-----------------------------------------------------------------------------
 // creates an identity matrix
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t Matrix4(
+inline matrix4_t Matrix4(
     float _11 = 1.0f, float _12 = 0.0f, float _13 = 0.0f, float _14 = 0.0f,
     float _21 = 0.0f, float _22 = 1.0f, float _23 = 0.0f, float _24 = 0.0f,
     float _31 = 0.0f, float _32 = 0.0f, float _33 = 1.0f, float _34 = 0.0f,
@@ -1446,7 +1446,7 @@ inline constexpr matrix4_t Matrix4(
 //-----------------------------------------------------------------------------
 // returns the determinant of the matrix
 //-----------------------------------------------------------------------------
-inline constexpr float DeterminantMatrix4(const matrix4_t m)
+inline float DeterminantMatrix4(const matrix4_t m)
 {
     float d = 0.0f;
 
@@ -1573,7 +1573,7 @@ inline matrix4_t InverseMatrix4(const matrix4_t m)
 //-----------------------------------------------------------------------------
 // determines the product of two matrices
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t MultiplyMatrix4(const matrix4_t a, const matrix4_t b)
+inline matrix4_t MultiplyMatrix4(const matrix4_t a, const matrix4_t b)
 {
     matrix4_t m = Matrix4();
 
@@ -1663,7 +1663,7 @@ inline matrix4_t LookAtRHMatrix4(const vector3_t eye, const vector3_t at,
 //-----------------------------------------------------------------------------
 // builds a left-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t OrthographicLHMatrix4(float w, float h, float zn,
+inline matrix4_t OrthographicLHMatrix4(float w, float h, float zn,
     float zf)
 {
     return Matrix4(
@@ -1677,7 +1677,7 @@ inline constexpr matrix4_t OrthographicLHMatrix4(float w, float h, float zn,
 //-----------------------------------------------------------------------------
 // builds a left-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t OrthographicRHMatrix4(float w, float h, float zn,
+inline matrix4_t OrthographicRHMatrix4(float w, float h, float zn,
 	float zf)
 {
     return Matrix4(
@@ -1691,7 +1691,7 @@ inline constexpr matrix4_t OrthographicRHMatrix4(float w, float h, float zn,
 //-----------------------------------------------------------------------------
 // builds a customized, left-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t OrthographicOffCenterLHMatrix4(float l, float r,
+inline matrix4_t OrthographicOffCenterLHMatrix4(float l, float r,
     float t, float b, float zn, float zf)
 {
     return Matrix4(
@@ -1705,7 +1705,7 @@ inline constexpr matrix4_t OrthographicOffCenterLHMatrix4(float l, float r,
 //-----------------------------------------------------------------------------
 // builds a customized, right-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t OrthographicOffCenterRHMatrix4(float l, float r,
+inline matrix4_t OrthographicOffCenterRHMatrix4(float l, float r,
     float t, float b, float zn, float zf)
 {
     return Matrix4(
@@ -1719,7 +1719,7 @@ inline constexpr matrix4_t OrthographicOffCenterRHMatrix4(float l, float r,
 //-----------------------------------------------------------------------------
 // builds a left-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t PerspectiveLHMatrix4(float w, float h, float zn,
+inline matrix4_t PerspectiveLHMatrix4(float w, float h, float zn,
     float zf)
 {
     return Matrix4(
@@ -1733,7 +1733,7 @@ inline constexpr matrix4_t PerspectiveLHMatrix4(float w, float h, float zn,
 //-----------------------------------------------------------------------------
 // builds a right-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t PerspectiveRHMatrix4(float w, float h, float zn,
+inline matrix4_t PerspectiveRHMatrix4(float w, float h, float zn,
     float zf)
 {
     return Matrix4(
@@ -1781,7 +1781,7 @@ inline matrix4_t PerspectiveFovRHMatrix4(float fovy, float aspect, float zn,
 //-----------------------------------------------------------------------------
 // builds a customized, left-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t PerspectiveOffCenterLHMatrix4(float l, float r,
+inline matrix4_t PerspectiveOffCenterLHMatrix4(float l, float r,
     float t, float b, float zn, float zf)
 {
     return Matrix4(
@@ -1795,7 +1795,7 @@ inline constexpr matrix4_t PerspectiveOffCenterLHMatrix4(float l, float r,
 //-----------------------------------------------------------------------------
 // builds a customized, right-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t PerspectiveOffCenterMatrix4(float l, float r,
+inline matrix4_t PerspectiveOffCenterMatrix4(float l, float r,
     float t, float b, float zn, float zf)
 {
     return Matrix4(
@@ -1897,7 +1897,7 @@ inline matrix4_t RotationYawPitchRollMatrix4(float y, float p, float r)
 //-----------------------------------------------------------------------------
 // builds a matrix that scales along the x-axis, the y-axis, and the z-axis
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t ScalingMatrix4(float x, float y, float z)
+inline matrix4_t ScalingMatrix4(float x, float y, float z)
 {
     matrix4_t m = Matrix4();
 
@@ -1911,7 +1911,7 @@ inline constexpr matrix4_t ScalingMatrix4(float x, float y, float z)
 //-----------------------------------------------------------------------------
 // builds a matrix using the specified offsets
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t TranslationMatrix4(float x, float y, float z)
+inline matrix4_t TranslationMatrix4(float x, float y, float z)
 {
     matrix4_t m = Matrix4();
 
@@ -1925,7 +1925,7 @@ inline constexpr matrix4_t TranslationMatrix4(float x, float y, float z)
 //-----------------------------------------------------------------------------
 // builds the matrix transpose of a matrix
 //-----------------------------------------------------------------------------
-inline constexpr matrix4_t TransposeMatrix4(const matrix4_t m)
+inline matrix4_t TransposeMatrix4(const matrix4_t m)
 {
     matrix4_t a = Matrix4();
 
@@ -2008,7 +2008,7 @@ inline matrix4_t Transformation3DMatrix4(const vector3_t scalingCenter,
 //-----------------------------------------------------------------------------
 // constructs a viewport
 //-----------------------------------------------------------------------------
-inline constexpr viewport_t Viewport(uint32_t x = 0, uint32_t y = 0, uint32_t w = 0,
+inline viewport_t Viewport(uint32_t x = 0, uint32_t y = 0, uint32_t w = 0,
     uint32_t h = 0, float minZ = 0.0f, float maxZ = 0.0f)
 {
     viewport_t v = {};
@@ -2026,7 +2026,7 @@ inline constexpr viewport_t Viewport(uint32_t x = 0, uint32_t y = 0, uint32_t w 
 //-----------------------------------------------------------------------------
 // projects a 3d vector from object space into screen space.
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t ProjectViewport(const vector3_t v,
+inline vector3_t ProjectViewport(const vector3_t v,
     const viewport_t viewport, const matrix4_t projection, const matrix4_t view,
     const matrix4_t world)
 {
@@ -2041,7 +2041,7 @@ inline constexpr vector3_t ProjectViewport(const vector3_t v,
 //-----------------------------------------------------------------------------
 // projects a 3d vector from screen space into object space.
 //-----------------------------------------------------------------------------
-inline constexpr vector3_t UnprojectViewport(const vector3_t v,
+inline vector3_t UnprojectViewport(const vector3_t v,
     const viewport_t viewport, const matrix4_t projection, const matrix4_t view,
     const matrix4_t world)
 {

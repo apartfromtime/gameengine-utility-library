@@ -35,220 +35,9 @@
 
 
 //-----------------------------------------------------------------------------
-// Get32BPPSample
+// Expand N-pixels per byte to 8-bits per index
 //-----------------------------------------------------------------------------
-void
-Get32BPPSample(uint8_t* ppix, int32_t x, int32_t width, int32_t* sample0,
-    int32_t* sample1, int32_t* sample2, int32_t* sample3)
-{
-    int32_t s0 = INT_MAX;
-    int32_t s1 = INT_MAX;
-    int32_t s2 = INT_MAX;
-    int32_t s3 = INT_MAX;
-
-    if (x < width)
-    {
-        s0 = *(ppix + ((x * 4) + 0));
-        s1 = *(ppix + ((x * 4) + 1));
-        s2 = *(ppix + ((x * 4) + 2));
-        s3 = *(ppix + ((x * 4) + 3));
-    }
-
-    if (s0 != INT_MAX)
-    {
-        *sample0 = s0;
-        *sample1 = s1;
-        *sample2 = s2;
-        *sample3 = s3;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Get24BPPSample
-//-----------------------------------------------------------------------------
-void
-Get24BPPSample(uint8_t* ppix, int32_t x, int32_t width, int32_t* sample0,
-    int32_t* sample1, int32_t* sample2)
-{
-    int32_t s0 = INT_MAX;
-    int32_t s1 = INT_MAX;
-    int32_t s2 = INT_MAX;
-
-    if (x < width)
-    {
-        s0 = *(ppix + ((x * 3) + 0));
-        s1 = *(ppix + ((x * 3) + 1));
-        s2 = *(ppix + ((x * 3) + 2));
-    }
-
-    if (s0 != INT_MAX)
-    {
-        *sample0 = s0;
-        *sample1 = s1;
-        *sample2 = s2;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Get24BPPSampleR
-//-----------------------------------------------------------------------------
-void
-Get24BPPSampleR(uint8_t* ppix, int32_t x, int32_t width, int32_t* sample)
-{
-    int32_t s = INT_MAX;
-
-    if (x < width)
-    {
-        s = *(ppix + ((x * 3) + 0));
-    }
-
-    if (s != INT_MAX)
-    {
-        *sample = s;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Get24BPPSampleG
-//-----------------------------------------------------------------------------
-void
-Get24BPPSampleG(uint8_t* ppix, int32_t x, int32_t width, int32_t* sample)
-{
-    int32_t s = INT_MAX;
-
-    if (x < width)
-    {
-        s = *(ppix + ((x * 3) + 1));
-    }
-
-    if (s != INT_MAX)
-    {
-        *sample = s;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Get24BPPSampleB
-//-----------------------------------------------------------------------------
-void
-Get24BPPSampleB(uint8_t* ppix, int32_t x, int32_t width, int32_t* sample)
-{
-    int32_t s = INT_MAX;
-
-    if (x < width)
-    {
-        s = *(ppix + ((x * 3) + 2));
-    }
-
-    if (s != INT_MAX)
-    {
-        *sample = s;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Get16BPPSample
-//-----------------------------------------------------------------------------
-void
-Get16BPPSample(uint8_t* ppix, int32_t x, int32_t width, int32_t* sample)
-{
-    int32_t s = INT_MAX;
-
-    if (x < width)
-    {
-        s = 0;
-        s = *(ppix + ((x * 2) + 0));
-        s = *(ppix + ((x * 2) + 1)) << 8;
-    }
-
-    if (s != INT_MAX)
-    {
-        *sample = s;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Get8BPPSample
-//-----------------------------------------------------------------------------
-void
-Get8BPPSample(uint8_t* ppix, int32_t x, int32_t width, int32_t* sample)
-{
-    int32_t s = INT_MAX;
-
-    if (x < width)
-    {
-        s = 0; s = *(ppix + x);
-    }
-
-    if (s != INT_MAX)
-    {
-        *sample = s;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Get4BPPSample
-//-----------------------------------------------------------------------------
-void
-Get4BPPSample(uint8_t* ppix, int32_t x, int32_t width, int32_t* sample)
-{
-    int32_t s = INT_MAX;
-
-    if ((x + 0) < width) {s = 0; s |= *(ppix + x + 0) << 4;}
-    if ((x + 1) < width) {s |= *(ppix + x + 1);}
-
-    if (s != INT_MAX)
-    {
-        *sample = s;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Get2BPPSample
-//-----------------------------------------------------------------------------
-void
-Get2BPPSample(uint8_t* ppix, int32_t x, int32_t width, int32_t* sample)
-{
-    int32_t s = INT_MAX;
-
-    if ((x + 0) < width) {s = 0; s |= *(ppix + x + 0) << 6;}
-    if ((x + 1) < width) {s |= *(ppix + x + 1) << 4;}
-    if ((x + 2) < width) {s |= *(ppix + x + 2) << 2;}
-    if ((x + 3) < width) {s |= *(ppix + x + 3);}
-
-    if (s != INT_MAX)
-    {
-        *sample = s;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Get1BPPSample
-//-----------------------------------------------------------------------------
-void
-Get1BPPSample(uint8_t* ppix, int32_t x, int32_t width, int32_t* sample)
-{
-    int32_t s = INT_MAX;
-
-    if ((x + 0) < width) {s = 0; s |= *(ppix + x + 0) << 7;}
-    if ((x + 1) < width) {s |= *(ppix + x + 1) << 6;}
-    if ((x + 2) < width) {s |= *(ppix + x + 2) << 5;}
-    if ((x + 3) < width) {s |= *(ppix + x + 3) << 4;}
-    if ((x + 4) < width) {s |= *(ppix + x + 4) << 3;}
-    if ((x + 5) < width) {s |= *(ppix + x + 5) << 2;}
-    if ((x + 6) < width) {s |= *(ppix + x + 6) << 1;}
-    if ((x + 7) < width) {s |= *(ppix + x + 7);}
-
-    if (s != INT_MAX)
-    {
-        *sample = s;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// blit N-bits per byte to 8-bits per index
-//-----------------------------------------------------------------------------
-void BlitNbitsToIndex8(uint8_t* pdst, uint32_t dstskip, uint8_t sample,
+void ExpandNbitsToIndex8(uint8_t* pdst, uint32_t dstskip, uint8_t sample,
     uint8_t count, uint8_t bitstart)
 {
     static unsigned char mask_table[8] = { 0, 0, 0, 0, 0x0F, 0, 0x03, 0x01 };
@@ -273,11 +62,6 @@ void BlitNbitsToIndex8(uint8_t* pdst, uint32_t dstskip, uint8_t sample,
 }
 
 #define PIXELS_PER_BYTE(depthbits) ((8.0f / (float)(depthbits)))
-
-typedef uint8_t   byte;
-typedef uint16_t  word;
-typedef uint32_t dword;
-
 
 #ifndef _PNG_H
 #define _PNG_H
@@ -314,7 +98,6 @@ enum
 static const uint8_t PNG_IDENTIFIER[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A,
     0x1A, 0x0A };
 
-#pragma pack(push, 1)
 typedef struct _png_chunk_s
 {
     uint32_t size;          // size
@@ -331,7 +114,6 @@ typedef struct _png_header
     uint8_t filter;         // filter method
     uint8_t interlace;          // interlace method
 } png_header_t;
-#pragma pack(pop)
 
 
 //------------------------------------------------------------------------------
@@ -347,7 +129,7 @@ void MakeCrcTable(void)
 {
     unsigned long c = 0;
 
-    memset(&g_crc_table, 0, 256 * sizeof(unsigned long));
+    memset(g_crc_table, 0, 256 * sizeof(unsigned long));
 
     for (int n = 0; n < 256; n++)
     {
@@ -432,61 +214,42 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
     uint32_t srcyskip, uint32_t srcxsize, uint32_t srcysize, uint32_t srcdepthbits,
     uint8_t* psrc)
 {
-    // image layout - indexed, grayscale, truecolor
-    // alpha channel - 8-bit per sample only
-
     // filtering
     uint32_t bytesencoded = 0;
-    uint32_t xsize = 0;         // xsize
-    uint32_t ysize = 0;         // ysize
+    uint32_t width = 0;
+    uint32_t xsize = 0;
+    uint32_t ysize = 0;
     uint32_t x = 0;
     uint32_t y = 0;
-    int32_t run = 0;            // run-length
-    int32_t bit = 0;            // bit-offset start or shift-bit start
-    int32_t inc = 0;            // pixel-to-pixel increment (interlace pattern increment)
+    uint32_t i = 0;
     uint8_t bytesperpixel = 0;
 
     // pixels
     uint16_t sample = 0;
-    uint8_t* raw0buf = 0;           // Raw(x) buffer
-    uint8_t* raw1buf = 0;           // Raw(x-bpp) buffer
-    uint8_t* pri0buf = 0;           // Pri(x) buffer
-    uint8_t* pri1buf = 0;           // Pri(x-bpp) buffer
+    uint8_t* raw0buf = 0;           // Raw(x)
+    uint8_t* raw1buf = 0;           // Raw(x-bpp)
+    uint8_t* pri0buf = 0;           // Pri(x)
+    uint8_t* pri1buf = 0;           // Pri(x-bpp)
     uint8_t* dstbuf = pdst;
     uint8_t* srcbuf = psrc;
 
     // empty image
     if (srcxsize != 0 && srcysize != 0)
     {
+        xsize = srcxsize;
         ysize = srcysize;
 
         if (srcdepthbits < 8)
         {
-            if (srcdepthbits == 1)         // 1-bit indexed
-            {
-                run = 8;
-                bit = 7;
-            }
-            else if (srcdepthbits == 2)            // 2-bit indexed
-            {
-                run = 4;
-                bit = 6;
-            }
-            else if (srcdepthbits == 4)            // 4-bit indexed
-            {
-                run = 2;
-                bit = 4;
-            }
-
             bytesperpixel = 1;
-            xsize = ((srcxsize * srcdepthbits) + 7) >> 3;          // width in bytes
-            inc = srcxskip * run;
+            width = ((srcxsize * srcdepthbits) + 7) >> 3;          // width in bytes
+            i = srcxskip;
         }
         else            // 8bit
         {
             bytesperpixel = (srcdepthbits >> 3);
-            xsize = srcxsize;
-            inc = srcxskip * (srcdepthbits >> 3);
+            width = srcxsize;
+            i = srcxskip * (srcdepthbits >> 3);
         }
 
         // filtering - None = 0; Sub = 1; Up = 2; Average = 3; Paeth = 4
@@ -526,7 +289,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                     x = 0;
                     sum[1] = 0;
 
-                    while (x++ < xsize)
+                    while (x++ < width)
                     {
                         bpp = 0;
                         raw0 = 0;
@@ -537,45 +300,22 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
 
                         while (bpp++ < bytesperpixel)
                         {
-                            if (srcdepthbits < 8)
+                            if ((y-1) != 0 && (x-1) != 0)
                             {
-                                if ((y-1) != 0 && (x-1) != 0)
-                                {
-                                    BlitNbitsToIndex8((uint8_t*)&pri1, srcxskip, *pri1buf, run, bit);
-                                }
-
-
-                                if ((y-1) != 0)
-                                {
-                                    BlitNbitsToIndex8((uint8_t*)&pri0, srcxskip, *pri0buf, run, bit);
-                                }
-
-                                if ((x-1) != 0)
-                                {
-                                    BlitNbitsToIndex8((uint8_t*)&raw1, srcxskip, *raw1buf, run, bit);
-                                }
-
-                                BlitNbitsToIndex8((uint8_t*)&raw0, srcxskip, *raw0buf, run, bit);
+                                pri1 = pri1buf[s];
                             }
-                            else
+
+                            if ((y-1) != 0)
                             {
-                                if ((y-1) != 0 && (x-1) != 0)
-                                {
-                                    pri1 = pri1buf[s];
-                                }
-
-                                if ((y-1) != 0)
-                                {
-                                    pri0 = pri0buf[s];
-                                }
-
-                                if ((x-1) != 0)
-                                {
-                                    raw1 = raw1buf[s];
-                                }
-
-                                raw0 = raw0buf[s++];
+                                pri0 = pri0buf[s];
                             }
+
+                            if ((x-1) != 0)
+                            {
+                                raw1 = raw1buf[s];
+                            }
+
+                            raw0 = raw0buf[s++];
 
                             switch (f)
                             {
@@ -637,7 +377,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
             *dstbuf++ = enc;           // filter-type byte
             bytesencoded++;
 
-            while (x++ < xsize)
+            while (x++ < width)
             {
                 bpp = 0;
                 raw0 = 0;
@@ -648,45 +388,22 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
 
                 while (bpp++ < bytesperpixel)
                 {
-                    if (srcdepthbits < 8)
+                    if ((y-1) != 0 && (x-1) != 0)
                     {
-                        if ((y-1) != 0 && (x-1) != 0)
-                        {
-                            BlitNbitsToIndex8((uint8_t*)&pri1, srcxskip, *pri1buf, run, bit);
-                        }
-
-                        if ((y-1) != 0)
-                        {
-                            BlitNbitsToIndex8((uint8_t*)&pri0, srcxskip, *pri0buf, run, bit);
-                        }
-
-
-                        if ((x-1) != 0)
-                        {
-                            BlitNbitsToIndex8((uint8_t*)&raw1, srcxskip, *raw1buf, run, bit);
-                        }
-
-                        BlitNbitsToIndex8((uint8_t*)&raw0, srcxskip, *raw0buf, run, bit);
+                        pri1 = pri1buf[s];
                     }
-                    else
+
+                    if ((y-1) != 0)
                     {
-                        if ((y-1) != 0 && (x-1) != 0)
-                        {
-                            pri1 = pri1buf[s];
-                        }
-
-                        if ((y-1) != 0)
-                        {
-                            pri0 = pri0buf[s];
-                        }
-
-                        if ((x-1) != 0)
-                        {
-                            raw1 = raw1buf[s];
-                        }
-
-                        raw0 = raw0buf[s++];
+                        pri0 = pri0buf[s];
                     }
+
+                    if ((x-1) != 0)
+                    {
+                        raw1 = raw1buf[s];
+                    }
+
+                    raw0 = raw0buf[s++];
 
                     switch (enc)
                     {
@@ -735,10 +452,10 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                     bytesencoded++;
                 }
             
-                if ((y-1) != 0 && (x-1) != 0) { pri1buf += inc; }
-                if ((x-1) != 0) { raw1buf += inc; }
-                if (x!=xsize) { pri0buf += inc; }
-                if (x!=xsize) { raw0buf += inc; }
+                if ((y-1) != 0 && (x-1) != 0) { pri1buf += i; }
+                if ((x-1) != 0) { raw1buf += i; }
+                if (x!=xsize) { pri0buf += i; }
+                if (x!=xsize) { raw0buf += i; }
             }
 
             if (y != ysize)
@@ -832,26 +549,6 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     case  1:
     {
         dstdepth = srcdepthbits;
-
-        if (psrcpalette != NULL)
-        {
-            if (psrcpalette->size <= 256 && psrcpalette->size > 16)
-            {
-                dstdepth = 8;
-            }
-            else if (psrcpalette->size <= 16 && psrcpalette->size > 4)
-            {
-                dstdepth = 4;
-            }
-            else if (psrcpalette->size <= 4 && psrcpalette->size > 2)
-            {
-                dstdepth = 2;
-            }
-            else if (psrcpalette->size <= 2)
-            {
-                dstdepth = 1;
-            }
-        }
     } break;
     }
 
@@ -933,7 +630,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         (chunksize + ((ysize * dstpitch) * 2) + crcsize) +
         (chunksize + crcsize);          // png data size
     uint8_t* data = (uint8_t*)malloc(datasize);
-    memset(&data, 0, datasize * sizeof(uint8_t));
+    memset(data, 0, datasize * sizeof(uint8_t));
 
     uint32_t dstlen = 0;
     uint8_t* dstptr = data;
@@ -1105,7 +802,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint32_t idatlen = (ysize * (dstpitch + 1)) + ((interlace > 0) ? ysize : 0);
     uint8_t* idatptr = (uint8_t*)malloc(((idatlen + 1) & ~1));
     uint8_t* idatbuf = idatptr;
-    memset(&idatptr, 0, ((idatlen + 1) & ~1) * sizeof(uint8_t));
+    memset(idatptr, 0, ((idatlen + 1) & ~1) * sizeof(uint8_t));
 
     // filter selection (adaptive filtering with five basic filter types)
     int filtermode = PNG_FILTER_ADAPTIVE;
@@ -1161,15 +858,15 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint32_t odatlen = idatlen;           // deflate size
     uint8_t* odatptr = (uint8_t*)malloc(((odatlen + 1) & ~1));
     uint8_t* odatbuf = odatptr;
-    memset(&odatptr, 0, ((odatlen + 1) & ~1) * sizeof(uint8_t));
+    memset(odatptr, 0, ((odatlen + 1) & ~1) * sizeof(uint8_t));
 
     unsigned int oabsrem = 0;         // absolute remaining output
     unsigned int odatrem = 0;         // relative remaining output
     unsigned int iabsrem = 0;         // absolute remaining input
     unsigned int idatrem = 0;         // relative remaining input
 
-    idatrem = MIN(32767, idatlen);
-    odatrem = MIN(32767, odatlen);
+    idatrem = MIN(32768, idatlen);
+    odatrem = MIN(32768, odatlen);
 
     do
     {
@@ -1183,13 +880,13 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         // input
         iabsrem = idatlen - deflator.total_in;
         idatbuf = idatptr + deflator.total_in;
-        idatrem = MIN(32767, iabsrem);
+        idatrem = MIN(32768, iabsrem);
         bytesdecoded = deflator.total_in;
 
         // output
         oabsrem = odatlen - deflator.total_out;
         odatbuf = odatptr + deflator.total_out;
-        odatrem = MIN(32767, oabsrem);
+        odatrem = MIN(32768, oabsrem);
         bytesencoded = deflator.total_out;
 
         if (status <= Z_STREAM_END)
@@ -1942,7 +1639,7 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
 
                     if (depth < 8)
                     {
-                        BlitNbitsToIndex8(raw0buf, dstxskip, (sample & 0xFF), run, bit);
+                        ExpandNbitsToIndex8(raw0buf, dstxskip, (sample & 0xFF), run, bit);
                     }
                     else
                     {
@@ -2229,7 +1926,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 // 2 and 6; it must not appear for color types 0 and 4.
                 if (pdstpalette != 0)
                 {
-                    memset(&pdstpalette->data, 0, 256 * sizeof(rgba_t));
+                    memset(pdstpalette->data, 0, 256 * sizeof(rgba_t));
 
                     for (uint32_t i = 0; i < palnum; ++i)
                     {
@@ -2390,7 +2087,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t idatofs = 0;           // offset of idat chunk
     uint8_t* idatptr = (uint8_t*)malloc(((idatlen + 1) & ~1) * sizeof(uint8_t));
     uint8_t* idatbuf = idatptr;
-    memset(&idatptr, 0, ((idatlen + 1) & ~1) * sizeof(uint8_t));
+    memset(idatptr, 0, ((idatlen + 1) & ~1) * sizeof(uint8_t));
 
     srcbuf = srcptr;            // reset current to begining
     endfound = false;
@@ -2468,15 +2165,15 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t odatlen = (ysize * (dstpitch + 1)) + ((interlace > 0) ? ysize : 0);
     uint8_t* odatptr = (uint8_t*)malloc(((odatlen + 1) & ~1));
     uint8_t* odatbuf = odatptr;
-    memset(&odatptr, 0, ((odatlen + 1) & ~1) * sizeof(uint8_t));
+    memset(odatptr, 0, ((odatlen + 1) & ~1) * sizeof(uint8_t));
 
     unsigned int oabsrem = odatlen - inflator.total_out;         // absolute remaining output
     unsigned int odatrem = 0;         // relative remaining output
     unsigned int iabsrem = idatlen - inflator.total_in;         // absolute remaining input
     unsigned int idatrem = 0;         // relative remaining input
 
-    idatrem = MIN(32767, idatlen);
-    odatrem = MIN(32767, odatlen);
+    idatrem = MIN(32768, idatlen);
+    odatrem = MIN(32768, odatlen);
 
     do
     {
@@ -2490,13 +2187,13 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         // input
         iabsrem = idatlen - inflator.total_in;
         idatbuf = idatptr + inflator.total_in;
-        idatrem = MIN(32767, iabsrem);
+        idatrem = MIN(32768, iabsrem);
         bytesdecoded = inflator.total_in;
 
         // output
         oabsrem = odatlen - inflator.total_out;
         odatbuf = odatptr + inflator.total_out;
-        odatrem = MIN(32767, oabsrem);
+        odatrem = MIN(32768, oabsrem);
         bytesencoded = inflator.total_out;
 
         if (status == Z_STREAM_END)
@@ -2544,7 +2241,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t* rawbuf = pixels;         // scanline buffer
     uint32_t rawlen = 0;
     uint32_t pitch = xsize * bytesperpixel;          // bytes per image
-    memset(&pixels, 0, pixlen * sizeof(uint8_t));
+    memset(pixels, 0, pixlen * sizeof(uint8_t));
 
     *ppdst = pixels;
     if (srcxsize != NULL) { *srcxsize = xsize; }
@@ -2673,23 +2370,21 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 #define TGA_RGB_RLE                 10
 #define TGA_BLACK_AND_WHITE_RLE     11
 
-#pragma pack(push, 1)
 typedef struct _tga_file
 {
-    byte    id_length;
-    byte    colormap_type;
-    byte    image_type;
-    word    colormap_index;
-    word    colormap_length;
-    byte    colormap_size;
-    word    x_origin;
-    word    y_origin;
-    word    width;
-    word    height;
-    byte    pixel_size;
-    byte    image_descriptor;
+    uint8_t  id_length;
+    uint8_t  colormap_type;
+    uint8_t  image_type;
+    uint16_t colormap_index;
+    uint16_t colormap_length;
+    uint8_t  colormap_size;
+    uint16_t x_origin;
+    uint16_t y_origin;
+    uint16_t width;
+    uint16_t height;
+    uint8_t  pixel_size;
+    uint8_t  image_descriptor;
 } tga_file_t;
-#pragma pack(pop)
 
 //------------------------------------------------------------------------------
 // SaveTGA
@@ -2834,7 +2529,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     int32_t datasize = sizeof(tga_file_t) + ((yextent * dstpitch) * 2 *
         sizeof(unsigned char)) + colormap_length;           // tga data size
     uint8_t* data = (uint8_t*)malloc(datasize);
-    memset(&data, 0, datasize * sizeof(uint8_t));
+    memset(data, 0, datasize * sizeof(uint8_t));
 
     uint32_t dstlen = datasize;
     uint8_t* dstptr = data;
@@ -2930,20 +2625,20 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 int32_t abscount = 0;
                 int32_t rlecount = 0;
                 int32_t rlevalue = 0;           // run-length value
-                int32_t sample0 = 0;
-                int32_t sample1 = 0;
-                int32_t sample2 = 0;
-                int32_t sample3 = 0;
-                int32_t sample4 = 0;
-                int32_t sample5 = 0;
-                int32_t sample6 = 0;
-                int32_t sample7 = 0;
-                int32_t s0 = 0;
-                int32_t s1 = 0;
-                int32_t s2 = 0;
-                int32_t s3 = 0;
                 int32_t absrem = 0;
                 int32_t rlerem = 0;
+                uint8_t sample0 = 0;
+                uint8_t sample1 = 0;
+                uint8_t sample2 = 0;
+                uint8_t sample3 = 0;
+                uint8_t sample4 = 0;
+                uint8_t sample5 = 0;
+                uint8_t sample6 = 0;
+                uint8_t sample7 = 0;
+                uint8_t b = 0;
+                uint8_t g = 0;
+                uint8_t r = 0;
+                uint8_t a = 0;
 
                 while (y++ < yextent)
                 {
@@ -2956,23 +2651,22 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         sample1 = 0;
                         sample2 = 0;
                         sample3 = 0;
-                        sample4 = INT_MAX;
-                        sample5 = INT_MAX;
-                        sample6 = INT_MAX;
-                        sample7 = INT_MAX;
-                        s0 = INT_MAX;
-                        s1 = INT_MAX;
-                        s2 = INT_MAX;
-                        s3 = INT_MAX;
+                        sample4 = 0;
+                        sample5 = 0;
+                        sample6 = 0;
+                        sample7 = 0;
 
-                        Get32BPPSample(rawbuf, x + 0, xextent, &s0, &s1, &s2, &s3);
+                        b = *(rawbuf + ((x * 4) + 0));
+                        g = *(rawbuf + ((x * 4) + 1));
+                        r = *(rawbuf + ((x * 4) + 2));
+                        a = *(rawbuf + ((x * 4) + 3));
 
                         abscount = 1;
                         absrem = xextent - (x + abscount);
-                        sample4 = s0;
-                        sample5 = s1;
-                        sample6 = s2;
-                        sample7 = s3;
+                        sample4 = b;
+                        sample5 = g;
+                        sample6 = r;
+                        sample7 = a;
 
                         while (absrem > 0 && abscount < maxabs)
                         {
@@ -2980,12 +2674,11 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             sample1 = sample5;
                             sample2 = sample6;
                             sample3 = sample7;
-                            sample4 = INT_MAX;
-                            sample5 = INT_MAX;
-                            sample6 = INT_MAX;
-                            sample7 = INT_MAX;
 
-                            Get32BPPSample(rawbuf, (x + abscount), xextent, &sample4, &sample5, &sample6, &sample7);
+                            sample4 = *(rawbuf + (((x + abscount) * 4) + 0));
+                            sample5 = *(rawbuf + (((x + abscount) * 4) + 1));
+                            sample6 = *(rawbuf + (((x + abscount) * 4) + 2));
+                            sample7 = *(rawbuf + (((x + abscount) * 4) + 3));
             
                             if (sample0 == sample4 ||
                                 sample1 != sample5 ||
@@ -3001,10 +2694,10 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         rlecount = 1;
                         rlerem = xextent - (x + rlecount);
-                        sample4 = s0;
-                        sample5 = s1;
-                        sample6 = s2;
-                        sample7 = s3;
+                        sample4 = b;
+                        sample5 = g;
+                        sample6 = r;
+                        sample7 = a;
 
                         while (rlerem > 0 && rlecount < maxrle)
                         {
@@ -3012,12 +2705,11 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             sample1 = sample5;
                             sample2 = sample6;
                             sample3 = sample7;
-                            sample4 = INT_MAX;
-                            sample5 = INT_MAX;
-                            sample6 = INT_MAX;
-                            sample7 = INT_MAX;
 
-                            Get32BPPSample(rawbuf, (x + rlecount), xextent, &sample4, &sample5, &sample6, &sample7);
+                            sample4 = *(rawbuf + (((x + rlecount) * 4) + 0));
+                            sample5 = *(rawbuf + (((x + rlecount) * 4) + 1));
+                            sample6 = *(rawbuf + (((x + rlecount) * 4) + 2));
+                            sample7 = *(rawbuf + (((x + rlecount) * 4) + 3));
             
                             if (sample0 != sample4 ||
                                 sample1 != sample5 ||
@@ -3033,7 +2725,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3052,7 +2744,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3093,17 +2785,17 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 int32_t abscount = 0;
                 int32_t rlecount = 0;
                 int32_t rlevalue = 0;
-                int32_t sample0 = 0;
-                int32_t sample1 = 0;
-                int32_t sample2 = 0;
-                int32_t sample3 = 0;
-                int32_t sample4 = 0;
-                int32_t sample5 = 0;
-                int32_t s0 = 0;
-                int32_t s1 = 0;
-                int32_t s2 = 0;
                 int32_t absrem = 0;
                 int32_t rlerem = 0;
+                uint8_t sample0 = 0;
+                uint8_t sample1 = 0;
+                uint8_t sample2 = 0;
+                uint8_t sample3 = 0;
+                uint8_t sample4 = 0;
+                uint8_t sample5 = 0;
+                uint8_t sample6 = 0;
+                uint8_t sample7 = 0;
+                uint8_t sample8 = 0;
 
                 while (y++ < yextent)
                 {
@@ -3115,31 +2807,29 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         sample0 = 0;
                         sample1 = 0;
                         sample2 = 0;
-                        sample3 = INT_MAX;
-                        sample4 = INT_MAX;
-                        sample5 = INT_MAX;
-                        s0 = INT_MAX;
-                        s1 = INT_MAX;
-                        s2 = INT_MAX;
+                        sample3 = 0;
+                        sample4 = 0;
+                        sample5 = 0;
 
-                        Get24BPPSample(rawbuf, x + 0, xextent, &s0, &s1, &s2);
+                        sample6 = *(rawbuf + ((x * 3) + 0));
+                        sample7 = *(rawbuf + ((x * 3) + 1));
+                        sample8 = *(rawbuf + ((x * 3) + 2));
 
                         abscount = 1;
                         absrem = xextent - (x + abscount);
-                        sample3 = s0;
-                        sample4 = s1;
-                        sample5 = s2;
+                        sample3 = sample6;
+                        sample4 = sample7;
+                        sample5 = sample8;
 
                         while (absrem > 0 && abscount < maxabs)
                         {
                             sample0 = sample3;
                             sample1 = sample4;
                             sample2 = sample5;
-                            sample3 = INT_MAX;
-                            sample4 = INT_MAX;
-                            sample5 = INT_MAX;
 
-                            Get24BPPSample(rawbuf, (x + abscount), xextent, &sample3, &sample4, &sample5);
+                            sample3 = *(rawbuf + (((x + abscount) * 3) + 0));
+                            sample4 = *(rawbuf + (((x + abscount) * 3) + 1));
+                            sample5 = *(rawbuf + (((x + abscount) * 3) + 2));
             
                             if (sample0 == sample3 ||
                                 sample1 != sample4 ||
@@ -3154,20 +2844,19 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         rlecount = 1;
                         rlerem = xextent - (x + rlecount);
-                        sample3 = s0;
-                        sample4 = s1;
-                        sample5 = s2;
+                        sample3 = sample6;
+                        sample4 = sample7;
+                        sample5 = sample8;
 
                         while (rlerem > 0 && rlecount < maxrle)
                         {
                             sample0 = sample3;
                             sample1 = sample4;
                             sample2 = sample5;
-                            sample3 = INT_MAX;
-                            sample4 = INT_MAX;
-                            sample5 = INT_MAX;
 
-                            Get24BPPSample(rawbuf, (x + rlecount), xextent, &sample3, &sample4, &sample5);
+                            sample3 = *(rawbuf + (((x + rlecount) * 3) + 0));
+                            sample4 = *(rawbuf + (((x + rlecount) * 3) + 1));
+                            sample5 = *(rawbuf + (((x + rlecount) * 3) + 2));
             
                             if (sample0 != sample3 ||
                                 sample1 != sample4 ||
@@ -3182,7 +2871,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3199,7 +2888,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3239,11 +2928,11 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 int32_t abscount = 0;
                 int32_t rlecount = 0;
                 int32_t rlevalue = 0;
-                int32_t sample0 = 0;
-                int32_t sample1 = 0;
-                int32_t s0 = 0;
                 int32_t absrem = 0;
                 int32_t rlerem = 0;
+                uint16_t sample0 = 0;
+                uint16_t sample1 = 0;
+                uint16_t sample2 = 0;
 
                 while (y++ < yextent)
                 {
@@ -3253,21 +2942,23 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     while (x < xextent)
                     {
                         sample0 = 0;
-                        sample1 = INT_MAX;
-                        s0 = INT_MAX;
+                        sample1 = 0;
+                        sample2 = 0;
 
-                        Get16BPPSample(rawbuf, x + 0, xextent, &s0);
+                        sample2 |= *(rawbuf + ((x * 2) + 0));
+                        sample2 |= *(rawbuf + ((x * 2) + 1)) << 8;
 
                         abscount = 1;
                         absrem = xextent - (x + abscount);
-                        sample1 = s0;
+                        sample1 = sample2;
 
                         while (absrem > 0 && abscount < maxabs)
                         {
                             sample0 = sample1;
-                            sample1 = INT_MAX;
-
-                            Get16BPPSample(rawbuf, (x + abscount), xextent, &sample1);
+                            sample1 = 0;
+                            
+                            sample1 |= *(rawbuf + ((x + abscount) * 2) + 0);
+                            sample1 |= *(rawbuf + ((x + abscount) * 2) + 1);
             
                             if (sample0 == sample1)
                             {
@@ -3280,14 +2971,15 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         rlecount = 1;
                         rlerem = xextent - (x + rlecount);
-                        sample1 = s0;
+                        sample1 = sample2;
 
                         while (rlerem > 0 && rlecount < maxrle)
                         {
                             sample0 = sample1;
-                            sample1 = INT_MAX;
+                            sample1 = 0;
 
-                            Get16BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
+                            sample1 |= *(rawbuf + ((x + rlecount) * 2) + 0);
+                            sample1 |= *(rawbuf + ((x + rlecount) * 2) + 1);
             
                             if (sample0 != sample1)
                             {
@@ -3300,7 +2992,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3315,7 +3007,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3353,11 +3045,11 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 int32_t abscount = 0;
                 int32_t rlecount = 0;
                 int32_t rlevalue = 0;
-                int32_t sample0 = 0;
-                int32_t sample1 = 0;
-                int32_t s0 = 0;
                 int32_t absrem = 0;
                 int32_t rlerem = 0;
+                uint8_t sample0 = 0;
+                uint8_t sample1 = 0;
+                uint8_t sample2 = 0;
 
                 while (y++ < yextent)
                 {
@@ -3367,21 +3059,17 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     while (x < xextent)
                     {
                         sample0 = 0;
-                        sample1 = INT_MAX;
-                        s0 = INT_MAX;
-
-                        Get8BPPSample(rawbuf, x + 0, xextent, &s0);
+                        sample1 = 0;
+                        sample2 = *(rawbuf + x);
 
                         abscount = 1;
                         absrem = xextent - (x + abscount);
-                        sample1 = s0;
+                        sample1 = sample2;
 
                         while (absrem > 0 && abscount < maxabs)
                         {
                             sample0 = sample1;
-                            sample1 = INT_MAX;
-
-                            Get8BPPSample(rawbuf, (x + abscount), xextent, &sample1);
+                            sample1 = *(rawbuf + x + abscount);
             
                             if (sample0 == sample1)
                             {
@@ -3394,14 +3082,12 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         rlecount = 1;
                         rlerem = xextent - (x + rlecount);
-                        sample1 = s0;
+                        sample1 = sample2;
 
                         while (rlerem > 0 && rlecount < maxrle)
                         {
                             sample0 = sample1;
-                            sample1 = INT_MAX;
-
-                            Get8BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
+                            sample1 = sample1 = *(rawbuf + x + rlecount);
             
                             if (sample0 != sample1)
                             {
@@ -3414,7 +3100,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3427,7 +3113,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             *dstbuf++ = sample0;
@@ -3461,11 +3147,11 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 int32_t abscount = 0;
                 int32_t rlecount = 0;
                 int32_t rlevalue = 0;
-                int32_t sample0 = 0;
-                int32_t sample1 = 0;
-                int32_t s0 = 0;
                 int32_t absrem = 0;
                 int32_t rlerem = 0;
+                uint8_t sample0 = 0;
+                uint8_t sample1 = 0;
+                uint8_t sample2 = 0;
 
                 while (y++ < yextent)
                 {
@@ -3475,22 +3161,18 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     while (x < xextent)
                     {
                         sample0 = 0;
-                        sample1 = INT_MAX;
-                        s0 = INT_MAX;
-
-                        Get8BPPSample(rawbuf, x + 0, xextent, &s0);
+                        sample1 = 0;
+                        sample2 = *(rawbuf + x);
 
                         abscount = 1;
                         absrem = xextent - (x + abscount);
-                        sample1 = s0;
+                        sample1 = sample2;
 
                         while (absrem > 0 && abscount < maxabs)
                         {
                             sample0 = sample1;
-                            sample1 = INT_MAX;
+                            sample1 = *(rawbuf + x + abscount);
 
-                            Get8BPPSample(rawbuf, (x + abscount), xextent, &sample1);
-            
                             if (sample0 == sample1)
                             {
                                 break;
@@ -3502,14 +3184,12 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         rlecount = 1;
                         rlerem = xextent - (x + rlecount);
-                        sample1 = s0;
+                        sample1 = sample2;
 
                         while (rlerem > 0 && rlecount < maxrle)
                         {
                             sample0 = sample1;
-                            sample1 = INT_MAX;
-
-                            Get8BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
+                            sample1 = *(rawbuf + x + rlecount);
             
                             if (sample0 != sample1)
                             {
@@ -3522,7 +3202,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3535,7 +3215,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             *dstbuf++ = sample0;
@@ -3726,7 +3406,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             
             if (pdstpalette != 0)
             {
-                memset(&pdstpalette->data, 0, 256 * sizeof(rgba_t));
+                memset(pdstpalette->data, 0, 256 * sizeof(rgba_t));
 
                 if (tgafile.colormap_size == 15 || tgafile.colormap_size == 16)
                 {
@@ -3798,7 +3478,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     }
 
     uint8_t* pixels = (uint8_t*)malloc(xsize * ysize * ((tgafile.pixel_size == 16 ? 24 : tgafile.pixel_size)>>3));
-    memset(&pixels, 0, xsize* ysize* ((tgafile.pixel_size == 16 ? 24 : tgafile.pixel_size) >> 3));
+    memset(pixels, 0, xsize * ysize * ((tgafile.pixel_size == 16 ? 24 : tgafile.pixel_size) >> 3));
     uint8_t* rawptr = pixels;           // start of current dst row
     uint8_t* rawbuf = pixels;           // current dst row
     
@@ -3977,98 +3657,29 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
 #define BMP_IDENTIFIER          0x4D42
 
-#pragma pack(push, 1)
 typedef struct _bmp_file
 {
-    unsigned short  type;
-    unsigned long   size;
-    unsigned short  reserved1;
-    unsigned short  reserved2;
-    unsigned long   offset;
+    uint16_t type;
+    uint32_t size;
+    uint16_t reserved1;
+    uint16_t reserved2;
+    uint32_t offset;
 } bmp_file_t;
 
 typedef struct _bmp_info
 {
-    unsigned long   size;
-    long            width;
-    long            height;
-    unsigned short  planes;
-    unsigned short  bits;
-    unsigned long   compression;
-    unsigned long   imagesize;
-    long            xresolution;
-    long            yresolution;
-    unsigned long   num_colours;
-    unsigned long   num_colour_indexes;
-} bmp_info_t;
-
-typedef struct _bmp_v3_header
-{
-    unsigned long   size;
-    long            width;
-    long            height;
-    unsigned short  planes;
-    unsigned short  bits;
-    unsigned long   compression;
-    unsigned long   imagesize;
-    long            xresolution;
-    long            yresolution;
-    unsigned long   num_colours;
-    unsigned long   num_colour_indexes;
-} bmp_v3_header_t;
-
-typedef struct _bmp_v4_header
-{
-  unsigned long size;
-  long          width;
-  long          height;
-  short         planes;
-  short         bitCount;
-  unsigned long compression;
-  unsigned long sizeImage;
-  long          xPelsPerMeter;
-  long          yPelsPerMeter;
-  unsigned long clrUsed;
-  unsigned long clrImportant;
-  unsigned long redMask;
-  unsigned long greenMask;
-  unsigned long blueMask;
-  unsigned long alphaMask;
-  unsigned long csType;
-  long          endpoints[9];         // CIEXYZTRIPLE 3x3 fixed-point long type
-  unsigned long gammaRed;
-  unsigned long gammaGreen;
-  unsigned long gammaBlue;
-} bmp_v4_header_t;
-
-typedef struct _bmp_v5_header
-{
-  unsigned long size;
-  long          width;
-  long          height;
-  short         planes;
-  short         bitCount;
-  unsigned long compression;
-  unsigned long sizeImage;
-  long          xPelsPerMeter;
-  long          yPelsPerMeter;
-  unsigned long clrUsed;
-  unsigned long clrImportant;
-  unsigned long redMask;
-  unsigned long greenMask;
-  unsigned long blueMask;
-  unsigned long alphaMask;
-  unsigned long csType;
-  long          endpoints[9];         // CIEXYZTRIPLE 3x3 fixed-point long type
-  unsigned long gammaRed;
-  unsigned long gammaGreen;
-  unsigned long gammaBlue;
-  unsigned long intent;
-  unsigned long profileData;
-  unsigned long profileSize;
-  unsigned long reserved;
-} bmp_v5_header_t;
-#pragma pack(pop)
+    uint32_t size;
+    int32_t  width;
+    int32_t  height;
+    uint16_t planes;
+    uint16_t bits;
+    uint32_t compression;
+    uint32_t imagesize;
+    int32_t  xresolution;
+    int32_t  yresolution;
+    uint32_t num_colours;
+    uint32_t num_colour_indexes;
+} bmp_v3_info_t;
 
 //------------------------------------------------------------------------------
 // SaveBMP
@@ -4097,42 +3708,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         return false;
     }
 
-    uint8_t dstdepth = 0;
-
-    switch (srcdepthbits)
-    {
-    case 32:
-    {
-        dstdepth = 32;
-    } break;
-    case 24:
-    {
-        dstdepth = 24;
-    } break;
-    case 8:
-    case 4:
-    case 1:
-    {
-        dstdepth = srcdepthbits;
-
-        if (psrcpalette != 0)
-        {
-            if (psrcpalette->size <= 256 && psrcpalette->size > 16)
-            {
-                dstdepth = 8;
-            }
-            else if (psrcpalette->size <= 16 && psrcpalette->size > 2)
-            {
-                dstdepth = 4;
-            }
-            else if (psrcpalette->size <= 2)
-            {
-                dstdepth = 1;
-            }
-        }
-    } break;
-    }
-
+    uint8_t dstdepth = srcdepthbits;
     int32_t xorigin = 0;
     int32_t yorigin = 0;
     int32_t xextent = srcxsize;
@@ -4183,10 +3759,10 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     int32_t type = 0x4D42;          // 'BM'
     // total bytes per scanline required to encode bmp data
     // big array for true-color images
-    int32_t datasize = sizeof(bmp_file_t) + sizeof(bmp_info_t) +
+    int32_t datasize = sizeof(bmp_file_t) + sizeof(bmp_v3_info_t) +
         ((yextent * dstpitch) * sizeof(unsigned char)) + dstpalettesize;          // bmp data size
     uint8_t* data = (uint8_t*)malloc(datasize);
-    memset(&data, 0, datasize * sizeof(uint8_t));
+    memset(data, 0, datasize * sizeof(uint8_t));
 
     uint32_t dstlen = datasize;
     uint8_t* dstptr = data;
@@ -4197,10 +3773,10 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     bmp_file_t bmpfile = {};
     bmpfile.type = type;
     bmpfile.size = datasize;
-    bmpfile.offset = sizeof(bmp_file_t) + sizeof(bmp_info_t) + dstpalettesize;
+    bmpfile.offset = sizeof(bmp_file_t) + sizeof(bmp_v3_info_t) + dstpalettesize;
 
-    bmp_info_t bmpinfo = {};
-    bmpinfo.size = sizeof(bmp_info_t);
+    bmp_v3_info_t bmpinfo = {};
+    bmpinfo.size = sizeof(bmp_v3_info_t);
     bmpinfo.width = xextent;
     bmpinfo.height = (invertY == true) ? yextent : -yextent;          // bottom-up dib
     bmpinfo.planes = 1;
@@ -4326,18 +3902,14 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 int32_t abscount = 0;
                 int32_t rlecount = 0;           // run-length count
                 int32_t rlevalue = 0;           // run-length value
-                int32_t sample0 = 0;
-                int32_t sample1 = 0;
-                int32_t sample2 = 0;
-                int32_t sample3 = 0;
-                int32_t s0 = 0;
-                int32_t s1 = 0;
-                int32_t s2 = 0;
-                int32_t s3 = 0;
                 int32_t maxrle = 0xFF;          // max run-length count is 0xFF
                 int32_t maxabs = 0xFF;          // max abs-length count is 0xFF
                 int32_t absrem = 0;
                 int32_t rlerem = 0;
+                uint8_t sample0 = 0;
+                uint8_t sample1 = 0;
+                uint8_t sample2 = 0;
+                uint8_t sample3 = 0;
 
                 switch (dstdepth)
                 {
@@ -4351,12 +3923,9 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             while (x < xextent)
                             {
                                 rlevalue = 0;
-                                sample0 = 0;            // sample 1
-                                sample1 = INT_MAX;          // sample 2
-                                sample2 = INT_MAX;          // sample 3
-
-                                // pre-sample 3 pixels
-                                Get4BPPSample(rawbuf, x + 0, xextent, &sample2);
+                                sample0 = 0;
+                                sample1 = 0;
+                                sample2 = *(rawbuf + x);
 
                                 abscount = 1;
                                 absrem = xextent - (x + abscount);
@@ -4365,9 +3934,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                                 while (absrem > 0 && abscount < maxabs)
                                 {
                                     sample0 = sample1;
-                                    sample1 = INT_MAX;
-
-                                    Get4BPPSample(rawbuf, (x + abscount), xextent, &sample1);
+                                    sample1 = *(rawbuf + x + abscount);
 
                                     if (sample0 == sample1)
                                     {
@@ -4386,9 +3953,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                                 while (rlerem > 0 && rlecount < maxrle)
                                 {
                                     sample0 = sample1;
-                                    sample1 = INT_MAX;
-
-                                    Get4BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
+                                    sample1 = *(rawbuf + x + rlecount);
 
                                     if (sample0 != sample1)
                                     {
@@ -4402,7 +3967,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                                 if (abscount >= 3 && abscount >= rlecount)
                                 {
-                                    rlevalue = (abscount == 0) ? 1 : abscount;
+                                    rlevalue = abscount;
                                     
                                     *dstbuf++ = 0x00;
                                     *dstbuf++ = rlevalue;
@@ -4427,7 +3992,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                                 }
                                 else
                                 {
-                                    rlevalue = (rlecount == 0) ? 1 : rlecount;
+                                    rlevalue = rlecount;
 
                                     if (rlevalue == 1)
                                     {
@@ -4481,12 +4046,9 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             while (x < xextent)
                             {
                                 rlevalue = 0;
-                                sample0 = 0;            // sample 1
-                                sample1 = INT_MAX;            // sample 2
-                                sample2 = INT_MAX;            // sample 3
-
-                                // pre-sample 4 pixels
-                                Get8BPPSample(rawbuf, x + 0, xextent, &sample1);
+                                sample0 = 0;
+                                sample1 = 0;
+                                sample2 = *(rawbuf + x);
 
                                 abscount = 1;
                                 absrem = xextent - (x + abscount);
@@ -4495,9 +4057,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                                 while (absrem > 0 && abscount < maxabs)
                                 {
                                     sample0 = sample1;
-                                    sample1 = INT_MAX;
-
-                                    Get8BPPSample(rawbuf, (x + abscount), xextent, &sample1);
+                                    sample1 = *(rawbuf + x + abscount);
 
                                     if (sample0 == sample1)
                                     {
@@ -4515,9 +4075,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                                 while (rlerem > 0 && rlecount < maxrle)
                                 {
                                     sample0 = sample1;
-                                    sample1 = INT_MAX;
-
-                                    Get8BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
+                                    sample1 = *(rawbuf + x + rlecount);
 
                                     if (sample0 != sample1)
                                     {
@@ -4530,7 +4088,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                                 if (abscount >= 3 && abscount >= rlecount)
                                 {
-                                    rlevalue = (abscount == 0) ? 1 : abscount;
+                                    rlevalue = abscount;
 
                                     *dstbuf++ = 0x00;
                                     *dstbuf++ = rlevalue;
@@ -4552,7 +4110,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                                 }
                                 else
                                 {
-                                    rlevalue = (rlecount == 0) ? 1 : rlecount;
+                                    rlevalue = rlecount;
 
                                     if (sample0 == colorkey)
                                     {
@@ -4599,44 +4157,11 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                 switch (dstdepth)
                 {
-                    case 1:         // 1-bit encoding
-                    case 4:         // 4-bit encoding
-                    {
-                        // for each row in image 
-                        while (y++ < yextent)
-                        {
-                            rawbuf = rawptr;
-                            x = 0;
-
-                            // all other samples
-                            while (x < xextent)
-                            {
-                                sample = 0;
-
-                                if (dstdepth == 1) {
-                                    Get1BPPSample(rawbuf, x, xextent, &sample);
-                                } else {
-                                    Get4BPPSample(rawbuf, x, xextent, &sample);
-                                }
-
-                                x += (dstdepth == 1) ? 8 : 2;
-
-                                *dstbuf++ = sample;
-                                bytesencoded++;
-                            }
-
-                            if (y != yextent)
-                            {
-                                rawptr += srcpitch;           // set the next span
-                            }
-
-                            dstbuf += padbytes;
-                            bytesencoded += padbytes;
-                        }
-                    } break;
-                    case  8:        // 8-bit encoding
-                    case 24:        // 24bit encoding
-                    case 32:        // 32bit encoding
+                    case  1:
+                    case  4:
+                    case  8:
+                    case 24:
+                    case 32:
                     {
                         while (y++ < yextent)
                         {
@@ -4655,7 +4180,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         }
     }
 
-    datasize = sizeof(bmp_file_t) + sizeof(bmp_info_t) + dstpalettesize +
+    datasize = sizeof(bmp_file_t) + sizeof(bmp_v3_info_t) + dstpalettesize +
         (bytesencoded * sizeof(uint8_t));
 
     // rewrite file struct size
@@ -4688,7 +4213,7 @@ GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize,
     uint8_t* srcend = psrc + srclen;
 
     bmp_file_t bmpfile = {};
-    bmp_info_t bmpinfo = {};
+    bmp_v3_info_t bmpinfo = {};
 
     // file struct
     bmpfile.type    = ReadU16FromLE(srcbuf);    srcbuf += 2;           // type - 0x4D4 = 'BM'
@@ -4745,7 +4270,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t* srcend = psrc + srclen;
 
     bmp_file_t bmpfile = {};
-    bmp_info_t bmpinfo = {};
+    bmp_v3_info_t bmpinfo = {};
 
     // file struct
     bmpfile.type    = ReadU16FromLE(srcbuf);    srcbuf += 2;           // type - 0x4D4 = 'BM'
@@ -4775,12 +4300,12 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     if (bmpinfo.bits == 1 || bmpinfo.bits == 4 || bmpinfo.bits == 8)
     {
         uint8_t* palptr = srcptr + sizeof(bmp_file_t) +
-            sizeof(bmp_info_t);
+            sizeof(bmp_v3_info_t);
         uint32_t palnum = bmpinfo.num_colours;
 
         if (pdstpalette != 0)
         {
-            memset(&pdstpalette->data, 0, 256 * sizeof(rgba_t));
+            memset(pdstpalette->data, 0, 256 * sizeof(rgba_t));
 
             for (uint32_t i = 0; i < palnum; ++i)
             {
@@ -4830,7 +4355,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         (bmpinfo.bits < 8 ? 1 : (bmpinfo.bits >> 3)));
     uint8_t* pixptr = pixels;           // start of current dst row
     uint8_t* pixbuf = pixels;           // current dst row
-    memset(&pixels, 0, (xsize * ysize * (bmpinfo.bits < 8 ? 1 : (bmpinfo.bits >> 3))));
+    memset(pixels, 0, (xsize * ysize * (bmpinfo.bits < 8 ? 1 : (bmpinfo.bits >> 3))));
 
     // bottom-up dib
     if (ysize >= 0)
@@ -4935,7 +4460,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                         } break;
                         case 8:         // 8-bit
                         {
-                            memset(&pixbuf, data1, data0);
+                            memset(pixbuf, data1, data0);
                             pixbuf += data0;
                         } break;
                     }
@@ -4978,7 +4503,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
                     while (x > 0)
                     {
-                        BlitNbitsToIndex8(pixbuf, 1, *srcbuf, run, bit);
+                        ExpandNbitsToIndex8(pixbuf, 1, *srcbuf, run, bit);
                         pixbuf += run;
                         srcbuf++;
                         x -= run;
@@ -5089,29 +4614,27 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 //-----------------------------------------------------------------------------
 
 
-#pragma pack(push, 1)
 typedef struct _pcx_v5_info_s
 {
-    byte identifier;         // PCX Id Number (Always 0x0A)
-    byte version;            // Version Number
-    byte encoding;           // Encoding Format
-    byte bitsPerPixel;       // Bits Per Pixel
-    word xMin;               // Left of image
-    word yMin;               // Top of image
-    word xMax;               // Right of image
-    word yMax;               // Bottom of image
-    word horzRes;            // Horizontal Resolution
-    word vertRes;            // Vertical Resolution
-    byte palette[48];        // 16-Color EGA Palette
-    byte reserved1;          // Reserved (Always 0)
-    byte numBitPlanes;       // Number of Bit Planes
-    word bytesPerLine;       // Bytes Per Scan-line
-    word paletteType;        // Palette Type
-    word horzScreenSize;     // Horizontal Screen Size
-    word vertScreenSize;     // Vertical Screen Size
-    byte reserved2[54];      // Reserved (Always 0)
+    uint8_t  identifier;         // PCX Id Number (Always 0x0A)
+    uint8_t  version;            // Version Number
+    uint8_t  encoding;           // Encoding Format
+    uint8_t  bitsPerPixel;       // Bits Per Pixel
+    uint16_t xMin;               // Left of image
+    uint16_t yMin;               // Top of image
+    uint16_t xMax;               // Right of image
+    uint16_t yMax;               // Bottom of image
+    uint16_t horzRes;            // Horizontal Resolution
+    uint16_t vertRes;            // Vertical Resolution
+    uint8_t  palette[48];        // 16-Color EGA Palette
+    uint8_t  reserved1;          // Reserved (Always 0)
+    uint8_t  numBitPlanes;       // Number of Bit Planes
+    uint16_t bytesPerLine;       // Bytes Per Scan-line
+    uint16_t paletteType;        // Palette Type
+    uint16_t horzScreenSize;     // Horizontal Screen Size
+    uint16_t vertScreenSize;     // Vertical Screen Size
+    uint8_t  reserved2[54];      // Reserved (Always 0)
 } pcx_v5_info_t;
-#pragma pack(pop)
 
 // default 64 color ega palette
 static rgba_t ega_palette[64] = {
@@ -5175,26 +4698,6 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     case 1:
     {
         dstdepth = srcdepthbits;
-
-        if (psrcpalette != NULL)
-        {
-            if (psrcpalette->size <= 256 && psrcpalette->size > 16)
-            {
-                dstdepth = 8;
-            }
-            else if (psrcpalette->size <= 16 && psrcpalette->size > 4)
-            {
-                dstdepth = 4;
-            }
-            else if (psrcpalette->size <= 4 && psrcpalette->size > 2)
-            {
-                dstdepth = 2;
-            }
-            else if (psrcpalette->size <= 2)
-            {
-                dstdepth = 1;
-            }
-        }
     } break;
     }
 
@@ -5235,7 +4738,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     // total bytes per scanline required to encode pcx data
     int32_t dsttotalbytes = colorplanes * dstpitch;
     int32_t dstpalettesize = 0;
-    int32_t dstpadbytes = dstpitch - srcxsize;
+    int32_t dstpadbytes = dstpitch - srcpitch;
     
     // palette
     if (srcdepthbits <= 8)
@@ -5253,7 +4756,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     int32_t datasize = sizeof(pcx_v5_info_t) + ((yextent * dsttotalbytes) * 2 *
         sizeof(uint8_t)) + dstpalettesize;            // pcx data size
     uint8_t* data = (uint8_t*)malloc(datasize);
-    memset(&data, 0, datasize * sizeof(uint8_t));
+    memset(data, 0, datasize * sizeof(uint8_t));
 
     uint32_t dstlen = datasize;
     uint8_t* dstptr = data;
@@ -5290,15 +4793,15 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     int32_t rlecount = 0;           // run-length count
     int32_t abscount = 0;           // abs-length count
     int32_t rlevalue = 0;           // run-length value
-    int32_t sample0 = 0;
-    int32_t sample1 = 0;
-    int32_t sample2 = 0;
     int32_t maxrle = 0x3F;          // max rle count is 0x3F
     int32_t maxabs = 0x01;          // max abs count is 0x01
     int32_t absrem = 0;
     int32_t rlerem = 0;
     int32_t x = 0;
     int32_t y = 0;
+    uint8_t sample0 = 0;
+    uint8_t sample1 = 0;
+    uint8_t sample2 = 0;
 
     if (srcdepthbits == 24)
     {
@@ -5317,24 +4820,8 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 while (x < xextent)
                 {
                     sample0 = 0;
-                    sample1 = INT_MAX;
-                    sample2 = INT_MAX;
-
-                    switch (colorplane)
-                    {
-                    case 0:
-                    {
-                        Get24BPPSampleR(rawbuf, x + 0, xextent, &sample2);
-                    } break;
-                    case 1:
-                    {
-                        Get24BPPSampleG(rawbuf, x + 0, xextent, &sample2);
-                    } break;
-                    case 2:
-                    {
-                        Get24BPPSampleB(rawbuf, x + 0, xextent, &sample2);
-                    } break;
-                    }
+                    sample1 = 0;
+                    sample2 = *(rawbuf + ((x * 3) + colorplane));
 
                     abscount = 1;
                     absrem = xextent - (x + abscount);
@@ -5343,23 +4830,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     while (absrem > 0 && abscount < maxabs)
                     {
                         sample0 = sample1;
-                        sample1 = INT_MAX;
-
-                        switch (colorplane)
-                        {
-                        case 0:
-                        {
-                            Get24BPPSampleR(rawbuf, (x + abscount), xextent, &sample1);
-                        } break;
-                        case 1:
-                        {
-                            Get24BPPSampleG(rawbuf, (x + abscount), xextent, &sample1);
-                        } break;
-                        case 2:
-                        {
-                            Get24BPPSampleB(rawbuf, (x + abscount), xextent, &sample1);
-                        } break;
-                        }
+                        sample1 = *(rawbuf + (((x + abscount) * 3) + colorplane));
 
                         if (sample0 == sample1)
                         {
@@ -5377,23 +4848,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     while (rlerem > 0 && rlecount < maxrle)
                     {
                         sample0 = sample1;
-                        sample1 = INT_MAX;
-
-                        switch (colorplane)
-                        {
-                        case 0:
-                        {
-                            Get24BPPSampleR(rawbuf, (x + rlecount), xextent, &sample1);
-                        } break;
-                        case 1:
-                        {
-                            Get24BPPSampleG(rawbuf, (x + rlecount), xextent, &sample1);
-                        } break;
-                        case 2:
-                        {
-                            Get24BPPSampleB(rawbuf, (x + rlecount), xextent, &sample1);
-                        } break;
-                        }
+                        sample1 = *(rawbuf + (((x + rlecount) * 3) + colorplane));
 
                         if (sample0 != sample1)
                         {
@@ -5406,7 +4861,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                     if (abscount >= rlecount)
                     {
-                        rlevalue = (abscount == 0) ? 1 : abscount;
+                        rlevalue = abscount;
 
                         if ((0xC0 != (0xC0 & sample0)))
                         {
@@ -5423,7 +4878,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     }
                     else
                     {
-                        rlevalue = (rlecount == 0) ? 1 : rlecount;
+                        rlevalue = rlecount;
 
                         *dstbuf++ = rlevalue | 0xC0;
                         *dstbuf++ = sample0;
@@ -5465,57 +4920,17 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 while (x < xextent)
                 {
                     sample0 = 0;
-                    sample1 = INT_MAX;
-                    sample2 = INT_MAX;
-
-                    switch (dstdepth)
-                    {
-                    case 1:
-                    {
-                        Get1BPPSample(rawbuf, x + 0, xextent, &sample2);
-                    } break;
-                    case 2:
-                    {
-                        Get2BPPSample(rawbuf, x + 0, xextent, &sample2);
-                    } break;
-                    case 4:
-                    {
-                        Get4BPPSample(rawbuf, x + 0, xextent, &sample2);
-                    } break;
-                    case 8:
-                    {
-                        Get8BPPSample(rawbuf, x + 0, xextent, &sample2);
-                    } break;
-                    }
+                    sample1 = 0;
+                    sample2 = *(rawbuf + x);
                 
-                    abscount = 1;
+                    abscount = 0;
                     absrem = xextent - (x + abscount);
                     sample1 = sample2;
 
                     while (absrem > 0 && abscount < maxabs)
                     {
                         sample0 = sample1;
-                        sample1 = INT_MAX;
-
-                        switch (dstdepth)
-                        {
-                        case 1:
-                        {
-                            Get1BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
-                        } break;
-                        case 2:
-                        {
-                            Get2BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
-                        } break;
-                        case 4:
-                        {
-                            Get4BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
-                        } break;
-                        case 8:
-                        {
-                            Get8BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
-                        } break;
-                        }
+                        sample1 = *(rawbuf + x + abscount);
 
                         if (sample0 == sample1)
                         {
@@ -5533,27 +4948,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     while (rlerem > 0 && rlecount < maxrle)
                     {
                         sample0 = sample1;
-                        sample1 = INT_MAX;
-
-                        switch (dstdepth)
-                        {
-                        case 1:
-                        {
-                            Get1BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
-                        } break;
-                        case 2:
-                        {
-                            Get2BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
-                        } break;
-                        case 4:
-                        {
-                            Get4BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
-                        } break;
-                        case 8:
-                        {
-                            Get8BPPSample(rawbuf, (x + rlecount), xextent, &sample1);
-                        } break;
-                        }
+                        sample1 = *(rawbuf + x + rlecount);
 
                         if (sample0 != sample1)
                         {
@@ -5566,7 +4961,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                     if (abscount >= rlecount)
                     {
-                        rlevalue = (abscount == 0) ? 1 : abscount;
+                        rlevalue = abscount;
 
                         if ((0xC0 != (0xC0 & sample0)))
                         {
@@ -5583,7 +4978,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     }
                     else
                     {
-                        rlevalue = (rlecount == 0) ? 1 : rlecount;
+                        rlevalue = rlecount;
 
                         *dstbuf++ = rlevalue | 0xC0;
                         *dstbuf++ = sample0;
@@ -5810,7 +5205,7 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
         if (pdstpalette != 0)
         {
-            memset(&pdstpalette->data, 0, 256 * sizeof(rgba_t));
+            memset(pdstpalette->data, 0, 256 * sizeof(rgba_t));
 
             for (uint32_t i = 0; i < palnum; ++i)
             {
@@ -5834,7 +5229,7 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             fprintf(stderr, "PCX, No palette information, defaulting to ega \
                 palette.\n");
 
-            memcpy(&pdstpalette->data, &ega_palette, 16 * sizeof(rgba_t));
+            memcpy(pdstpalette->data, &ega_palette, 16 * sizeof(rgba_t));
             pdstpalette->size = 16;
             pdstpalette->bits = 24;
         }
@@ -5857,7 +5252,7 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t* pixels = (uint8_t*)malloc((xsize * ysize * ncolorplanes));
     uint8_t* pixptr = pixels;           // start of current dst row
     uint8_t* pixbuf = pixels;           // current dst row
-    memset(&pixels, 0, xsize * ysize * ncolorplanes);
+    memset(pixels, 0, xsize * ysize * ncolorplanes);
 
     *ppdst = pixels;
     if (srcxsize != 0) { *srcxsize = xsize; }
@@ -5939,7 +5334,7 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 if (rem < run) { run = rem; }
                 if (pcx.bitsPerPixel < 8)
                 {
-                    BlitNbitsToIndex8(pixbuf, 1, *srcbuf, run, bit);
+                    ExpandNbitsToIndex8(pixbuf, 1, *srcbuf, run, bit);
                 }
                 else
                 {
@@ -9581,7 +8976,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
     if (pdstimage->data == NULL)
     {
         pdstimage->data = (uint8_t*)malloc(dstxextent * dstyextent * dstbytesperpixel);
-        memset(&pdstimage->data, 0, dstxextent * dstyextent * dstbytesperpixel);
+        memset(pdstimage->data, 0, dstxextent * dstyextent * dstbytesperpixel);
     }
 
     int32_t dstpitch = dstxextent * dstbytesperpixel;
@@ -9650,7 +9045,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
         dstyorigin == srcyorigin && dstyextent == srcyextent &&
         pdstimage->pixeltype == psrcimage->pixeltype)
     {
-        memcpy(&dstbuf, &srcbuf, dstyextent * dstpitch);
+        memcpy(dstbuf, srcbuf, dstyextent * dstpitch);
     }
     else
     {
@@ -10561,7 +9956,7 @@ GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
     if (fileSize != 0)
     {
         srcbuf = malloc(((fileSize + 2) & ~1));
-        memset(&srcbuf, 0, ((fileSize + 2) & ~1));
+        memset(srcbuf, 0, ((fileSize + 2) & ~1));
     }
 
     rawsrc = (uint8_t*)srcbuf;
@@ -10755,7 +10150,7 @@ LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
     if (fileSize != 0)
     {
         srcbuf = malloc(((fileSize + 2) & ~1));
-        memset(&srcbuf, 0, ((fileSize + 2) & ~1));
+        memset(srcbuf, 0, ((fileSize + 2) & ~1));
     }
 
     rawsrc = (uint8_t*)srcbuf;
