@@ -2810,7 +2810,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -2829,7 +2829,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -2956,7 +2956,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -2973,7 +2973,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3077,7 +3077,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3092,7 +3092,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3185,7 +3185,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3198,7 +3198,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             *dstbuf++ = sample0;
@@ -3287,7 +3287,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= rlecount)
                         {
-                            rlevalue = (abscount == 0) ? 1 : abscount;
+                            rlevalue = abscount;
 
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
@@ -3300,7 +3300,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         }
                         else
                         {
-                            rlevalue = (rlecount == 0) ? 1 : rlecount;
+                            rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             *dstbuf++ = sample0;
@@ -4052,7 +4052,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                                 if (abscount >= 3 && abscount >= rlecount)
                                 {
-                                    rlevalue = (abscount == 0) ? 1 : abscount;
+                                    rlevalue = abscount;
                                     
                                     *dstbuf++ = 0x00;
                                     *dstbuf++ = rlevalue;
@@ -4077,7 +4077,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                                 }
                                 else
                                 {
-                                    rlevalue = (rlecount == 0) ? 1 : rlecount;
+                                    rlevalue = rlecount;
 
                                     if (rlevalue == 1)
                                     {
@@ -4173,7 +4173,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                                 if (abscount >= 3 && abscount >= rlecount)
                                 {
-                                    rlevalue = (abscount == 0) ? 1 : abscount;
+                                    rlevalue = abscount;
 
                                     *dstbuf++ = 0x00;
                                     *dstbuf++ = rlevalue;
@@ -4195,7 +4195,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                                 }
                                 else
                                 {
-                                    rlevalue = (rlecount == 0) ? 1 : rlecount;
+                                    rlevalue = rlecount;
 
                                     if (sample0 == colorkey)
                                     {
@@ -4946,7 +4946,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                     if (abscount >= rlecount)
                     {
-                        rlevalue = (abscount == 0) ? 1 : abscount;
+                        rlevalue = abscount;
 
                         if ((0xC0 != (0xC0 & sample0)))
                         {
@@ -4963,7 +4963,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     }
                     else
                     {
-                        rlevalue = (rlecount == 0) ? 1 : rlecount;
+                        rlevalue = rlecount;
 
                         *dstbuf++ = rlevalue | 0xC0;
                         *dstbuf++ = sample0;
@@ -5008,7 +5008,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     sample1 = 0;
                     sample2 = *(rawbuf + x);
                 
-                    abscount = 0;
+                    abscount = 1;
                     absrem = xextent - (x + abscount);
                     sample1 = sample2;
 
@@ -5046,7 +5046,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                     if (abscount >= rlecount)
                     {
-                        rlevalue = (abscount == 0) ? 1 : abscount;
+                        rlevalue = abscount;
 
                         if ((0xC0 != (0xC0 & sample0)))
                         {
@@ -5063,7 +5063,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     }
                     else
                     {
-                        rlevalue = (rlecount == 0) ? 1 : rlecount;
+                        rlevalue = rlecount;
 
                         *dstbuf++ = rlevalue | 0xC0;
                         *dstbuf++ = sample0;
