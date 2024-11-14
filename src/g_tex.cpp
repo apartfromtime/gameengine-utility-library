@@ -4923,7 +4923,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     sample1 = 0;
                     sample2 = *(rawbuf + x);
                 
-                    abscount = 1;
+                    abscount = 0;
                     absrem = xextent - (x + abscount);
                     sample1 = sample2;
 
