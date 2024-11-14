@@ -98,7 +98,6 @@ enum
 static const uint8_t PNG_IDENTIFIER[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A,
     0x1A, 0x0A };
 
-#pragma pack(push, 1)
 typedef struct _png_chunk_s
 {
     uint32_t size;          // size
@@ -115,7 +114,6 @@ typedef struct _png_header
     uint8_t filter;         // filter method
     uint8_t interlace;          // interlace method
 } png_header_t;
-#pragma pack(pop)
 
 
 //------------------------------------------------------------------------------
@@ -2457,8 +2455,6 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 #define TGA_RGB_RLE                 10
 #define TGA_BLACK_AND_WHITE_RLE     11
 
-
-#pragma pack(push, 1)
 typedef struct _tga_file
 {
     uint8_t  id_length;
@@ -2474,7 +2470,6 @@ typedef struct _tga_file
     uint8_t  pixel_size;
     uint8_t  image_descriptor;
 } tga_file_t;
-#pragma pack(pop)
 
 //------------------------------------------------------------------------------
 // SaveTGA
@@ -3747,7 +3742,6 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
 #define BMP_IDENTIFIER          0x4D42
 
-#pragma pack(push, 1)
 typedef struct _bmp_file
 {
     uint16_t type;
@@ -3771,7 +3765,6 @@ typedef struct _bmp_info
     uint32_t num_colours;
     uint32_t num_colour_indexes;
 } bmp_v3_info_t;
-#pragma pack(pop)
 
 //------------------------------------------------------------------------------
 // SaveBMP
@@ -4706,7 +4699,6 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 //-----------------------------------------------------------------------------
 
 
-#pragma pack(push, 1)
 typedef struct _pcx_v5_info_s
 {
     uint8_t  identifier;         // PCX Id Number (Always 0x0A)
@@ -4728,7 +4720,6 @@ typedef struct _pcx_v5_info_s
     uint16_t vertScreenSize;     // Vertical Screen Size
     uint8_t  reserved2[54];      // Reserved (Always 0)
 } pcx_v5_info_t;
-#pragma pack(pop)
 
 // default 64 color ega palette
 static rgba_t ega_palette[64] = {
