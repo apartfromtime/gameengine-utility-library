@@ -865,8 +865,8 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     unsigned int iabsrem = 0;         // absolute remaining input
     unsigned int idatrem = 0;         // relative remaining input
 
-    idatrem = MIN(32767, idatlen);
-    odatrem = MIN(32767, odatlen);
+    idatrem = MIN(32768, idatlen);
+    odatrem = MIN(32768, odatlen);
 
     do
     {
@@ -880,13 +880,13 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         // input
         iabsrem = idatlen - deflator.total_in;
         idatbuf = idatptr + deflator.total_in;
-        idatrem = MIN(32767, iabsrem);
+        idatrem = MIN(32768, iabsrem);
         bytesdecoded = deflator.total_in;
 
         // output
         oabsrem = odatlen - deflator.total_out;
         odatbuf = odatptr + deflator.total_out;
-        odatrem = MIN(32767, oabsrem);
+        odatrem = MIN(32768, oabsrem);
         bytesencoded = deflator.total_out;
 
         if (status <= Z_STREAM_END)
@@ -2172,8 +2172,8 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     unsigned int iabsrem = idatlen - inflator.total_in;         // absolute remaining input
     unsigned int idatrem = 0;         // relative remaining input
 
-    idatrem = MIN(32767, idatlen);
-    odatrem = MIN(32767, odatlen);
+    idatrem = MIN(32768, idatlen);
+    odatrem = MIN(32768, odatlen);
 
     do
     {
@@ -2187,13 +2187,13 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         // input
         iabsrem = idatlen - inflator.total_in;
         idatbuf = idatptr + inflator.total_in;
-        idatrem = MIN(32767, iabsrem);
+        idatrem = MIN(32768, iabsrem);
         bytesdecoded = inflator.total_in;
 
         // output
         oabsrem = odatlen - inflator.total_out;
         odatbuf = odatptr + inflator.total_out;
-        odatrem = MIN(32767, oabsrem);
+        odatrem = MIN(32768, oabsrem);
         bytesencoded = inflator.total_out;
 
         if (status == Z_STREAM_END)
