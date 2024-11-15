@@ -98,24 +98,6 @@ enum
 static const uint8_t PNG_IDENTIFIER[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A,
     0x1A, 0x0A };
 
-typedef struct _png_chunk_s
-{
-    uint32_t size;          // size
-    uint32_t type;          // type
-} png_chunk_t;
-
-typedef struct _png_header
-{
-    uint32_t width;         // width
-    uint32_t height;            // height
-    uint8_t depthbits;          // depth in bits
-    uint8_t colourtype;            // colour type
-    uint8_t compression;            // compression method
-    uint8_t filter;         // filter method
-    uint8_t interlace;          // interlace method
-} png_header_t;
-
-
 //------------------------------------------------------------------------------
 // CRC (from the specification)
 //------------------------------------------------------------------------------
@@ -603,9 +585,9 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
     uint32_t bytesperpixel = (uint32_t)(1.0f / dstpixelsperbyte);         // bytes per pixel
 
-    uint32_t chunksize = sizeof(png_chunk_t);           // chunk size
-    uint32_t headersize = sizeof(png_header_t);         // header size
-    uint32_t palettesize = 0;          // colormap_length
+    uint32_t chunksize  = 8;            // chunk size
+    uint32_t headersize = 13;           // header size
+    uint32_t palettesize = 0;           // colormap_length
     uint32_t signaturesize = sizeof(PNG_IDENTIFIER) / sizeof(PNG_IDENTIFIER[0]);
     uint32_t crcsize = sizeof(uint32_t);
     uint32_t crc = 0;
@@ -860,9 +842,9 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint8_t* odatbuf = odatptr;
     memset(odatptr, 0, ((odatlen + 1) & ~1) * sizeof(uint8_t));
 
-    unsigned int oabsrem = 0;         // absolute remaining output
+    unsigned int oabsrem = odatlen - deflator.total_out;         // absolute remaining output
     unsigned int odatrem = 0;         // relative remaining output
-    unsigned int iabsrem = 0;         // absolute remaining input
+    unsigned int iabsrem = idatlen - deflator.total_in;         // absolute remaining input
     unsigned int idatrem = 0;         // relative remaining input
 
     idatrem = MIN(32768, idatlen);
@@ -889,18 +871,9 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         odatrem = MIN(32768, oabsrem);
         bytesencoded = deflator.total_out;
 
-        if (status <= Z_STREAM_END)
+        if (status == Z_STREAM_END)
         {
-            if (status == Z_STREAM_END)
-            {
-                fprintf(stdout, "PNG, Deflate: completed successfully\n");
-            }
-            else
-            {
-                fprintf(stderr, "PNG, Deflate: failed with status %i.\n",
-                    status);
-            }
-
+            fprintf(stdout, "PNG, Deflate: completed successfully\n");
             break;
         }
 
@@ -923,6 +896,10 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     // compression failed
     if (status != Z_STREAM_END)
     {
+        fprintf(stderr, "PNG, Deflate: failed with status %i.\n",
+            status);
+
+        // free un-compressed data and return
         if (odatptr != NULL)
         {
             free(odatptr);
@@ -1025,6 +1002,8 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize,
     // A valid PNG image must contain an IHDR chunk, one or more IDAT chunks, and an
     // IEND chunk.
 
+    uint32_t chunksize  = 8;            // chunk size
+    uint32_t headersize = 13;           // header size
     bool endfound = false;
     bool first = true;          // image header chunk must precede all other chunks
     bool dattest = false;           // zero-length chunks are valid
@@ -1052,7 +1031,7 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize,
                 first = false;
 
                 // check chunk is valid length
-                if (l != sizeof(png_header_t))
+                if (l != headersize)
                 {
                     fprintf(stderr, "PNG, bad IHDR len.\n");
                     return false;
@@ -1483,28 +1462,26 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
     uint32_t dstyskip, uint32_t dstxsize, uint32_t dstysize, uint32_t dstpitch,
     uint32_t dstdepth, uint32_t dstbytesperpixel, uint8_t** ppsrc)
 {
-    // image layout - indexed, grayscale, truecolor
-    // alpha channel - equal to 8bits per sample only
-
     uint32_t depth = dstdepth * dstbytesperpixel;
 
     // filtering
-    uint32_t xsize = 0;            // xsize
-    uint32_t ysize = 0;            // ysize
+    uint32_t width = 0;
+    uint32_t xsize = 0;
+    uint32_t ysize = 0;
     uint32_t x = 0;
     uint32_t y = 0;
-    int32_t run = 0;            // run-length
-    int32_t bit = 0;            // bit-offset start or shift-bit start
-    int32_t inc = 0;            // pixel-to-pixel increment (interlace pattern increment)
-    uint8_t filtermode = 0;         // filtering - None = 0; Sub = 1; Up = 2; Average = 3; Paeth = 4
+    uint32_t i = 0;
+    uint32_t run = 0;
+    uint32_t bit = 0;
+    uint8_t filtermode = 0;
     uint8_t bytesperpixel = 0;
 
     // pixels
     uint16_t sample = 0;
-    uint8_t* raw0buf = 0;            // Raw(x) buffer
-    uint8_t* raw1buf = 0;            // Raw(x-bpp) buffer
-    uint8_t* pri0buf = 0;            // Pri(x) buffer
-    uint8_t* pri1buf = 0;            // Pri(x-bpp) buffer
+    uint8_t* raw0buf = 0;            // Raw(x)
+    uint8_t* raw1buf = 0;            // Raw(x-bpp)
+    uint8_t* pri0buf = 0;            // Pri(x)
+    uint8_t* pri1buf = 0;            // Pri(x-bpp)
     uint8_t* dstbuf = pdst;
     uint8_t* srcbuf = *ppsrc;
 
@@ -1532,14 +1509,14 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
             }
 
             bytesperpixel = 1;
-            xsize = ((dstxsize * depth) + 7) >> 3;         // width in bytes
-            inc = dstxskip * run;
+            width = ((dstxsize * depth) + 7) >> 3;         // width in bytes
+            i = dstxskip * run;
         }
         else            // 8bit
         {
             bytesperpixel = (depth >> 3);
-            xsize = dstxsize;
-            inc = dstxskip * (depth >> 3);
+            width = dstxsize;
+            i = dstxskip * (depth >> 3);
         }
 
         while (y < ysize)
@@ -1566,7 +1543,7 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
             if (y!=0) { pri1buf = raw1buf - dstyskip; }
             if (y!=0) { pri0buf = raw0buf - dstyskip; }
 
-            while (x < xsize)
+            while (x < width)
             {
                 bpp = 0;
                 raw0 = 0;
@@ -1649,10 +1626,10 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
                     bpp++;
                 }
 
-                if (y!=0 && x!=0) { pri1buf += inc; }
-                if (x!=0) { raw1buf += inc; }
-                pri0buf += inc;
-                raw0buf += inc;
+                if (y!=0 && x!=0) { pri1buf += i; }
+                if (x!=0) { raw1buf += i; }
+                pri0buf += i;
+                raw0buf += i;
 
                 x++;
             }
@@ -1675,9 +1652,6 @@ ExpandInterlacedPNG(uint8_t* dstptr, uint32_t dstlen, uint32_t dstxsize,
     uint32_t dstysize, uint32_t dstpitch, uint32_t dstdepth,
     uint32_t dstbytesperpixel, uint8_t** ppsrc)
 {
-    // image layout - indexed, grayscale, truecolor
-    // alpha channel - equal to 8bits per sample only
-
     const uint8_t i_xorigin[7] = { 0, 4, 0, 2, 0, 1, 0 };
     const uint8_t i_xextent[7] = { 8, 8, 4, 4, 2, 2, 1 };
     const uint8_t i_yorigin[7] = { 0, 0, 4, 0, 2, 0, 1 };
@@ -1743,6 +1717,8 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t colorkey[3] = {};           // transparency color
 
     // idat chunks
+    uint32_t chunksize  = 8;            // chunk size
+    uint32_t headersize = 13;           // header size
     uint32_t idatlen = 0;           // total size of idat chunks
 
     // A valid PNG image must contain an IHDR chunk, one or more IDAT chunks, and an
@@ -1772,7 +1748,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 first = false;
 
                 // check chunk is valid length
-                if (l != sizeof(png_header_t))
+                if (l != headersize)
                 {
                     fprintf(stderr, "PNG, bad IHDR len.\n");
                     return false;
