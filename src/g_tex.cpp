@@ -34,18 +34,43 @@
 //-----------------------------------------------------------------------------
 
 
+static unsigned char s_bitmask[8] = { 0, 0, 0, 0, 0x0F, 0, 0x03, 0x01 };
+
+//-----------------------------------------------------------------------------
+// Shrink 8-bits per index to N-pixels per byte
+//-----------------------------------------------------------------------------
+void ShrinkIndex8ToNbits(uint8_t* pdst, uint8_t* psrc, uint32_t srcskip,
+    uint8_t count, uint8_t bitstart)
+{
+    uint8_t srcofs = 0;
+    uint8_t dstofs = bitstart;
+    uint8_t dstdec = 8-bitstart;
+    uint8_t dstbit = s_bitmask[bitstart];
+
+    switch (count)
+    {
+    case 8: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 7: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 6: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 5: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 4: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 3: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 2: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 1: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs;
+    break;
+    }
+}
+
 //-----------------------------------------------------------------------------
 // Expand N-pixels per byte to 8-bits per index
 //-----------------------------------------------------------------------------
 void ExpandNbitsToIndex8(uint8_t* pdst, uint32_t dstskip, uint8_t sample,
     uint8_t count, uint8_t bitstart)
 {
-    static unsigned char mask_table[8] = { 0, 0, 0, 0, 0x0F, 0, 0x03, 0x01 };
-
     uint8_t dstofs = 0;
     uint8_t srcofs = bitstart;
     uint8_t srcdec = 8-bitstart;
-    uint8_t srcbit = mask_table[bitstart];
+    uint8_t srcbit = s_bitmask[bitstart];
 
     switch (count)
     {
@@ -97,24 +122,6 @@ enum
 // PNG IDENTIFIER: 137 80 78 71 13 10 26 10
 static const uint8_t PNG_IDENTIFIER[8] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A,
     0x1A, 0x0A };
-
-typedef struct _png_chunk_s
-{
-    uint32_t size;          // size
-    uint32_t type;          // type
-} png_chunk_t;
-
-typedef struct _png_header
-{
-    uint32_t width;         // width
-    uint32_t height;            // height
-    uint8_t depthbits;          // depth in bits
-    uint8_t colourtype;            // colour type
-    uint8_t compression;            // compression method
-    uint8_t filter;         // filter method
-    uint8_t interlace;          // interlace method
-} png_header_t;
-
 
 //------------------------------------------------------------------------------
 // CRC (from the specification)
@@ -222,40 +229,64 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
     uint32_t x = 0;
     uint32_t y = 0;
     uint32_t i = 0;
+    uint32_t max = 0;
+    uint32_t run = 0;
+    uint32_t bit = 0;
     uint8_t bytesperpixel = 0;
 
     // pixels
     uint16_t sample = 0;
-    uint8_t* raw0buf = 0;           // Raw(x)
-    uint8_t* raw1buf = 0;           // Raw(x-bpp)
-    uint8_t* pri0buf = 0;           // Pri(x)
-    uint8_t* pri1buf = 0;           // Pri(x-bpp)
+    uint8_t* raw0buf = NULL;           // Raw(x)
+    uint8_t* raw1buf = NULL;           // Raw(x-bpp)
+    uint8_t* pri0buf = NULL;           // Pri(x)
+    uint8_t* pri1buf = NULL;           // Pri(x-bpp)
     uint8_t* dstbuf = pdst;
     uint8_t* srcbuf = psrc;
+
+    uint8_t* bufptr = NULL;
+    uint8_t* buffer = NULL;
 
     // empty image
     if (srcxsize != 0 && srcysize != 0)
     {
+        width = srcxsize;
         xsize = srcxsize;
         ysize = srcysize;
 
         if (srcdepthbits < 8)
         {
+            if (srcdepthbits == 1)
+            {
+                max = 8;
+                bit = 7;
+            }
+            else if (srcdepthbits == 2)
+            {
+                max = 4;
+                bit = 6;
+            }
+            else if (srcdepthbits == 4)
+            {
+                max = 2;
+                bit = 4;
+            }
+
             bytesperpixel = 1;
-            width = ((srcxsize * srcdepthbits) + 7) >> 3;          // width in bytes
             i = srcxskip;
         }
-        else            // 8bit
+        else
         {
             bytesperpixel = (srcdepthbits >> 3);
-            width = srcxsize;
             i = srcxskip * (srcdepthbits >> 3);
         }
+
+        bufptr = (uint8_t*)malloc((width + 8) * bytesperpixel);
+        buffer = bufptr;
 
         // filtering - None = 0; Sub = 1; Up = 2; Average = 3; Paeth = 4
         uint8_t filtermode = (filtertype >= PNG_FILTER_COUNT) ? 0 : filtertype;
 
-        while (y++ < ysize)
+        while (y < ysize)
         {
             raw0buf = srcbuf;
             raw1buf = srcbuf;
@@ -276,8 +307,8 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
             uint16_t s = 0;
             uint8_t enc = filtermode;
 
-            if ((y-1)!=0) { pri1buf = raw1buf - srcyskip; }
-            if ((y-1)!=0) { pri0buf = raw0buf - srcyskip; }
+            if (y!=0) { pri1buf = raw1buf - srcyskip; }
+            if (y!=0) { pri0buf = raw0buf - srcyskip; }
 
             if (filtermode == PNG_FILTER_ADAPTIVE)
             {
@@ -289,7 +320,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                     x = 0;
                     sum[1] = 0;
 
-                    while (x++ < width)
+                    while (x < width)
                     {
                         bpp = 0;
                         raw0 = 0;
@@ -300,17 +331,17 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
 
                         while (bpp++ < bytesperpixel)
                         {
-                            if ((y-1) != 0 && (x-1) != 0)
+                            if (y!=0 && x!=0)
                             {
                                 pri1 = pri1buf[s];
                             }
 
-                            if ((y-1) != 0)
+                            if (y!=0)
                             {
                                 pri0 = pri0buf[s];
                             }
 
-                            if ((x-1) != 0)
+                            if (x!=0)
                             {
                                 raw1 = raw1buf[s];
                             }
@@ -362,6 +393,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
 
                             sum[1] += sample;
                         }
+                        x++;
                     }
 
                     if (sum[1] < sum[0])
@@ -374,10 +406,13 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                 x = 0;
             }
 
+            memset(bufptr, 0, (width + 8) * bytesperpixel);
+            buffer = bufptr;
+
             *dstbuf++ = enc;           // filter-type byte
             bytesencoded++;
 
-            while (x++ < width)
+            while (x < width)
             {
                 bpp = 0;
                 raw0 = 0;
@@ -386,19 +421,19 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                 pri1 = 0;
                 s = 0;
 
-                while (bpp++ < bytesperpixel)
+                while (bpp < bytesperpixel)
                 {
-                    if ((y-1) != 0 && (x-1) != 0)
+                    if (y!=0 && x!=0)
                     {
                         pri1 = pri1buf[s];
                     }
 
-                    if ((y-1) != 0)
+                    if (y!=0)
                     {
                         pri0 = pri0buf[s];
                     }
 
-                    if ((x-1) != 0)
+                    if (x!=0)
                     {
                         raw1 = raw1buf[s];
                     }
@@ -448,21 +483,65 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                     } break;
                     }
 
-                    *dstbuf++ = (sample & 0xFF);
-                    bytesencoded++;
+                    *buffer++ = (sample & 0xFF);
+                    bpp++;
                 }
-            
-                if ((y-1) != 0 && (x-1) != 0) { pri1buf += i; }
-                if ((x-1) != 0) { raw1buf += i; }
+
+                x++;
+
+                if (y!=0 && x!=0) { pri1buf += i; }
+                if (x!=0) { raw1buf += i; }
                 if (x!=xsize) { pri0buf += i; }
                 if (x!=xsize) { raw0buf += i; }
             }
+
+            buffer = bufptr;
+            bpp = 0;
+            x = 0;
+
+            if (srcdepthbits < 8)
+            {
+                int32_t rem = width;
+                run = max;
+
+                while (rem > 0)
+                {
+                    if (rem < run) { run = rem; }
+                    ShrinkIndex8ToNbits(dstbuf, buffer, 1, run, bit);
+                    buffer += run;
+                    dstbuf++;
+                    bytesencoded++;
+                    rem -= run;
+                }
+            }
+            else
+            {
+                while (x < width)
+                {
+                    bpp = 0;
+                    while (bpp < bytesperpixel)
+                    {
+                        *dstbuf++ = *buffer++;
+                        bytesencoded++;
+                        bpp++;    
+                    }
+                    x++;
+                }
+            }
+
+            y++;
 
             if (y != ysize)
             {
                 srcbuf += srcyskip;
             }
         }
+    }
+
+    if (bufptr != NULL)
+    {
+        free(bufptr);
+        bufptr = NULL;
     }
 
     if (pdstlen != NULL) { *pdstlen = bytesencoded; }
@@ -603,9 +682,9 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
     uint32_t bytesperpixel = (uint32_t)(1.0f / dstpixelsperbyte);         // bytes per pixel
 
-    uint32_t chunksize = sizeof(png_chunk_t);           // chunk size
-    uint32_t headersize = sizeof(png_header_t);         // header size
-    uint32_t palettesize = 0;          // colormap_length
+    uint32_t chunksize  = 8;            // chunk size
+    uint32_t headersize = 13;           // header size
+    uint32_t palettesize = 0;           // colormap_length
     uint32_t signaturesize = sizeof(PNG_IDENTIFIER) / sizeof(PNG_IDENTIFIER[0]);
     uint32_t crcsize = sizeof(uint32_t);
     uint32_t crc = 0;
@@ -860,9 +939,9 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint8_t* odatbuf = odatptr;
     memset(odatptr, 0, ((odatlen + 1) & ~1) * sizeof(uint8_t));
 
-    unsigned int oabsrem = 0;         // absolute remaining output
+    unsigned int oabsrem = odatlen - deflator.total_out;         // absolute remaining output
     unsigned int odatrem = 0;         // relative remaining output
-    unsigned int iabsrem = 0;         // absolute remaining input
+    unsigned int iabsrem = idatlen - deflator.total_in;         // absolute remaining input
     unsigned int idatrem = 0;         // relative remaining input
 
     idatrem = MIN(32768, idatlen);
@@ -889,18 +968,9 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         odatrem = MIN(32768, oabsrem);
         bytesencoded = deflator.total_out;
 
-        if (status <= Z_STREAM_END)
+        if (status == Z_STREAM_END)
         {
-            if (status == Z_STREAM_END)
-            {
-                fprintf(stdout, "PNG, Deflate: completed successfully\n");
-            }
-            else
-            {
-                fprintf(stderr, "PNG, Deflate: failed with status %i.\n",
-                    status);
-            }
-
+            fprintf(stdout, "PNG, Deflate: completed successfully\n");
             break;
         }
 
@@ -923,6 +993,10 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     // compression failed
     if (status != Z_STREAM_END)
     {
+        fprintf(stderr, "PNG, Deflate: failed with status %i.\n",
+            status);
+
+        // free un-compressed data and return
         if (odatptr != NULL)
         {
             free(odatptr);
@@ -1025,6 +1099,8 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize,
     // A valid PNG image must contain an IHDR chunk, one or more IDAT chunks, and an
     // IEND chunk.
 
+    uint32_t chunksize  = 8;            // chunk size
+    uint32_t headersize = 13;           // header size
     bool endfound = false;
     bool first = true;          // image header chunk must precede all other chunks
     bool dattest = false;           // zero-length chunks are valid
@@ -1052,7 +1128,7 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize,
                 first = false;
 
                 // check chunk is valid length
-                if (l != sizeof(png_header_t))
+                if (l != headersize)
                 {
                     fprintf(stderr, "PNG, bad IHDR len.\n");
                     return false;
@@ -1483,28 +1559,26 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
     uint32_t dstyskip, uint32_t dstxsize, uint32_t dstysize, uint32_t dstpitch,
     uint32_t dstdepth, uint32_t dstbytesperpixel, uint8_t** ppsrc)
 {
-    // image layout - indexed, grayscale, truecolor
-    // alpha channel - equal to 8bits per sample only
-
     uint32_t depth = dstdepth * dstbytesperpixel;
 
     // filtering
-    uint32_t xsize = 0;            // xsize
-    uint32_t ysize = 0;            // ysize
+    uint32_t width = 0;
+    uint32_t xsize = 0;
+    uint32_t ysize = 0;
     uint32_t x = 0;
     uint32_t y = 0;
-    int32_t run = 0;            // run-length
-    int32_t bit = 0;            // bit-offset start or shift-bit start
-    int32_t inc = 0;            // pixel-to-pixel increment (interlace pattern increment)
-    uint8_t filtermode = 0;         // filtering - None = 0; Sub = 1; Up = 2; Average = 3; Paeth = 4
+    uint32_t i = 0;
+    uint32_t run = 0;
+    uint32_t bit = 0;
+    uint8_t filtermode = 0;
     uint8_t bytesperpixel = 0;
 
     // pixels
     uint16_t sample = 0;
-    uint8_t* raw0buf = 0;            // Raw(x) buffer
-    uint8_t* raw1buf = 0;            // Raw(x-bpp) buffer
-    uint8_t* pri0buf = 0;            // Pri(x) buffer
-    uint8_t* pri1buf = 0;            // Pri(x-bpp) buffer
+    uint8_t* raw0buf = 0;            // Raw(x)
+    uint8_t* raw1buf = 0;            // Raw(x-bpp)
+    uint8_t* pri0buf = 0;            // Pri(x)
+    uint8_t* pri1buf = 0;            // Pri(x-bpp)
     uint8_t* dstbuf = pdst;
     uint8_t* srcbuf = *ppsrc;
 
@@ -1532,14 +1606,14 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
             }
 
             bytesperpixel = 1;
-            xsize = ((dstxsize * depth) + 7) >> 3;         // width in bytes
-            inc = dstxskip * run;
+            width = ((dstxsize * depth) + 7) >> 3;         // width in bytes
+            i = dstxskip * run;
         }
         else            // 8bit
         {
             bytesperpixel = (depth >> 3);
-            xsize = dstxsize;
-            inc = dstxskip * (depth >> 3);
+            width = dstxsize;
+            i = dstxskip * (depth >> 3);
         }
 
         while (y < ysize)
@@ -1566,7 +1640,7 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
             if (y!=0) { pri1buf = raw1buf - dstyskip; }
             if (y!=0) { pri0buf = raw0buf - dstyskip; }
 
-            while (x < xsize)
+            while (x < width)
             {
                 bpp = 0;
                 raw0 = 0;
@@ -1649,10 +1723,10 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
                     bpp++;
                 }
 
-                if (y!=0 && x!=0) { pri1buf += inc; }
-                if (x!=0) { raw1buf += inc; }
-                pri0buf += inc;
-                raw0buf += inc;
+                if (y!=0 && x!=0) { pri1buf += i; }
+                if (x!=0) { raw1buf += i; }
+                pri0buf += i;
+                raw0buf += i;
 
                 x++;
             }
@@ -1675,9 +1749,6 @@ ExpandInterlacedPNG(uint8_t* dstptr, uint32_t dstlen, uint32_t dstxsize,
     uint32_t dstysize, uint32_t dstpitch, uint32_t dstdepth,
     uint32_t dstbytesperpixel, uint8_t** ppsrc)
 {
-    // image layout - indexed, grayscale, truecolor
-    // alpha channel - equal to 8bits per sample only
-
     const uint8_t i_xorigin[7] = { 0, 4, 0, 2, 0, 1, 0 };
     const uint8_t i_xextent[7] = { 8, 8, 4, 4, 2, 2, 1 };
     const uint8_t i_yorigin[7] = { 0, 0, 4, 0, 2, 0, 1 };
@@ -1743,6 +1814,8 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t colorkey[3] = {};           // transparency color
 
     // idat chunks
+    uint32_t chunksize  = 8;            // chunk size
+    uint32_t headersize = 13;           // header size
     uint32_t idatlen = 0;           // total size of idat chunks
 
     // A valid PNG image must contain an IHDR chunk, one or more IDAT chunks, and an
@@ -1772,7 +1845,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 first = false;
 
                 // check chunk is valid length
-                if (l != sizeof(png_header_t))
+                if (l != headersize)
                 {
                     fprintf(stderr, "PNG, bad IHDR len.\n");
                     return false;
