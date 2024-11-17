@@ -34,18 +34,43 @@
 //-----------------------------------------------------------------------------
 
 
+static unsigned char s_bitmask[8] = { 0, 0, 0, 0, 0x0F, 0, 0x03, 0x01 };
+
+//-----------------------------------------------------------------------------
+// Shrink 8-bits per index to N-pixels per byte
+//-----------------------------------------------------------------------------
+void ShrinkIndex8ToNbits(uint8_t* pdst, uint8_t* psrc, uint32_t srcskip,
+    uint8_t count, uint8_t bitstart)
+{
+    uint8_t srcofs = 0;
+    uint8_t dstofs = bitstart;
+    uint8_t dstdec = 8-bitstart;
+    uint8_t dstbit = s_bitmask[bitstart];
+
+    switch (count)
+    {
+    case 8: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 7: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 6: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 5: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 4: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 3: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 2: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs; dstofs -= dstdec; srcofs += srcskip;
+    case 1: *(pdst) |= (*(psrc + srcofs) & dstbit) << dstofs;
+    break;
+    }
+}
+
 //-----------------------------------------------------------------------------
 // Expand N-pixels per byte to 8-bits per index
 //-----------------------------------------------------------------------------
 void ExpandNbitsToIndex8(uint8_t* pdst, uint32_t dstskip, uint8_t sample,
     uint8_t count, uint8_t bitstart)
 {
-    static unsigned char mask_table[8] = { 0, 0, 0, 0, 0x0F, 0, 0x03, 0x01 };
-
     uint8_t dstofs = 0;
     uint8_t srcofs = bitstart;
     uint8_t srcdec = 8-bitstart;
-    uint8_t srcbit = mask_table[bitstart];
+    uint8_t srcbit = s_bitmask[bitstart];
 
     switch (count)
     {
@@ -204,40 +229,64 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
     uint32_t x = 0;
     uint32_t y = 0;
     uint32_t i = 0;
+    uint32_t max = 0;
+    uint32_t run = 0;
+    uint32_t bit = 0;
     uint8_t bytesperpixel = 0;
 
     // pixels
     uint16_t sample = 0;
-    uint8_t* raw0buf = 0;           // Raw(x)
-    uint8_t* raw1buf = 0;           // Raw(x-bpp)
-    uint8_t* pri0buf = 0;           // Pri(x)
-    uint8_t* pri1buf = 0;           // Pri(x-bpp)
+    uint8_t* raw0buf = NULL;           // Raw(x)
+    uint8_t* raw1buf = NULL;           // Raw(x-bpp)
+    uint8_t* pri0buf = NULL;           // Pri(x)
+    uint8_t* pri1buf = NULL;           // Pri(x-bpp)
     uint8_t* dstbuf = pdst;
     uint8_t* srcbuf = psrc;
+
+    uint8_t* bufptr = NULL;
+    uint8_t* buffer = NULL;
 
     // empty image
     if (srcxsize != 0 && srcysize != 0)
     {
+        width = srcxsize;
         xsize = srcxsize;
         ysize = srcysize;
 
         if (srcdepthbits < 8)
         {
+            if (srcdepthbits == 1)
+            {
+                max = 8;
+                bit = 7;
+            }
+            else if (srcdepthbits == 2)
+            {
+                max = 4;
+                bit = 6;
+            }
+            else if (srcdepthbits == 4)
+            {
+                max = 2;
+                bit = 4;
+            }
+
             bytesperpixel = 1;
-            width = ((srcxsize * srcdepthbits) + 7) >> 3;          // width in bytes
             i = srcxskip;
         }
-        else            // 8bit
+        else
         {
             bytesperpixel = (srcdepthbits >> 3);
-            width = srcxsize;
             i = srcxskip * (srcdepthbits >> 3);
         }
+
+        bufptr = (uint8_t*)malloc((width + 8) * bytesperpixel);
+        buffer = bufptr;
 
         // filtering - None = 0; Sub = 1; Up = 2; Average = 3; Paeth = 4
         uint8_t filtermode = (filtertype >= PNG_FILTER_COUNT) ? 0 : filtertype;
 
-        while (y++ < ysize)
+        while (y < ysize)
         {
             raw0buf = srcbuf;
             raw1buf = srcbuf;
@@ -258,8 +307,8 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
             uint16_t s = 0;
             uint8_t enc = filtermode;
 
-            if ((y-1)!=0) { pri1buf = raw1buf - srcyskip; }
-            if ((y-1)!=0) { pri0buf = raw0buf - srcyskip; }
+            if (y!=0) { pri1buf = raw1buf - srcyskip; }
+            if (y!=0) { pri0buf = raw0buf - srcyskip; }
 
             if (filtermode == PNG_FILTER_ADAPTIVE)
             {
@@ -271,7 +320,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                     x = 0;
                     sum[1] = 0;
 
-                    while (x++ < width)
+                    while (x < width)
                     {
                         bpp = 0;
                         raw0 = 0;
@@ -282,17 +331,17 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
 
                         while (bpp++ < bytesperpixel)
                         {
-                            if ((y-1) != 0 && (x-1) != 0)
+                            if (y!=0 && x!=0)
                             {
                                 pri1 = pri1buf[s];
                             }
 
-                            if ((y-1) != 0)
+                            if (y!=0)
                             {
                                 pri0 = pri0buf[s];
                             }
 
-                            if ((x-1) != 0)
+                            if (x!=0)
                             {
                                 raw1 = raw1buf[s];
                             }
@@ -344,6 +393,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
 
                             sum[1] += sample;
                         }
+                        x++;
                     }
 
                     if (sum[1] < sum[0])
@@ -356,10 +406,13 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                 x = 0;
             }
 
+            memset(bufptr, 0, (width + 8) * bytesperpixel);
+            buffer = bufptr;
+
             *dstbuf++ = enc;           // filter-type byte
             bytesencoded++;
 
-            while (x++ < width)
+            while (x < width)
             {
                 bpp = 0;
                 raw0 = 0;
@@ -368,19 +421,19 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                 pri1 = 0;
                 s = 0;
 
-                while (bpp++ < bytesperpixel)
+                while (bpp < bytesperpixel)
                 {
-                    if ((y-1) != 0 && (x-1) != 0)
+                    if (y!=0 && x!=0)
                     {
                         pri1 = pri1buf[s];
                     }
 
-                    if ((y-1) != 0)
+                    if (y!=0)
                     {
                         pri0 = pri0buf[s];
                     }
 
-                    if ((x-1) != 0)
+                    if (x!=0)
                     {
                         raw1 = raw1buf[s];
                     }
@@ -430,21 +483,65 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                     } break;
                     }
 
-                    *dstbuf++ = (sample & 0xFF);
-                    bytesencoded++;
+                    *buffer++ = (sample & 0xFF);
+                    bpp++;
                 }
-            
-                if ((y-1) != 0 && (x-1) != 0) { pri1buf += i; }
-                if ((x-1) != 0) { raw1buf += i; }
+
+                x++;
+
+                if (y!=0 && x!=0) { pri1buf += i; }
+                if (x!=0) { raw1buf += i; }
                 if (x!=xsize) { pri0buf += i; }
                 if (x!=xsize) { raw0buf += i; }
             }
+
+            buffer = bufptr;
+            bpp = 0;
+            x = 0;
+
+            if (srcdepthbits < 8)
+            {
+                int32_t rem = width;
+                run = max;
+
+                while (rem > 0)
+                {
+                    if (rem < run) { run = rem; }
+                    ShrinkIndex8ToNbits(dstbuf, buffer, 1, run, bit);
+                    buffer += run;
+                    dstbuf++;
+                    bytesencoded++;
+                    rem -= run;
+                }
+            }
+            else
+            {
+                while (x < width)
+                {
+                    bpp = 0;
+                    while (bpp < bytesperpixel)
+                    {
+                        *dstbuf++ = *buffer++;
+                        bytesencoded++;
+                        bpp++;    
+                    }
+                    x++;
+                }
+            }
+
+            y++;
 
             if (y != ysize)
             {
                 srcbuf += srcyskip;
             }
         }
+    }
+
+    if (bufptr != NULL)
+    {
+        free(bufptr);
+        bufptr = NULL;
     }
 
     if (pdstlen != NULL) { *pdstlen = bytesencoded; }
