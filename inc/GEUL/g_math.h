@@ -1508,11 +1508,11 @@ inline matrix4_t InverseMatrix4(const matrix4_t m)
 
     a.n[ 2] += m.n[ 1] * m.n[ 6] * m.n[15] + m.n[ 5] * m.n[14] * m.n[ 3] +
                m.n[13] * m.n[ 2] * m.n[ 7] - m.n[13] * m.n[ 6] * m.n[ 3] -
-               m.n[ 5] * m.n[ 2] * m.n[15] - m.n[ 1] * m.n[14] * m.n[7];
+               m.n[ 5] * m.n[ 2] * m.n[15] - m.n[ 1] * m.n[14] * m.n[ 7];
 
     a.n[ 6] -= m.n[ 0] * m.n[ 6] * m.n[15] + m.n[ 4] * m.n[14] * m.n[ 3] +
                m.n[12] * m.n[ 2] * m.n[ 7] - m.n[12] * m.n[ 6] * m.n[ 3] -
-               m.n[ 4] * m.n[ 2] * m.n[15] - m.n[ 0] * m.n[14] * m.n[7];
+               m.n[ 4] * m.n[ 2] * m.n[15] - m.n[ 0] * m.n[14] * m.n[ 7];
 
     a.n[10] += m.n[ 0] * m.n[ 5] * m.n[15] + m.n[ 4] * m.n[13] * m.n[ 3] +
                m.n[12] * m.n[ 1] * m.n[ 7] - m.n[12] * m.n[ 5] * m.n[ 3] -
@@ -1522,7 +1522,7 @@ inline matrix4_t InverseMatrix4(const matrix4_t m)
                m.n[12] * m.n[ 1] * m.n[ 6] - m.n[12] * m.n[ 5] * m.n[ 2] -
                m.n[ 4] * m.n[ 1] * m.n[14] - m.n[ 0] * m.n[13] * m.n[ 6];
 
-    a.n[ 3] -= m.n[ 1] * m.n[ 6] * m.n[14] + m.n[ 5] * m.n[10] * m.n[ 3] +
+    a.n[ 3] -= m.n[ 1] * m.n[ 6] * m.n[11] + m.n[ 5] * m.n[10] * m.n[ 3] +
                m.n[ 9] * m.n[ 2] * m.n[ 7] - m.n[ 9] * m.n[ 6] * m.n[ 3] -
                m.n[ 5] * m.n[ 2] * m.n[11] - m.n[ 1] * m.n[10] * m.n[ 7];
 
