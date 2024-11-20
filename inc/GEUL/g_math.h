@@ -1448,16 +1448,21 @@ inline matrix4_t Matrix4(
 //-----------------------------------------------------------------------------
 inline float DeterminantMatrix4(const matrix4_t m)
 {
-    float d = 0.0f;
+    const float a0 = (m.n[ 0] * m.n[ 5]) - (m.n[ 4] * m.n[ 1]);
+    const float a1 = (m.n[ 0] * m.n[ 6]) - (m.n[ 4] * m.n[ 2]);
+    const float a2 = (m.n[ 0] * m.n[ 7]) - (m.n[ 4] * m.n[ 3]);
+    const float a3 = (m.n[ 1] * m.n[ 6]) - (m.n[ 5] * m.n[ 2]);
+    const float a4 = (m.n[ 1] * m.n[ 7]) - (m.n[ 5] * m.n[ 3]);
+    const float a5 = (m.n[ 2] * m.n[ 7]) - (m.n[ 6] * m.n[ 3]);
+    const float b0 = (m.n[ 8] * m.n[13]) - (m.n[12] * m.n[ 9]);
+    const float b1 = (m.n[ 8] * m.n[14]) - (m.n[12] * m.n[10]);
+    const float b2 = (m.n[ 8] * m.n[15]) - (m.n[12] * m.n[11]);
+    const float b3 = (m.n[ 9] * m.n[14]) - (m.n[13] * m.n[10]);
+    const float b4 = (m.n[ 9] * m.n[15]) - (m.n[13] * m.n[11]);
+    const float b5 = (m.n[10] * m.n[15]) - (m.n[14] * m.n[11]);
 
-    d = m.n[ 0] * m.n[ 5] * m.n[10] * m.n[15] +
-        m.n[ 4] * m.n[ 9] * m.n[14] * m.n[ 3] +
-        m.n[ 8] * m.n[13] * m.n[ 2] * m.n[ 7] +
-        m.n[12] * m.n[ 1] * m.n[ 6] * m.n[11] -
-        m.n[12] * m.n[ 9] * m.n[ 6] * m.n[ 3] +
-        m.n[ 8] * m.n[ 5] * m.n[ 2] * m.n[15] +
-        m.n[ 4] * m.n[ 1] * m.n[14] * m.n[11] +
-        m.n[ 0] * m.n[13] * m.n[10] * m.n[ 7];
+    const float d = (a0 * b5) - (a1 * b4) + (a2 * b3) + (a3 * b2) - (a4 * b1) +
+        (a5 * b0);
 
     return d;
 }
@@ -1467,105 +1472,49 @@ inline float DeterminantMatrix4(const matrix4_t m)
 //-----------------------------------------------------------------------------
 inline matrix4_t InverseMatrix4(const matrix4_t m)
 {
-    matrix4_t a = Matrix4(
-        0.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 0.0f
-    );
+    const float a0 = (m.n[ 0] * m.n[ 5]) - (m.n[ 4] * m.n[ 1]);
+    const float a1 = (m.n[ 0] * m.n[ 6]) - (m.n[ 4] * m.n[ 2]);
+    const float a2 = (m.n[ 0] * m.n[ 7]) - (m.n[ 4] * m.n[ 3]);
+    const float a3 = (m.n[ 1] * m.n[ 6]) - (m.n[ 5] * m.n[ 2]);
+    const float a4 = (m.n[ 1] * m.n[ 7]) - (m.n[ 5] * m.n[ 3]);
+    const float a5 = (m.n[ 2] * m.n[ 7]) - (m.n[ 6] * m.n[ 3]);
+    const float b0 = (m.n[ 8] * m.n[13]) - (m.n[12] * m.n[ 9]);
+    const float b1 = (m.n[ 8] * m.n[14]) - (m.n[12] * m.n[10]);
+    const float b2 = (m.n[ 8] * m.n[15]) - (m.n[12] * m.n[11]);
+    const float b3 = (m.n[ 9] * m.n[14]) - (m.n[13] * m.n[10]);
+    const float b4 = (m.n[ 9] * m.n[15]) - (m.n[13] * m.n[11]);
+    const float b5 = (m.n[10] * m.n[15]) - (m.n[14] * m.n[11]);
 
-    a.n[ 0] += m.n[ 5] * m.n[10] * m.n[15] + m.n[ 9] * m.n[14] * m.n[ 7] +
-               m.n[13] * m.n[ 6] * m.n[11] - m.n[13] * m.n[10] * m.n[ 7] -
-               m.n[ 9] * m.n[ 6] * m.n[15] - m.n[ 5] * m.n[14] * m.n[11];
-
-    a.n[ 4] -= m.n[ 4] * m.n[10] * m.n[15] + m.n[ 8] * m.n[14] * m.n[ 7] +
-               m.n[12] * m.n[ 6] * m.n[11] - m.n[12] * m.n[10] * m.n[ 7] -
-               m.n[ 8] * m.n[ 6] * m.n[15] - m.n[ 4] * m.n[14] * m.n[11];
-
-    a.n[ 8] += m.n[ 4] * m.n[ 9] * m.n[15] + m.n[ 8] * m.n[13] * m.n[ 7] +
-               m.n[12] * m.n[ 5] * m.n[11] - m.n[12] * m.n[ 9] * m.n[ 7] -
-               m.n[ 8] * m.n[ 5] * m.n[15] - m.n[ 4] * m.n[13] * m.n[11];
-
-    a.n[12] -= m.n[ 4] * m.n[ 9] * m.n[14] + m.n[ 8] * m.n[13] * m.n[ 6] +
-               m.n[12] * m.n[ 5] * m.n[10] - m.n[12] * m.n[ 9] * m.n[ 6] -
-               m.n[ 8] * m.n[ 5] * m.n[14] - m.n[ 4] * m.n[13] * m.n[10];
-
-    a.n[ 1] -= m.n[ 1] * m.n[10] * m.n[15] + m.n[ 9] * m.n[14] * m.n[ 3] +
-               m.n[13] * m.n[ 2] * m.n[11] - m.n[13] * m.n[10] * m.n[ 3] -
-               m.n[ 9] * m.n[ 2] * m.n[15] - m.n[ 1] * m.n[14] * m.n[11];
-
-    a.n[ 5] += m.n[ 0] * m.n[10] * m.n[15] + m.n[ 8] * m.n[14] * m.n[ 3] +
-               m.n[12] * m.n[ 2] * m.n[11] - m.n[12] * m.n[10] * m.n[ 3] -
-               m.n[ 8] * m.n[ 2] * m.n[15] - m.n[ 0] * m.n[14] * m.n[11];
-
-    a.n[ 9] -= m.n[ 0] * m.n[ 9] * m.n[15] + m.n[ 8] * m.n[13] * m.n[ 3] +
-               m.n[12] * m.n[ 1] * m.n[11] - m.n[12] * m.n[ 9] * m.n[ 3] -
-               m.n[ 8] * m.n[ 1] * m.n[15] - m.n[ 0] * m.n[13] * m.n[11];
-
-    a.n[13] += m.n[ 0] * m.n[ 9] * m.n[14] + m.n[ 8] * m.n[13] * m.n[ 2] +
-               m.n[12] * m.n[ 1] * m.n[10] - m.n[12] * m.n[ 9] * m.n[ 2] -
-               m.n[ 8] * m.n[ 1] * m.n[14] - m.n[ 0] * m.n[13] * m.n[10];
-
-    a.n[ 2] += m.n[ 1] * m.n[ 6] * m.n[15] + m.n[ 5] * m.n[14] * m.n[ 3] +
-               m.n[13] * m.n[ 2] * m.n[ 7] - m.n[13] * m.n[ 6] * m.n[ 3] -
-               m.n[ 5] * m.n[ 2] * m.n[15] - m.n[ 1] * m.n[14] * m.n[ 7];
-
-    a.n[ 6] -= m.n[ 0] * m.n[ 6] * m.n[15] + m.n[ 4] * m.n[14] * m.n[ 3] +
-               m.n[12] * m.n[ 2] * m.n[ 7] - m.n[12] * m.n[ 6] * m.n[ 3] -
-               m.n[ 4] * m.n[ 2] * m.n[15] - m.n[ 0] * m.n[14] * m.n[ 7];
-
-    a.n[10] += m.n[ 0] * m.n[ 5] * m.n[15] + m.n[ 4] * m.n[13] * m.n[ 3] +
-               m.n[12] * m.n[ 1] * m.n[ 7] - m.n[12] * m.n[ 5] * m.n[ 3] -
-               m.n[ 4] * m.n[ 1] * m.n[15] - m.n[ 0] * m.n[13] * m.n[ 7];
-
-    a.n[14] -= m.n[ 0] * m.n[ 5] * m.n[14] + m.n[ 4] * m.n[13] * m.n[ 2] +
-               m.n[12] * m.n[ 1] * m.n[ 6] - m.n[12] * m.n[ 5] * m.n[ 2] -
-               m.n[ 4] * m.n[ 1] * m.n[14] - m.n[ 0] * m.n[13] * m.n[ 6];
-
-    a.n[ 3] -= m.n[ 1] * m.n[ 6] * m.n[11] + m.n[ 5] * m.n[10] * m.n[ 3] +
-               m.n[ 9] * m.n[ 2] * m.n[ 7] - m.n[ 9] * m.n[ 6] * m.n[ 3] -
-               m.n[ 5] * m.n[ 2] * m.n[11] - m.n[ 1] * m.n[10] * m.n[ 7];
-
-    a.n[ 7] += m.n[ 0] * m.n[ 6] * m.n[11] + m.n[ 4] * m.n[10] * m.n[ 3] +
-               m.n[ 8] * m.n[ 2] * m.n[ 7] - m.n[ 8] * m.n[ 6] * m.n[ 3] -
-               m.n[ 4] * m.n[ 2] * m.n[11] - m.n[ 0] * m.n[10] * m.n[ 7];
-
-    a.n[11] -= m.n[ 0] * m.n[ 5] * m.n[11] + m.n[ 4] * m.n[ 9] * m.n[ 3] +
-               m.n[ 8] * m.n[ 1] * m.n[ 7] - m.n[ 8] * m.n[ 5] * m.n[ 3] -
-               m.n[ 4] * m.n[ 1] * m.n[11] - m.n[ 0] * m.n[ 9] * m.n[ 7];
-
-    a.n[15] += m.n[ 0] * m.n[ 5] * m.n[10] + m.n[ 4] * m.n[ 9] * m.n[ 2] +
-               m.n[ 8] * m.n[ 1] * m.n[ 6] - m.n[ 8] * m.n[ 5] * m.n[ 2] -
-               m.n[ 4] * m.n[ 1] * m.n[10] - m.n[ 0] * m.n[ 9] * m.n[ 6];
-
-    float d = DeterminantMatrix4(m);
+    const float d = (a0 * b5) - (a1 * b4) + (a2 * b3) + (a3 * b2) - (a4 * b1) +
+        (a5 * b0);
 
     if (d == 0.0f)
     {
         return Matrix4();
     }
 
-    d = 1.0f / d;
+    const float id = 1.0f / d;
 
-    a.n[ 0] = a.n[ 0] * d;
-    a.n[ 1] = a.n[ 1] * d;
-    a.n[ 2] = a.n[ 2] * d;
-    a.n[ 3] = a.n[ 3] * d;
+    matrix4_t a = Matrix4();
+    a.n[ 0] = ((m.n[ 5] * b5) - (m.n[ 6] * b4) + (m.n[ 7] * b3)) * id;
+    a.n[ 4] = ((m.n[ 4] * b5) + (m.n[ 6] * b2) - (m.n[ 7] * b1)) * id;
+    a.n[ 8] = ((m.n[ 4] * b4) - (m.n[ 5] * b2) + (m.n[ 7] * b0)) * id;
+    a.n[12] = ((m.n[ 4] * b3) + (m.n[ 5] * b1) - (m.n[ 6] * b0)) * id;
 
-    a.n[ 4] = a.n[ 4] * d;
-    a.n[ 5] = a.n[ 5] * d;
-    a.n[ 6] = a.n[ 6] * d;
-    a.n[ 7] = a.n[ 7] * d;
+    a.n[ 1] = ((m.n[ 1] * b5) + (m.n[ 2] * b4) - (m.n[ 3] * b3)) * id;
+    a.n[ 5] = ((m.n[ 0] * b5) - (m.n[ 2] * b2) + (m.n[ 3] * b1)) * id;
+    a.n[ 9] = ((m.n[ 0] * b4) + (m.n[ 1] * b2) - (m.n[ 3] * b0)) * id;
+    a.n[13] = ((m.n[ 0] * b3) - (m.n[ 1] * b1) + (m.n[11] * b0)) * id;
 
-    a.n[ 8] = a.n[ 8] * d;
-    a.n[ 9] = a.n[ 9] * d;
-    a.n[10] = a.n[10] * d;
-    a.n[11] = a.n[11] * d;
+    a.n[ 2] = ((m.n[13] * a5) - (m.n[14] * a4) + (m.n[15] * a3)) * id;
+    a.n[ 6] = ((m.n[12] * a5) + (m.n[14] * a2) - (m.n[15] * a1)) * id;
+    a.n[10] = ((m.n[12] * a4) - (m.n[13] * a2) + (m.n[15] * a0)) * id;
+    a.n[14] = ((m.n[12] * a3) + (m.n[13] * a1) - (m.n[14] * a0)) * id;
 
-    a.n[12] = a.n[12] * d;
-    a.n[13] = a.n[13] * d;
-    a.n[14] = a.n[14] * d;
-    a.n[15] = a.n[15] * d;
+    a.n[ 3] = ((m.n[ 9] * a5) + (m.n[10] * a4) - (m.n[11] * a3)) * id;
+    a.n[ 7] = ((m.n[ 8] * a5) - (m.n[10] * a2) + (m.n[11] * a1)) * id;
+    a.n[11] = ((m.n[ 8] * a4) + (m.n[ 9] * a2) - (m.n[11] * a0)) * id;
+    a.n[15] = ((m.n[ 8] * a3) - (m.n[ 9] * a1) + (m.n[10] * a0)) * id;
 
     return a;
 }
