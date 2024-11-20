@@ -28,11 +28,11 @@
 #pragma warning (disable : 4244)            // conversion from <type> to <type>
 #pragma warning (disable : 4996)            // deprecation warning
 
+static const uint32_t s_rgba_size = 4;
 
 //-----------------------------------------------------------------------------
 // Sampling
 //-----------------------------------------------------------------------------
-
 
 static unsigned char s_bitmask[8] = { 0, 0, 0, 0, 0x0F, 0, 0x03, 0x01 };
 
@@ -216,7 +216,7 @@ unsigned long Crc(unsigned char* buf, int len)
 //------------------------------------------------------------------------------
 // ShrinkPNG
 //------------------------------------------------------------------------------
-void
+static void
 ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxskip,
     uint32_t srcyskip, uint32_t srcxsize, uint32_t srcysize, uint32_t srcdepthbits,
     uint8_t* psrc)
@@ -229,9 +229,9 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
     uint32_t x = 0;
     uint32_t y = 0;
     uint32_t i = 0;
-    uint32_t max = 0;
-    uint32_t run = 0;
-    uint32_t bit = 0;
+    int32_t max = 0;
+    int32_t run = 0;
+    int32_t bit = 0;
     uint8_t bytesperpixel = 0;
 
     // pixels
@@ -307,9 +307,6 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
             uint16_t s = 0;
             uint8_t enc = filtermode;
 
-            if (y!=0) { pri1buf = raw1buf - srcyskip; }
-            if (y!=0) { pri0buf = raw0buf - srcyskip; }
-
             if (filtermode == PNG_FILTER_ADAPTIVE)
             {
                 uint32_t sum[2] = { UINT32_MAX };
@@ -317,7 +314,15 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
 
                 for (int f = 0; f < PNG_FILTER_COUNT-1; ++f)
                 {
+                    raw0buf = srcbuf;
+                    raw1buf = srcbuf;
+                    pri0buf = srcbuf;
+                    pri1buf = srcbuf;
                     x = 0;
+
+                    if (y!=0) { pri1buf = raw1buf - srcyskip; }
+                    if (y!=0) { pri0buf = raw0buf - srcyskip; }
+
                     sum[1] = 0;
 
                     while (x < width)
@@ -329,7 +334,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                         pri1 = 0;
                         s = 0;
 
-                        while (bpp++ < bytesperpixel)
+                        while (bpp < bytesperpixel)
                         {
                             if (y!=0 && x!=0)
                             {
@@ -392,7 +397,14 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                             }
 
                             sum[1] += sample;
+                            bpp++;
                         }
+
+                        if (y!=0 && x!=0) { pri1buf += i; }
+                        if (x!=0) { raw1buf += i; }
+                        pri0buf += i;
+                        raw0buf += i;
+                        
                         x++;
                     }
 
@@ -402,9 +414,16 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                         enc = f;
                     }
                 }
-
-                x = 0;
             }
+
+            raw0buf = srcbuf;
+            raw1buf = srcbuf;
+            pri0buf = srcbuf;
+            pri1buf = srcbuf;
+            x = 0;
+
+            if (y!=0) { pri1buf = raw1buf - srcyskip; }
+            if (y!=0) { pri0buf = raw0buf - srcyskip; }
 
             memset(bufptr, 0, (width + 8) * bytesperpixel);
             buffer = bufptr;
@@ -487,12 +506,12 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                     bpp++;
                 }
 
-                x++;
-
                 if (y!=0 && x!=0) { pri1buf += i; }
                 if (x!=0) { raw1buf += i; }
-                if (x!=xsize) { pri0buf += i; }
-                if (x!=xsize) { raw0buf += i; }
+                pri0buf += i;
+                raw0buf += i;
+
+                x++;
             }
 
             buffer = bufptr;
@@ -550,7 +569,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
 //------------------------------------------------------------------------------
 // ShrinkInterlacedPNG
 //------------------------------------------------------------------------------
-void
+static void
 ShrinkInterlacedPNG(uint8_t* dstptr, uint32_t* pdstlen, uint8_t filtermode,
     uint32_t srcxsize, uint32_t srcysize, uint32_t srcdepthbits, uint8_t* srcptr)
 {
@@ -588,7 +607,7 @@ ShrinkInterlacedPNG(uint8_t* dstptr, uint32_t* pdstlen, uint8_t filtermode,
 //------------------------------------------------------------------------------
 // SavePNG
 //------------------------------------------------------------------------------
-bool
+static bool
 SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize, uint8_t srcdepthbits,
     palette_t* psrcpalette, rgba_t* pcolorkey)
@@ -1007,10 +1026,10 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     {
         // data
         oabsrem = bytesencoded;          // remaining bytes
-        odatrem = MIN(32768, oabsrem);            // number of bytes
 
         while (oabsrem > 0)
         {
+            odatrem = MIN(32768, oabsrem);            // number of bytes
             oabsrem = oabsrem - odatrem;
 
             // IDAT chunk
@@ -1061,7 +1080,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 //-----------------------------------------------------------------------------
 // GetInfoFromMemory
 //-----------------------------------------------------------------------------
-bool
+static bool
 GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize,
     uint32_t* srcysize, uint8_t* srcdepthbits, uint8_t* psrc, uint32_t psrcsize)
 {
@@ -1554,7 +1573,7 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize,
 //------------------------------------------------------------------------------
 // ExpandPNG
 //------------------------------------------------------------------------------
-void
+static void
 ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
     uint32_t dstyskip, uint32_t dstxsize, uint32_t dstysize, uint32_t dstpitch,
     uint32_t dstdepth, uint32_t dstbytesperpixel, uint8_t** ppsrc)
@@ -1744,7 +1763,7 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip,
 //------------------------------------------------------------------------------
 // ExpandInterlacedPNG
 //------------------------------------------------------------------------------
-void
+static void
 ExpandInterlacedPNG(uint8_t* dstptr, uint32_t dstlen, uint32_t dstxsize,
     uint32_t dstysize, uint32_t dstpitch, uint32_t dstdepth,
     uint32_t dstbytesperpixel, uint8_t** ppsrc)
@@ -1773,7 +1792,7 @@ ExpandInterlacedPNG(uint8_t* dstptr, uint32_t dstlen, uint32_t dstxsize,
 //-----------------------------------------------------------------------------
 // LoadPNG
 //-----------------------------------------------------------------------------
-bool
+static bool
 LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize,
     uint8_t* srcdepthbits, rgba_t* pcolorkey)
@@ -1999,7 +2018,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 // 2 and 6; it must not appear for color types 0 and 4.
                 if (pdstpalette != 0)
                 {
-                    memset(pdstpalette->data, 0, 256 * sizeof(rgba_t));
+                    memset(pdstpalette->data, 0, 256 * s_rgba_size);
 
                     for (uint32_t i = 0; i < palnum; ++i)
                     {
@@ -2459,10 +2478,12 @@ typedef struct _tga_file
     uint8_t  image_descriptor;
 } tga_file_t;
 
+static const uint32_t s_tga_file_size = 18;
+
 //------------------------------------------------------------------------------
 // SaveTGA
 //------------------------------------------------------------------------------
-bool
+static bool
 SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize, uint8_t srcdepthbits,
     palette_t* psrcpalette, bool invertX, bool invertY)
@@ -2599,8 +2620,8 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
     int32_t bytesencoded = 0;
     // big array for true-color images
-    int32_t datasize = sizeof(tga_file_t) + ((yextent * dstpitch) * 2 *
-        sizeof(unsigned char)) + colormap_length;           // tga data size
+    int32_t datasize = s_tga_file_size + ((yextent * dstpitch) * 2 *
+        sizeof(uint8_t)) + colormap_length;           // tga data size
     uint8_t* data = (uint8_t*)malloc(datasize);
     memset(data, 0, datasize * sizeof(uint8_t));
 
@@ -3316,7 +3337,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     }
 
     // actual tga data size
-    *ppdstsize = sizeof(tga_file_t) + id_length +
+    *ppdstsize = s_tga_file_size + id_length +
         colormap_length * ((colormap_size==15 ? 16 : colormap_size) >> 3) +
         (bytesencoded * sizeof(uint8_t));         // ptr to data
     // reallocate array to a actual size
@@ -3328,12 +3349,12 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 //-----------------------------------------------------------------------------
 // GetInfo
 //-----------------------------------------------------------------------------
-bool
+static bool
 GetInfoFromMemoryTGA(uint8_t* srccolormap, uint32_t* srcxsize,
     uint32_t* srcysize, uint8_t* srcdepthbits, uint8_t* psrc,
     uint32_t psrcsize)
 {
-    if (psrc == NULL || psrcsize < sizeof(tga_file_t))
+    if (psrc == NULL || psrcsize < s_tga_file_size)
     {
         return false;
     }
@@ -3406,12 +3427,12 @@ GetInfoFromMemoryTGA(uint8_t* srccolormap, uint32_t* srcxsize,
 //-----------------------------------------------------------------------------
 // LoadTGA
 //-----------------------------------------------------------------------------
-bool
+static bool
 LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize,
     uint8_t* srcdepthbits)
 {
-    if (ppdst == NULL || psrc == NULL || psrcsize < sizeof(tga_file_t))
+    if (ppdst == NULL || psrc == NULL || psrcsize < s_tga_file_size)
     {
         return false;
     }
@@ -3479,7 +3500,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             
             if (pdstpalette != 0)
             {
-                memset(pdstpalette->data, 0, 256 * sizeof(rgba_t));
+                memset(pdstpalette->data, 0, 256 * s_rgba_size);
 
                 if (tgafile.colormap_size == 15 || tgafile.colormap_size == 16)
                 {
@@ -3739,7 +3760,7 @@ typedef struct _bmp_file
     uint32_t offset;
 } bmp_file_t;
 
-typedef struct _bmp_info
+typedef struct _bmp_v3_info
 {
     uint32_t size;
     int32_t  width;
@@ -3754,10 +3775,13 @@ typedef struct _bmp_info
     uint32_t num_colour_indexes;
 } bmp_v3_info_t;
 
+static const uint32_t s_bmp_file_size = 14;
+static const uint32_t s_bmp_v3_info_size = 40;
+
 //------------------------------------------------------------------------------
 // SaveBMP
 //------------------------------------------------------------------------------
-bool
+static bool
 SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize, uint32_t srcdepthbits,
     palette_t* psrcpalette, rgba_t* pcolorkey, bool invertY)
@@ -3832,8 +3856,8 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     int32_t type = 0x4D42;          // 'BM'
     // total bytes per scanline required to encode bmp data
     // big array for true-color images
-    int32_t datasize = sizeof(bmp_file_t) + sizeof(bmp_v3_info_t) +
-        ((yextent * dstpitch) * sizeof(unsigned char)) + dstpalettesize;          // bmp data size
+    int32_t datasize = s_bmp_file_size + s_bmp_v3_info_size +
+        ((yextent * dstpitch) * sizeof(uint8_t)) + dstpalettesize;          // bmp data size
     uint8_t* data = (uint8_t*)malloc(datasize);
     memset(data, 0, datasize * sizeof(uint8_t));
 
@@ -3846,10 +3870,10 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     bmp_file_t bmpfile = {};
     bmpfile.type = type;
     bmpfile.size = datasize;
-    bmpfile.offset = sizeof(bmp_file_t) + sizeof(bmp_v3_info_t) + dstpalettesize;
+    bmpfile.offset = s_bmp_file_size + s_bmp_v3_info_size + dstpalettesize;
 
     bmp_v3_info_t bmpinfo = {};
-    bmpinfo.size = sizeof(bmp_v3_info_t);
+    bmpinfo.size = s_bmp_v3_info_size;
     bmpinfo.width = xextent;
     bmpinfo.height = (invertY == true) ? yextent : -yextent;          // bottom-up dib
     bmpinfo.planes = 1;
@@ -4253,7 +4277,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         }
     }
 
-    datasize = sizeof(bmp_file_t) + sizeof(bmp_v3_info_t) + dstpalettesize +
+    datasize = s_bmp_file_size + s_bmp_v3_info_size + dstpalettesize +
         (bytesencoded * sizeof(uint8_t));
 
     // rewrite file struct size
@@ -4271,11 +4295,11 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 //------------------------------------------------------------------------------
 // GetInfo
 //------------------------------------------------------------------------------
-bool
+static bool
 GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize,
     uint8_t* srcdepthbits, uint8_t* psrc, uint32_t psrcsize)
 {
-    if (psrc == NULL || psrcsize < sizeof(bmp_file_t))
+    if (psrc == NULL || psrcsize < s_bmp_file_size)
     {
         return false;
     }
@@ -4327,12 +4351,12 @@ GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize,
 //------------------------------------------------------------------------------
 // LoadBMP
 //------------------------------------------------------------------------------
-bool
+static bool
 LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize,
     uint8_t* srcdepthbits)
 {
-    if (ppdst == NULL || psrc == NULL || psrcsize < sizeof(bmp_file_t))
+    if (ppdst == NULL || psrc == NULL || psrcsize < s_bmp_file_size)
     {
         return false;
     }
@@ -4372,13 +4396,12 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
     if (bmpinfo.bits == 1 || bmpinfo.bits == 4 || bmpinfo.bits == 8)
     {
-        uint8_t* palptr = srcptr + sizeof(bmp_file_t) +
-            sizeof(bmp_v3_info_t);
+        uint8_t* palptr = srcptr + s_bmp_file_size + s_bmp_v3_info_size;
         uint32_t palnum = bmpinfo.num_colours;
 
         if (pdstpalette != 0)
         {
-            memset(pdstpalette->data, 0, 256 * sizeof(rgba_t));
+            memset(pdstpalette->data, 0, 256 * s_rgba_size);
 
             for (uint32_t i = 0; i < palnum; ++i)
             {
@@ -4440,9 +4463,9 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     ysize = ABS(ysize);
 
     *ppdst = pixels;
-    if (srcxsize != 0) { *srcxsize = xsize; }
-    if (srcysize != 0) { *srcysize = ABS(ysize); }
-    if (srcdepthbits != 0) { *srcdepthbits = (bmpinfo.bits & 0xFF); }
+    if (srcxsize != NULL) { *srcxsize = xsize; }
+    if (srcysize != NULL) { *srcysize = ABS(ysize); }
+    if (srcdepthbits != NULL) { *srcdepthbits = (bmpinfo.bits & 0xFF); }
 
     if (rle)            // run-length encoding
     {
@@ -4729,10 +4752,12 @@ static rgba_t ega_palette[64] = {
     { 255, 255, 255, 255 }
 };
 
+static const uint32_t s_pcx_v5_info_size = 128;
+
 //-----------------------------------------------------------------------------
 // SavePCX
 //-----------------------------------------------------------------------------
-bool
+static bool
 SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize, uint8_t srcdepthbits,
     palette_t* psrcpalette)
@@ -4826,7 +4851,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     }
 
     // big array for true-color images
-    int32_t datasize = sizeof(pcx_v5_info_t) + ((yextent * dsttotalbytes) * 2 *
+    int32_t datasize = s_pcx_v5_info_size + ((yextent * dsttotalbytes) * 2 *
         sizeof(uint8_t)) + dstpalettesize;            // pcx data size
     uint8_t* data = (uint8_t*)malloc(datasize);
     memset(data, 0, datasize * sizeof(uint8_t));
@@ -4837,8 +4862,6 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint8_t* dstend = data + dstlen;
 
     // fill in file header
-    pcx_v5_info_t pcx = {};
-
     *dstbuf++ = 0x0A;           // PCX Id Number (Always 0x0A)
     *dstbuf++ = 5;          // Version Number
     *dstbuf++ = 1;          // Encoding Format
@@ -5108,7 +5131,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     }
 
     // actual pcx data size
-    *ppdstsize = sizeof(pcx_v5_info_t) + (bytesencoded * sizeof(uint8_t));
+    *ppdstsize = s_pcx_v5_info_size + (bytesencoded * sizeof(uint8_t));
     // reallocate array to actual size
     *ppdst = (uint8_t*)realloc(data, *ppdstsize + 2 & ~1);
 
@@ -5118,11 +5141,11 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 //-----------------------------------------------------------------------------
 // GetInfoPCX
 //-----------------------------------------------------------------------------
-bool
+static bool
 GetInfoFromMemoryPCX(uint32_t* srcxsize, uint32_t* srcysize,
     uint8_t* srcdepthbits, uint8_t* psrc, uint32_t psrcsize)
 {
-    if (psrc == NULL || psrcsize < sizeof(pcx_v5_info_t))
+    if (psrc == NULL || psrcsize < s_pcx_v5_info_size)
     {
         return false;
     }
@@ -5196,11 +5219,12 @@ GetInfoFromMemoryPCX(uint32_t* srcxsize, uint32_t* srcysize,
 //-----------------------------------------------------------------------------
 // LoadPCX
 //-----------------------------------------------------------------------------
-bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
+static bool
+LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize,
     uint8_t* srcdepthbits)
 {
-    if (ppdst == NULL || psrc == NULL || psrcsize < sizeof(pcx_v5_info_t))
+    if (ppdst == NULL || psrc == NULL || psrcsize < s_pcx_v5_info_size)
     {
         return false;
     }
@@ -5210,27 +5234,27 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t* srcbuf = psrc;
     uint8_t* srcend = psrc + srclen;
 
-    pcx_v5_info_t pcx = {};          // pcx header format
+    pcx_v5_info_t pcx = {};
 
-    pcx.identifier      = *srcbuf++;            // PCX Id Number (Always 0x0A)
-    pcx.version         = *srcbuf++;            // Version Number
-    pcx.encoding        = *srcbuf++;            // Encoding Format
-    pcx.bitsPerPixel    = *srcbuf++;            // Bits Per Pixel
-    pcx.xMin            = ReadU16FromLE(srcbuf);    srcbuf += 2;            // Left of image
-    pcx.yMin            = ReadU16FromLE(srcbuf);    srcbuf += 2;            // Top of image
-    pcx.xMax            = ReadU16FromLE(srcbuf);    srcbuf += 2;            // Right of image
-    pcx.yMax            = ReadU16FromLE(srcbuf);    srcbuf += 2;            // Bottom of image
-    pcx.horzRes         = ReadU16FromLE(srcbuf);    srcbuf += 2;            // Horizontal Resolution
-    pcx.vertRes         = ReadU16FromLE(srcbuf);    srcbuf += 2;            // Vertical Resolution
+    pcx.identifier      = *srcbuf++;
+    pcx.version         = *srcbuf++;
+    pcx.encoding        = *srcbuf++;
+    pcx.bitsPerPixel    = *srcbuf++;
+    pcx.xMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.yMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.xMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.yMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.horzRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.vertRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
 
     uint8_t* egaptr = srcbuf;           // set pointer to 16-Color EGA Palette
     srcbuf += 49;           // 16-Color EGA Palette + Reserved1 (Always 0)
 
-    pcx.numBitPlanes    = *srcbuf++;          // Number of Bit Planes
-    pcx.bytesPerLine    = ReadU16FromLE(srcbuf);    srcbuf += 2;            // Bytes Per Scan-line
-    pcx.paletteType     = ReadU16FromLE(srcbuf);    srcbuf += 2;            // Palette Type
-    pcx.horzScreenSize  = ReadU16FromLE(srcbuf);    srcbuf += 2;            // Horizontal Screen Size
-    pcx.vertScreenSize  = ReadU16FromLE(srcbuf);    srcbuf += 2;            // Vertical Screen Size
+    pcx.numBitPlanes    = *srcbuf++;
+    pcx.bytesPerLine    = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.paletteType     = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.horzScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.vertScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
     srcbuf += 54;           // Reserved2 (Always 0)
 
     if (pcx.identifier != 0x0A || pcx.encoding != 1)
@@ -5249,27 +5273,27 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
          pcx.bitsPerPixel == 4 || pcx.bitsPerPixel == 8) &&
          pcx.numBitPlanes == 1)         // paletted
     {
-        uint32_t palnum = 0;           // number of palette colours
-        uint8_t* palptr = 0;
+        uint32_t palnum = 0;
+        uint8_t* palptr = NULL;
 
         switch (pcx.bitsPerPixel)
         {
-        case 1:         // 1-bit monochrome
+        case 1:
         {
             palptr = egaptr;
             palnum = 2;
         } break;
-        case 2:         // 2-bit, 4 color indexed
+        case 2:
         {
             palptr = egaptr;
             palnum = 4;
         } break;
-        case 4:         // 4-bit, 16 color indexed
+        case 4:
         {
             palptr = egaptr;
             palnum = 16;
         } break;
-        case 8:         // 8-bit 256 color indexed
+        case 8:
         {
             palptr = srcend - 768;
             palnum = 256;
@@ -5278,8 +5302,6 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
         if (pdstpalette != 0)
         {
-            memset(pdstpalette->data, 0, 256 * sizeof(rgba_t));
-
             for (uint32_t i = 0; i < palnum; ++i)
             {
                 pdstpalette->data[i].r = *palptr++;
@@ -5294,7 +5316,7 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     }
 
     // apply a default palette
-    if (pdstpalette != 0)
+    if (pdstpalette != NULL)
     {
         if ((pcx.version == 0 || pcx.version == 2 || pcx.version == 3 ||
              pcx.version == 4) && pdstpalette->size == 0)
@@ -5302,137 +5324,71 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             fprintf(stderr, "PCX, No palette information, defaulting to ega \
                 palette.\n");
 
-            memcpy(pdstpalette->data, &ega_palette, 16 * sizeof(rgba_t));
+            memcpy(pdstpalette->data, &ega_palette, 16 * s_rgba_size);
             pdstpalette->size = 16;
             pdstpalette->bits = 24;
         }
     }
 
-    int32_t totalbytes = pcx.numBitPlanes * pcx.bytesPerLine;           // bytes per scanline
-    int32_t ncolorplanes = pcx.numBitPlanes;            // number of color-planes
-    int32_t xsize = (pcx.xMax - pcx.xMin) + 1;          // image width
-    int32_t ysize = (pcx.yMax - pcx.yMin) + 1;          // image height
-    int32_t bytesperscanline = pcx.bytesPerLine;            // bytes per scanline
-    int32_t rlecount = 0;           // run-length count
-    int32_t subtotal = 0;           // running sub-total
-    int32_t colorplane = 0;         // current color plane
-    int32_t pitch = xsize * ncolorplanes;           // bytes per span
-    int32_t rem = 0;            // pixels remaining
-    int32_t run = 0;            // run-length
-    int32_t max = 0;            // number of pixels read
-    int32_t bit = 0;            // bit-offset
+    int32_t totalbytes = pcx.numBitPlanes * pcx.bytesPerLine;
+    int32_t ncolorplanes = pcx.numBitPlanes;
+    int32_t xsize = (pcx.xMax - pcx.xMin) + 1;
+    int32_t ysize = (pcx.yMax - pcx.yMin) + 1;
+    int32_t bytesperscanline = pcx.bytesPerLine;
+    int32_t pitch = bytesperscanline * ncolorplanes;
+    int32_t rlecount = 0;
+    int32_t subtotal = 0;
+    int32_t colorplane = 0;
 
-    uint8_t* pixels = (uint8_t*)malloc((xsize * ysize * ncolorplanes));
-    uint8_t* pixptr = pixels;           // start of current dst row
-    uint8_t* pixbuf = pixels;           // current dst row
-    memset(pixels, 0, xsize * ysize * ncolorplanes);
+    uint8_t* pixels = (uint8_t*)malloc((ysize * pitch));
+    uint8_t* pixptr = pixels;
+    uint8_t* pixbuf = pixels;
+    memset(pixels, 0, ysize * pitch);
 
     *ppdst = pixels;
-    if (srcxsize != 0) { *srcxsize = xsize; }
-    if (srcysize != 0) { *srcysize = ysize; }
-    if (srcdepthbits != 0) {
-        *srcdepthbits = pcx.bitsPerPixel * pcx.numBitPlanes;
-    }
-
-    if (pcx.bitsPerPixel < 8)
-    {
-        if (pcx.bitsPerPixel == 1)         // 1-bit indexed
-        {
-            max = 8;
-            bit = 7;
-        }
-        else if (pcx.bitsPerPixel == 2)            // 2-bit indexed
-        {
-            max = 4;
-            bit = 6;
-        }
-        else if (pcx.bitsPerPixel == 4)            // 4-bit indexed
-        {
-            max = 2;
-            bit = 4;
-        }
-    }
-    else            // 8-bit indexed or true-color
-    {
-        switch (ncolorplanes)
-        {
-        case 3:
-        {
-            max = 3;
-        } break;
-        case 2:
-        {
-            max = 2;
-        } break;
-        case 1:
-        {
-            max = 1;
-        } break;
-        default:
-        {
-            fprintf(stderr, "PCX, unsupported bitplanes: %d.\n",
-                pcx.numBitPlanes);
-            return false;
-        }
-        }
-    }
+    if (srcxsize != NULL) { *srcxsize = xsize; }
+    if (srcysize != NULL) { *srcysize = ysize; }
+    if (srcdepthbits != NULL) { *srcdepthbits = pcx.bitsPerPixel * pcx.numBitPlanes; }
 
     int32_t y = 0;
 
-    // for each span
     while (y < ysize)
     {
-        // start the span, color-plane and subtotal and
         pixbuf = pixptr;
         colorplane = 1;
         subtotal = 0;
-        rem = pitch;
-        run = max;
 
         do
         {
-            rlecount = 1;           // assume a rle of 1 unless
+            rlecount = 1;
 
-            // this is a rle encoding, then
             if ((0xC0 & *srcbuf) == 0xC0)
             {
-                rlecount = (*srcbuf++ & 0x3F);           // get the rle count and
+                rlecount = (*srcbuf++ & 0x3F);
             }
         
-            subtotal += rlecount;           // update the subtotal, then
+            subtotal += rlecount;
 
-            // write the rle pixel run and
-            while (rlecount-- && rem > 0)
+            while (rlecount--)
             {
-                if (rem < run) { run = rem; }
-                if (pcx.bitsPerPixel < 8)
-                {
-                    ExpandNbitsToIndex8(pixbuf, 1, *srcbuf, run, bit);
-                }
-                else
-                {
-                    *pixbuf = *srcbuf;
-                }
-                pixbuf += run;
-                rem -= run;
+                *pixbuf = *srcbuf;
+                pixbuf += ncolorplanes;
             }
 
-            // break at the end of each color-plane. then
             if (subtotal % bytesperscanline == 0)
             {
-                pixbuf = pixptr + colorplane++;          // restart the span and
-                rem = pitch;
+                pixbuf = pixptr + colorplane++;
             }
 
-            srcbuf++;         // get the next byte of data, then
+            srcbuf++;
 
-        } while (subtotal < totalbytes);            // break at the end of the scanline and
+        } while (subtotal < totalbytes);
 
         y++;
 
         if (y != ysize)
         {
-            pixptr += pitch;           // set the next span
+            pixptr += pitch;
         }
     }
 
@@ -5450,7 +5406,7 @@ bool LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 //-----------------------------------------------------------------------------
 // Point_32bit_32bit
 //-----------------------------------------------------------------------------
-void
+static void
 Point_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -5503,7 +5459,7 @@ Point_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Point_24bit_24bit
 //-----------------------------------------------------------------------------
-void
+static void
 Point_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -5555,7 +5511,7 @@ Point_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Point_16bit_16bit
 //-----------------------------------------------------------------------------
-void
+static void
 Point_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -5606,7 +5562,7 @@ Point_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Point_8bit_8bit
 //-----------------------------------------------------------------------------
-void
+static void
 Point_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -5654,7 +5610,7 @@ Point_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Point_32bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Point_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -5844,7 +5800,7 @@ Point_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Point_24bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Point_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -6017,7 +5973,7 @@ Point_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Point_16bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Point_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -6207,7 +6163,7 @@ Point_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Point_8bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Point_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -6341,7 +6297,7 @@ Point_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Point_PAL_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Point_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat, palette_t* ppalette)
@@ -6486,7 +6442,7 @@ Point_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Linear_32bit_32bit
 //-----------------------------------------------------------------------------
-void
+static void
 Linear_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -6560,7 +6516,7 @@ Linear_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Linear_24bit_24bit
 //-----------------------------------------------------------------------------
-void
+static void
 Linear_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -6632,7 +6588,7 @@ Linear_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Linear_16bit_16bit
 //-----------------------------------------------------------------------------
-void
+static void
 Linear_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -6806,7 +6762,7 @@ Linear_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Linear_8bit_8bit
 //-----------------------------------------------------------------------------
-void
+static void
 Linear_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -6872,7 +6828,7 @@ Linear_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Linear_32bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Linear_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -7132,7 +7088,7 @@ Linear_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Linear_24bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Linear_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -7372,7 +7328,7 @@ Linear_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Linear_16bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Linear_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -7626,7 +7582,7 @@ Linear_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Linear_8bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Linear_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -7825,7 +7781,7 @@ Linear_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Linear_PAL_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Linear_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat, palette_t* ppalette)
@@ -8032,7 +7988,7 @@ Linear_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Blit_32bit_32bit
 //-----------------------------------------------------------------------------
-void
+static void
 Blit_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -8075,7 +8031,7 @@ Blit_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Blit_24bit_24bit
 //-----------------------------------------------------------------------------
-void
+static void
 Blit_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -8117,7 +8073,7 @@ Blit_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Blit_16bit_16bit
 //-----------------------------------------------------------------------------
-void
+static void
 Blit_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -8158,7 +8114,7 @@ Blit_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Blit_8bit_8bit
 //-----------------------------------------------------------------------------
-void
+static void
 Blit_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -8196,7 +8152,7 @@ Blit_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Blit_32bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Blit_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -8377,7 +8333,7 @@ Blit_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Blit_24bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Blit_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -8539,7 +8495,7 @@ Blit_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Blit_16bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Blit_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -8720,7 +8676,7 @@ Blit_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Blit_8bit_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Blit_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat)
@@ -8850,7 +8806,7 @@ Blit_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // Blit_PAL_Nbit
 //-----------------------------------------------------------------------------
-void
+static void
 Blit_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat, palette_t* ppalette)
@@ -8985,7 +8941,7 @@ Blit_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 //-----------------------------------------------------------------------------
 // ResampleImage
 //-----------------------------------------------------------------------------
-bool
+static bool
 ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
     palette_t* ppalette, rect_t* psrcrect, uint32_t filter)
 {
@@ -9331,7 +9287,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
 //-----------------------------------------------------------------------------
 // ReplaceColor
 //-----------------------------------------------------------------------------
-void
+static void
 ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolorkey,
     rgba_t srccolorkey)
 {
@@ -10075,7 +10031,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
     image_info_t* psrcinfo)
 {
     bool result = false;
-    palette_t srcpalette;
+    palette_t srcpalette = {};
     image_t srcimage = {
         NULL,
         0,
@@ -10084,8 +10040,6 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
     };
     uint8_t depthbits = 0;
     file_format_t format = FILEFORMAT_NONE;
-
-    memset(&srcpalette, 0, sizeof(palette_t));
 
     if (pdstimage != NULL)
     {
@@ -10115,6 +10069,71 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
         else if ((result = LoadFromMemoryPCX(&srcimage.data, &srcpalette, psrc,
             srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits)) == true)
         {
+            if (depthbits < 8)          // expand packed type
+            {
+                float srcpixelsperbyte = PIXELS_PER_BYTE(depthbits);
+                int32_t srcpitch = (int32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte) + 1) & ~1;
+                int32_t dstpitch = (int32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte));
+
+                uint32_t runcount = 0;
+                uint32_t bpp = 0;
+                uint32_t bit = 0;
+                uint32_t padbytes = srcpitch - dstpitch;
+
+                if (depthbits == 1)
+                {
+                    bpp = 8;
+                    bit = 7;
+                }
+                else if (depthbits == 2)
+                {
+                    bpp = 4;
+                    bit = 6;
+                }
+                else if (depthbits == 4)
+                {
+                    bpp = 2;
+                    bit = 4;
+                }
+
+                uint8_t* pixels = (uint8_t*)malloc((srcimage.xsize * srcimage.ysize));
+                uint8_t* pixptr = pixels;
+                uint8_t* pixbuf = pixels;
+                memset(pixels, 0, srcimage.xsize * srcimage.ysize);
+
+                uint8_t* srcbuf = srcimage.data;
+                uint32_t x = 0;
+                uint32_t y = 0;
+
+                while (y < srcimage.ysize)
+                {
+                    pixbuf = pixptr;
+                    runcount = bpp;
+                    x = srcimage.xsize;
+
+                    while (x > 0)
+                    {
+                        if (x < runcount) { runcount = x; }
+                        ExpandNbitsToIndex8(pixbuf, 1, *srcbuf, runcount, bit);
+                        pixbuf += runcount;
+                        srcbuf++;
+                        x -= runcount;
+                    }
+
+                    srcbuf += padbytes;
+                    y++;
+
+                    if (y != srcimage.ysize)
+                    {
+                        pixptr += srcimage.xsize;
+                    }
+                }
+
+                free(srcimage.data);
+                srcimage.data = pixels;
+                depthbits = 8;
+            }
+
             srcimage.pixeltype = (depthbits <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;
             format = FILEFORMAT_PCX;
         }
