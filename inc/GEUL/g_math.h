@@ -462,7 +462,18 @@ inline bool OutsideRectangle(const rect_t& rect, long x, long y)
 }
 
 //-----------------------------------------------------------------------------
-// grows the rectangle by a specified amount in x and y
+// decreases the rectangle by a specified amount in x and y
+//-----------------------------------------------------------------------------
+inline void DeflateRectangle(rect_t rect, long h, long v)
+{
+    rect.min[0] += h >> 1;
+    rect.min[1] += v >> 1;
+    rect.max[0] -= h >> 1;
+    rect.max[1] -= v >> 1;
+}
+
+//-----------------------------------------------------------------------------
+// increases the rectangle by a specified amount in x and y
 //-----------------------------------------------------------------------------
 inline void InflateRectangle(rect_t rect, long h, long v)
 {
