@@ -362,7 +362,7 @@ inline color_t SubtractColor(const color_t c0, const color_t c1)
 }
 
 //-----------------------------------------------------------------------------
-// returns color in argb format.
+// returns color in rgba format.
 //-----------------------------------------------------------------------------
 inline byte4_t RGBAColor(const color_t& color) noexcept
 {
@@ -377,7 +377,7 @@ inline byte4_t RGBAColor(const color_t& color) noexcept
 }
 
 //-----------------------------------------------------------------------------
-// returns color in abgr format.
+// returns color in bgra format.
 //-----------------------------------------------------------------------------
 inline byte4_t BGRAColor(const color_t& color) noexcept
 {
