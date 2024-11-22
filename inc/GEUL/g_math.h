@@ -62,11 +62,13 @@
 #define DEG2RAD(x)          (x * (( float )(M_PI) / 180.0f))
 #define RAD2DEG(x)          (x * (180.0f / ( float )(M_PI)))
 
+
 //-----------------------------------------------------------------------------
 //
 // Type definitions
 //
 //-----------------------------------------------------------------------------
+
 
 // BYTE1
 typedef unsigned char byte1_t;
@@ -214,8 +216,7 @@ typedef struct _viewport
 //-----------------------------------------------------------------------------
 // creates a color
 //-----------------------------------------------------------------------------
-inline color_t Color(float r = 0.0f, float g = 0.0f, float b = 0.0f,
-    float a = 1.0f)
+inline color_t Color(float r = 0.0f, float g = 0.0f, float b = 0.0f, float a = 1.0f)
 {
     color_t c = {};
 
@@ -402,8 +403,7 @@ inline byte4_t BGRAColor(const color_t& color) noexcept
 //-----------------------------------------------------------------------------
 // constructs a rectangle
 //-----------------------------------------------------------------------------
-inline rect_t Rectangle(long x0 = 0, long y0 = 0, long x1 = 0,
-    long y1 = 0)
+inline rect_t Rectangle(long x0 = 0, long y0 = 0, long x1 = 0, long y1 = 0)
 {
     rect_t r = {};
 
@@ -464,7 +464,7 @@ inline bool OutsideRectangle(const rect_t& rect, long x, long y)
 //-----------------------------------------------------------------------------
 // decreases the rectangle by a specified amount in x and y
 //-----------------------------------------------------------------------------
-inline void DeflateRectangle(rect_t rect, long h, long v)
+inline void DeflateRectangle(rect_t& rect, long h, long v)
 {
     rect.min[0] += h >> 1;
     rect.min[1] += v >> 1;
@@ -475,7 +475,7 @@ inline void DeflateRectangle(rect_t rect, long h, long v)
 //-----------------------------------------------------------------------------
 // increases the rectangle by a specified amount in x and y
 //-----------------------------------------------------------------------------
-inline void InflateRectangle(rect_t rect, long h, long v)
+inline void InflateRectangle(rect_t& rect, long h, long v)
 {
     rect.min[0] -= h >> 1;
     rect.min[1] -= v >> 1;
@@ -486,7 +486,7 @@ inline void InflateRectangle(rect_t rect, long h, long v)
 //-----------------------------------------------------------------------------
 // moves or offsets the rectangle by moving the upper-left position
 //-----------------------------------------------------------------------------
-inline void OffsetRectangle(rect_t rect, long x, long y)
+inline void OffsetRectangle(rect_t& rect, long x, long y)
 {
     rect.min[0] += x;
     rect.min[1] += y;
@@ -536,8 +536,8 @@ inline vector4_t AddVector4(vector4_t a, vector4_t b)
 //-----------------------------------------------------------------------------
 // returns a point in barycentric coordinates, using the specified 4d vectors.
 //-----------------------------------------------------------------------------
-inline vector4_t BaryCentricVector4(const vector4_t a,
-    const vector4_t b, const vector4_t c, float f, float g)
+inline vector4_t BaryCentricVector4(const vector4_t a, const vector4_t b,
+    const vector4_t c, float f, float g)
 {
     vector4_t v = Vector4();
 
@@ -786,8 +786,8 @@ inline vector3_t AddVector3(vector3_t a, vector3_t b)
 //-----------------------------------------------------------------------------
 // returns a point in barycentric coordinates, using the specified 3d vectors.
 //-----------------------------------------------------------------------------
-inline vector3_t BaryCentricVector3(const vector3_t a,
-    const vector3_t b, const vector3_t c, float f, float g)
+inline vector3_t BaryCentricVector3(const vector3_t a, const vector3_t b,
+    const vector3_t c, float f, float g)
 {
     vector3_t v = Vector3();
 
@@ -998,8 +998,7 @@ inline vector3_t TransformVector3Coord(vector3_t v, matrix4_t m)
 //-----------------------------------------------------------------------------
 // transforms the 3d vector normal by the given matrix.
 //-----------------------------------------------------------------------------
-inline vector3_t TransformVector3Normal(const vector3_t v,
-    const matrix4_t m)
+inline vector3_t TransformVector3Normal(const vector3_t v, const matrix4_t m)
 {
     vector3_t a = Vector3();
 
@@ -1047,8 +1046,8 @@ inline vector2_t AddVector2(vector2_t a, vector2_t b)
 //-----------------------------------------------------------------------------
 // returns a point in barycentric coordinates, using the specified 2D vectors.
 //-----------------------------------------------------------------------------
-inline vector2_t BaryCentricVector2(const vector2_t a,
-    const vector2_t b, const vector2_t c, float f, float g)
+inline vector2_t BaryCentricVector2(const vector2_t a, const vector2_t b,
+    const vector2_t c, float f, float g)
 {
     vector2_t v = Vector2();
 
@@ -1083,8 +1082,7 @@ inline vector2_t CatmullRomVector2(const vector2_t a, const vector2_t b,
 // counterclockwise from the vector V1. This information is useful for
 // back-face culling.
 //-----------------------------------------------------------------------------
-inline float CounterClockwiseWindingVector2(const vector2_t a,
-    const vector2_t b)
+inline float CounterClockwiseWindingVector2(const vector2_t a, const vector2_t b)
 {
     return (a.x * b.y) - (a.y * b.x);
 }
@@ -1135,8 +1133,7 @@ inline float LengthSquaredVector2(const vector2_t a)
 //-----------------------------------------------------------------------------
 // performs a linear interpolation between two 2d vectors
 //-----------------------------------------------------------------------------
-inline vector2_t InterpolateVector2(const vector2_t a,
-    const vector2_t b, float s)
+inline vector2_t InterpolateVector2(const vector2_t a, const vector2_t b, float s)
 {
     vector2_t v = Vector2();
 
@@ -1218,8 +1215,7 @@ inline vector2_t SubtractVector2(const vector2_t a, const vector2_t b)
 //-----------------------------------------------------------------------------
 // transforms a 2d vector by a given matrix
 //-----------------------------------------------------------------------------
-inline vector4_t TransformVector2(const vector2_t v,
-    const matrix4_t m)
+inline vector4_t TransformVector2(const vector2_t v, const matrix4_t m)
 {
     vector4_t a = Vector4();
 
@@ -1234,8 +1230,7 @@ inline vector4_t TransformVector2(const vector2_t v,
 //-----------------------------------------------------------------------------
 // transforms a 2d vector by a given matrix, projecting the result back into w = 1
 //-----------------------------------------------------------------------------
-inline vector2_t TransformVector2Coord(const vector2_t v,
-    const matrix4_t m)
+inline vector2_t TransformVector2Coord(const vector2_t v, const matrix4_t m)
 {
     vector2_t a = Vector2();
 
@@ -1248,8 +1243,7 @@ inline vector2_t TransformVector2Coord(const vector2_t v,
 //-----------------------------------------------------------------------------
 // transforms the 2d vector normal by the given matrix.
 //-----------------------------------------------------------------------------
-inline vector2_t TransformVector2Normal(const vector2_t v,
-    const matrix4_t m)
+inline vector2_t TransformVector2Normal(const vector2_t v, const matrix4_t m)
 {
     vector2_t a = Vector2();
 
@@ -1270,8 +1264,7 @@ inline vector2_t TransformVector2Normal(const vector2_t v,
 //-----------------------------------------------------------------------------
 // constructs a plane
 //-----------------------------------------------------------------------------
-inline plane_t Plane(float a = 0, float b = 0, float c = 0,
-    float d = 0)
+inline plane_t Plane(float a = 0, float b = 0, float c = 0, float d = 0)
 {
     plane_t p = {};
 
@@ -1295,8 +1288,7 @@ inline float DotPlane(const plane_t p, const vector4_t v)
 // computes the dot product of a plane and a 3D vector. The w parameter of the
 // vector is assumed to be 1.
 //-----------------------------------------------------------------------------
-inline float DotPlaneCoordinate(const plane_t p,
-    const vector3_t position)
+inline float DotPlaneCoordinate(const plane_t p, const vector3_t position)
 {
     return DotVector4(Vector4(p.a, p.b, p.c, p.d),
         Vector4(position.x, position.y, position.z, 1.0f));
@@ -1315,8 +1307,7 @@ inline float DotPlaneNormal(const plane_t p, const vector3_t normal)
 //-----------------------------------------------------------------------------
 // constructs a plane from a point and a normal.
 //-----------------------------------------------------------------------------
-inline plane_t FromPointNormalPlane(const vector3_t point,
-    const vector3_t normal)
+inline plane_t FromPointNormalPlane(const vector3_t point, const vector3_t normal)
 {
     plane_t p = Plane();
 
@@ -1623,8 +1614,7 @@ inline matrix4_t LookAtRHMatrix4(const vector3_t eye, const vector3_t at,
 //-----------------------------------------------------------------------------
 // builds a left-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t OrthographicLHMatrix4(float w, float h, float zn,
-    float zf)
+inline matrix4_t OrthographicLHMatrix4(float w, float h, float zn, float zf)
 {
     return Matrix4(
         2.0f / w, 0.0f,     0.0f,             0.0f,
@@ -1637,8 +1627,7 @@ inline matrix4_t OrthographicLHMatrix4(float w, float h, float zn,
 //-----------------------------------------------------------------------------
 // builds a left-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t OrthographicRHMatrix4(float w, float h, float zn,
-	float zf)
+inline matrix4_t OrthographicRHMatrix4(float w, float h, float zn, float zf)
 {
     return Matrix4(
         2.0f / w, 0.0f,     0.0f,             0.0f,
@@ -1651,8 +1640,8 @@ inline matrix4_t OrthographicRHMatrix4(float w, float h, float zn,
 //-----------------------------------------------------------------------------
 // builds a customized, left-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t OrthographicOffCenterLHMatrix4(float l, float r,
-    float t, float b, float zn, float zf)
+inline matrix4_t OrthographicOffCenterLHMatrix4(float l, float r, float t, float b,
+    float zn, float zf)
 {
     return Matrix4(
         2.0f / (r - l),     0.0f,            0.0f,             0.0f,
@@ -1665,8 +1654,8 @@ inline matrix4_t OrthographicOffCenterLHMatrix4(float l, float r,
 //-----------------------------------------------------------------------------
 // builds a customized, right-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t OrthographicOffCenterRHMatrix4(float l, float r,
-    float t, float b, float zn, float zf)
+inline matrix4_t OrthographicOffCenterRHMatrix4(float l, float r, float t, float b,
+    float zn, float zf)
 {
     return Matrix4(
         2.0f / (r - l),     0.0f,            0.0f,             0.0f,
@@ -1679,8 +1668,7 @@ inline matrix4_t OrthographicOffCenterRHMatrix4(float l, float r,
 //-----------------------------------------------------------------------------
 // builds a left-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveLHMatrix4(float w, float h, float zn,
-    float zf)
+inline matrix4_t PerspectiveLHMatrix4(float w, float h, float zn, float zf)
 {
     return Matrix4(
         2.0f / w, 0.0f,     0.0f,                 0.0f,
@@ -1693,8 +1681,7 @@ inline matrix4_t PerspectiveLHMatrix4(float w, float h, float zn,
 //-----------------------------------------------------------------------------
 // builds a right-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveRHMatrix4(float w, float h, float zn,
-    float zf)
+inline matrix4_t PerspectiveRHMatrix4(float w, float h, float zn, float zf)
 {
     return Matrix4(
         2.0f / w, 0.0f,     0.0f,                 0.0f,
@@ -1707,8 +1694,7 @@ inline matrix4_t PerspectiveRHMatrix4(float w, float h, float zn,
 //-----------------------------------------------------------------------------
 // builds a left-handed perspective projection matrix based on a field of view
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveFovLHMatrix4(float fovy, float aspect, float zn,
-    float zf)
+inline matrix4_t PerspectiveFovLHMatrix4(float fovy, float aspect, float zn, float zf)
 {
     const float yScale = tanf((H_PI - (fovy / 2.0f)));
     const float xScale = yScale / aspect;
@@ -1724,8 +1710,7 @@ inline matrix4_t PerspectiveFovLHMatrix4(float fovy, float aspect, float zn,
 //-----------------------------------------------------------------------------
 // builds a right-handed perspective projection matrix based on a field of view
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveFovRHMatrix4(float fovy, float aspect, float zn,
-    float zf)
+inline matrix4_t PerspectiveFovRHMatrix4(float fovy, float aspect, float zn, float zf)
 {
     const float yScale = tanf((H_PI - (fovy / 2.0f)));
     const float xScale = yScale / aspect;
@@ -1741,8 +1726,8 @@ inline matrix4_t PerspectiveFovRHMatrix4(float fovy, float aspect, float zn,
 //-----------------------------------------------------------------------------
 // builds a customized, left-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveOffCenterLHMatrix4(float l, float r,
-    float t, float b, float zn, float zf)
+inline matrix4_t PerspectiveOffCenterLHMatrix4(float l, float r, float t, float b,
+    float zn, float zf)
 {
     return Matrix4(
         (2.0f * zn) / (r - l), 0.0f,                 0.0f,                 0.0f,
@@ -1755,8 +1740,8 @@ inline matrix4_t PerspectiveOffCenterLHMatrix4(float l, float r,
 //-----------------------------------------------------------------------------
 // builds a customized, right-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveOffCenterMatrix4(float l, float r,
-    float t, float b, float zn, float zf)
+inline matrix4_t PerspectiveOffCenterMatrix4(float l, float r, float t, float b,
+    float zn, float zf)
 {
     return Matrix4(
         (2.0f * zn) / (r - l), 0.0f,                 0.0f,                 0.0f,
@@ -1952,7 +1937,8 @@ inline matrix4_t Transformation3DMatrix4(const vector3_t scalingCenter,
     s = MultiplyMatrix4(s, TranslationMatrix4(scalingCenter.x, scalingCenter.y,
 		scalingCenter.z));
 
-    const matrix4_t t = TranslationMatrix4(translation.x, translation.y, translation.z);
+    const matrix4_t t = TranslationMatrix4(translation.x, translation.y,
+        translation.z);
 
     return MultiplyMatrix4(MultiplyMatrix4(r, s), t);
 }
@@ -1986,8 +1972,8 @@ inline viewport_t Viewport(uint32_t x = 0, uint32_t y = 0, uint32_t w = 0,
 //-----------------------------------------------------------------------------
 // projects a 3d vector from object space into screen space.
 //-----------------------------------------------------------------------------
-inline vector3_t ProjectViewport(const vector3_t v,
-    const viewport_t viewport, const matrix4_t projection, const matrix4_t view,
+inline vector3_t ProjectViewport(const vector3_t v, const viewport_t viewport,
+    const matrix4_t projection, const matrix4_t view,
     const matrix4_t world)
 {
     // multiply world, view, projection, viewport
@@ -2001,9 +1987,8 @@ inline vector3_t ProjectViewport(const vector3_t v,
 //-----------------------------------------------------------------------------
 // projects a 3d vector from screen space into object space.
 //-----------------------------------------------------------------------------
-inline vector3_t UnprojectViewport(const vector3_t v,
-    const viewport_t viewport, const matrix4_t projection, const matrix4_t view,
-    const matrix4_t world)
+inline vector3_t UnprojectViewport(const vector3_t v, const viewport_t viewport,
+    const matrix4_t projection, const matrix4_t view, const matrix4_t world)
 {
     // multiply viewport, projection, view, world
     const matrix4_t t = MultiplyMatrix4(world,
