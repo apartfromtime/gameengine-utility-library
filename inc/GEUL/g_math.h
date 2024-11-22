@@ -362,7 +362,7 @@ inline color_t SubtractColor(const color_t c0, const color_t c1)
 }
 
 //-----------------------------------------------------------------------------
-// returns color in argb format.
+// returns color in rgba format.
 //-----------------------------------------------------------------------------
 inline byte4_t RGBAColor(const color_t& color) noexcept
 {
@@ -377,7 +377,7 @@ inline byte4_t RGBAColor(const color_t& color) noexcept
 }
 
 //-----------------------------------------------------------------------------
-// returns color in abgr format.
+// returns color in bgra format.
 //-----------------------------------------------------------------------------
 inline byte4_t BGRAColor(const color_t& color) noexcept
 {
@@ -462,7 +462,18 @@ inline bool OutsideRectangle(const rect_t& rect, long x, long y)
 }
 
 //-----------------------------------------------------------------------------
-// grows the rectangle by a specified amount in x and y
+// decreases the rectangle by a specified amount in x and y
+//-----------------------------------------------------------------------------
+inline void DeflateRectangle(rect_t rect, long h, long v)
+{
+    rect.min[0] += h >> 1;
+    rect.min[1] += v >> 1;
+    rect.max[0] -= h >> 1;
+    rect.max[1] -= v >> 1;
+}
+
+//-----------------------------------------------------------------------------
+// increases the rectangle by a specified amount in x and y
 //-----------------------------------------------------------------------------
 inline void InflateRectangle(rect_t rect, long h, long v)
 {
