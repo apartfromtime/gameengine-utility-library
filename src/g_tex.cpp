@@ -283,6 +283,12 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
         bufptr = (uint8_t*)malloc((width + 8) * bytesperpixel);
         buffer = bufptr;
 
+        if (bufptr == NULL)
+        {
+            fprintf(stderr, "PNG: Out of memory\n");
+            return;
+        }
+
         // filtering - None = 0; Sub = 1; Up = 2; Average = 3; Paeth = 4
         uint8_t filtermode = (filtertype >= PNG_FILTER_COUNT) ? 0 : filtertype;
 
@@ -547,7 +553,6 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxski
                     x++;
                 }
             }
-
             y++;
 
             if (y != ysize)
@@ -728,6 +733,13 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         (chunksize + ((ysize * dstpitch) * 2) + crcsize) +
         (chunksize + crcsize);          // png data size
     uint8_t* data = (uint8_t*)malloc(datasize);
+
+    if (data == NULL)
+    {
+        fprintf(stderr, "PNG, Out of memory.\n");
+        return false;
+    }
+
     memset(data, 0, datasize * sizeof(uint8_t));
 
     uint32_t dstlen = 0;
@@ -766,11 +778,8 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         fprintf(stderr, "PNG, bad color-type (%d) and bit-depth (%d).\n",
             colortype, dstdepth);
 
-        if (data != 0)
-        {
-            free(data);
-            data = 0;
-        }
+        free(data);
+        data = NULL;
 
         return false;
     }
@@ -880,11 +889,8 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         {
             fprintf(stderr, "PNG, bad color-type (%d) for tRNS.\n", colortype);
 
-            if (data != 0)
-            {
-                free(data);
-                data = 0;
-            }
+            free(data);
+            data = NULL;
 
             return false;
         }
@@ -900,6 +906,17 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint32_t idatlen = (ysize * (dstpitch + 1)) + ((interlace > 0) ? ysize : 0);
     uint8_t* idatptr = (uint8_t*)malloc(((idatlen + 1) & ~1));
     uint8_t* idatbuf = idatptr;
+
+    if (idatptr == NULL)
+    {
+        fprintf(stderr, "PNG, Out of memory.\n");
+
+        free(data);
+        data = NULL;
+
+        return false;
+    }
+
     memset(idatptr, 0, ((idatlen + 1) & ~1) * sizeof(uint8_t));
 
     // filter selection (adaptive filtering with five basic filter types)
@@ -945,17 +962,33 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         fprintf(stderr, "PNG, Deflate: failed with status %i.\n",
             status);
 
-        if (idatptr != NULL)
-        {
-            free(idatptr);
-            idatptr = NULL;
-        }
+        free(idatptr);
+        idatptr = NULL;
+
+        free(data);
+        data = NULL;
+
+        return false;
     }
 
     // deflate data
     uint32_t odatlen = idatlen;           // deflate size
     uint8_t* odatptr = (uint8_t*)malloc(((odatlen + 1) & ~1));
     uint8_t* odatbuf = odatptr;
+
+    if (odatptr == NULL)
+    {
+        fprintf(stderr, "PNG, Out of memory.\n");
+
+        free(idatptr);
+        idatptr = NULL;
+
+        free(data);
+        data = NULL;
+
+        return false;
+    }
+
     memset(odatptr, 0, ((odatlen + 1) & ~1) * sizeof(uint8_t));
 
     unsigned int oabsrem = odatlen - deflator.total_out;         // absolute remaining output
@@ -1003,11 +1036,8 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     deflateEnd(&deflator);
 
     // free compressed data
-    if (idatptr != NULL)
-    {
-        free(idatptr);
-        idatptr = NULL;
-    }
+    free(idatptr);
+    idatptr = NULL;
 
     // compression failed
     if (status != Z_STREAM_END)
@@ -1016,11 +1046,8 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
             status);
 
         // free un-compressed data and return
-        if (odatptr != NULL)
-        {
-            free(odatptr);
-            odatptr = NULL;
-        }
+        free(odatptr);
+        odatptr = NULL;
     }
     else
     {
@@ -2179,6 +2206,13 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t idatofs = 0;           // offset of idat chunk
     uint8_t* idatptr = (uint8_t*)malloc(((idatlen + 1) & ~1) * sizeof(uint8_t));
     uint8_t* idatbuf = idatptr;
+
+    if (idatptr == NULL)
+    {
+        fprintf(stderr, "PNG: Out of memory\n");
+        return false;
+    }
+
     memset(idatptr, 0, ((idatlen + 1) & ~1) * sizeof(uint8_t));
 
     srcbuf = srcptr;            // reset current to begining
@@ -2257,6 +2291,17 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t odatlen = (ysize * (dstpitch + 1)) + ((interlace > 0) ? ysize : 0);
     uint8_t* odatptr = (uint8_t*)malloc(((odatlen + 1) & ~1));
     uint8_t* odatbuf = odatptr;
+
+    if (odatptr == NULL)
+    {
+        fprintf(stderr, "PNG: Out of memory\n");
+
+        free(idatptr);
+        idatptr = NULL;
+
+        return false;
+    }
+
     memset(odatptr, 0, ((odatlen + 1) & ~1) * sizeof(uint8_t));
 
     unsigned int oabsrem = odatlen - inflator.total_out;         // absolute remaining output
@@ -2331,8 +2376,18 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t* pixels = (uint8_t*)malloc(pixlen * sizeof(uint8_t));
     uint8_t* rawptr = pixels;         // current scanline
     uint8_t* rawbuf = pixels;         // scanline buffer
-    uint32_t rawlen = 0;
     uint32_t pitch = xsize * bytesperpixel;          // bytes per image
+
+    if (pixels == NULL)
+    {
+        fprintf(stderr, "PNG: Out of memory\n");
+
+        free(odatptr);
+        odatptr = NULL;
+
+        return false;
+    }
+
     memset(pixels, 0, pixlen * sizeof(uint8_t));
 
     *ppdst = pixels;
@@ -2369,14 +2424,25 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
     uint32_t datlen = (ysize * (dstpitch + 1)) + ((interlace > 0) ? ysize : 0);
     uint8_t* datptr = (uint8_t*)malloc(((datlen + 1) & ~1));
+
+    if (datptr == NULL)
+    {
+        fprintf(stderr, "PNG: Out of memory\n");
+
+        free(pixels);
+        pixels = NULL;
+
+        free(odatptr);
+        odatptr = NULL;
+
+        return false;
+    }
+
     memcpy(datptr, odatptr, datlen);          // filtered image data
     uint8_t* datbuf = datptr;
 
-    if (odatptr != NULL)
-    {
-        free(odatptr);
-        odatptr = NULL;
-    }
+    free(odatptr);
+    odatptr = NULL;
 
     // interlace and filter
     if (interlace == 1)
@@ -2390,11 +2456,8 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             bytesperpixel, &datbuf);
     }
 
-    if (datptr != NULL)
-    {
-        free(datptr);
-        datptr = NULL;
-    }
+    free(datptr);
+    datptr = NULL;
 
     uint8_t scale = 0x01;
 
@@ -2623,6 +2686,13 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     int32_t datasize = s_tga_file_size + ((yextent * dstpitch) * 2 *
         sizeof(uint8_t)) + colormap_length;           // tga data size
     uint8_t* data = (uint8_t*)malloc(datasize);
+
+    if (data == NULL)
+    {
+        fprintf(stderr, "TGA: Out of memory\n");
+        return false;
+    }
+
     memset(data, 0, datasize * sizeof(uint8_t));
 
     uint32_t dstlen = datasize;
@@ -3572,9 +3642,16 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     }
 
     uint8_t* pixels = (uint8_t*)malloc(xsize * ysize * ((tgafile.pixel_size == 16 ? 24 : tgafile.pixel_size)>>3));
-    memset(pixels, 0, xsize * ysize * ((tgafile.pixel_size == 16 ? 24 : tgafile.pixel_size) >> 3));
     uint8_t* rawptr = pixels;           // start of current dst row
     uint8_t* rawbuf = pixels;           // current dst row
+    
+    if (pixels == NULL)
+    {
+        fprintf(stderr, "TGA: Out of memory\n");
+        return false;
+    }
+
+    memset(pixels, 0, xsize * ysize * ((tgafile.pixel_size == 16 ? 24 : tgafile.pixel_size) >> 3));
     
     *ppdst = pixels;
     if (srcxsize != NULL) { *srcxsize = xsize; }
@@ -3859,6 +3936,13 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     int32_t datasize = s_bmp_file_size + s_bmp_v3_info_size +
         ((yextent * dstpitch) * sizeof(uint8_t)) + dstpalettesize;          // bmp data size
     uint8_t* data = (uint8_t*)malloc(datasize);
+
+    if (data == NULL)
+    {
+        fprintf(stderr, "BMP: Out of memory\n");
+        return false;
+    }
+
     memset(data, 0, datasize * sizeof(uint8_t));
 
     uint32_t dstlen = datasize;
@@ -4451,6 +4535,13 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         (bmpinfo.bits < 8 ? 1 : (bmpinfo.bits >> 3)));
     uint8_t* pixptr = pixels;           // start of current dst row
     uint8_t* pixbuf = pixels;           // current dst row
+
+    if (pixels == NULL)
+    {
+        fprintf(stderr, "BMP: Out of memory\n");
+        return false;
+    }
+
     memset(pixels, 0, (xsize * ysize * (bmpinfo.bits < 8 ? 1 : (bmpinfo.bits >> 3))));
 
     // bottom-up dib
@@ -4854,6 +4945,13 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     int32_t datasize = s_pcx_v5_info_size + ((yextent * dsttotalbytes) * 2 *
         sizeof(uint8_t)) + dstpalettesize;            // pcx data size
     uint8_t* data = (uint8_t*)malloc(datasize);
+
+    if (data == NULL)
+    {
+        fprintf(stderr, "PCX: Out of memory\n");
+        return false;
+    }
+
     memset(data, 0, datasize * sizeof(uint8_t));
 
     uint32_t dstlen = datasize;
@@ -5300,7 +5398,7 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         } break;
         }
 
-        if (pdstpalette != 0)
+        if (pdstpalette != NULL)
         {
             for (uint32_t i = 0; i < palnum; ++i)
             {
@@ -5343,6 +5441,13 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t* pixels = (uint8_t*)malloc((ysize * pitch));
     uint8_t* pixptr = pixels;
     uint8_t* pixbuf = pixels;
+
+    if (pixels == NULL)
+    {
+        fprintf(stderr, "PCX: Out of memory\n");
+        return false;
+    }
+
     memset(pixels, 0, ysize * pitch);
 
     *ppdst = pixels;
