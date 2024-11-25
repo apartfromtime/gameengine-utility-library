@@ -3507,6 +3507,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         return false;
     }
 
+    // src stuff
     uint32_t srclen = psrcsize;
     uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
@@ -3528,11 +3529,19 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     tgafile.pixel_size          = *srcbuf++;            // pixel_size
     tgafile.image_descriptor    = *srcbuf++;            // image_descriptor
 
+    if (tgafile.pixel_size !=  8 && tgafile.pixel_size != 16 &&
+        tgafile.pixel_size != 24 && tgafile.pixel_size != 32)
+    {
+        fprintf(stderr, "TGA, unsupported bits: %d.\n", tgafile.pixel_size);
+        return false;
+    }
+
     if (tgafile.colormap_type == 1)
     {
         if (tgafile.image_type != TGA_MAPPED &&
             tgafile.image_type != TGA_MAPPED_RLE)
         {
+            fprintf(stderr, "TGA, colour map type and image type mismatch.\n");
             return false;
         }
         else if (tgafile.colormap_size !=  8 &&
@@ -3541,6 +3550,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                  tgafile.colormap_size != 24 &&
                  tgafile.colormap_size != 32)
         {
+            fprintf(stderr, "TGA, colour map type and colour map size mismatch.\n");
             return false;
         }
     }
@@ -3551,11 +3561,13 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             tgafile.image_type != TGA_BLACK_AND_WHITE &&
             tgafile.image_type != TGA_BLACK_AND_WHITE_RLE)
         {
+            fprintf(stderr, "TGA, colour map type and image type mismatch.\n");
             return false;
         }
     }
     else
     {
+        fprintf(stderr, "TGA, unsupported colour map type: %d.\n", tgafile.colormap_type);
         return false;
     }
 
@@ -3568,10 +3580,8 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             uint32_t palnum = tgafile.colormap_length < 256 ?
                 tgafile.colormap_length : 256;
             
-            if (pdstpalette != 0)
+            if (pdstpalette != NULL)
             {
-                memset(pdstpalette->data, 0, 256 * s_rgba_size);
-
                 if (tgafile.colormap_size == 15 || tgafile.colormap_size == 16)
                 {
                     for (size_t i = 0; i < palnum; ++i)
@@ -3619,39 +3629,30 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         }
     }
 
+    // skip the id and palette
     srcbuf = srcbuf + tgafile.id_length + tgafile.colormap_length *
-        ((tgafile.colormap_size==15 ? 16 : tgafile.colormap_size) >> 3);          // ptr to data
+        ((tgafile.colormap_size==15 ? 16 : tgafile.colormap_size) >> 3);
 
-    int32_t xsize = tgafile.width;         // image width 
-    int32_t ysize = tgafile.height;            // image height
-    int32_t rlevalue = 0;           // run-length value
-    int32_t rlecount = 0;           // run-length count
-    int32_t pitch = xsize * (tgafile.pixel_size>>3);           // pitch in bytes
-    int32_t bytes = 0;
+    // dst stuff
+    uint32_t xsize = tgafile.width;
+    uint32_t ysize = tgafile.height;
+    uint32_t bytesperpixel = tgafile.pixel_size >> 3;
+    uint32_t pitch = xsize * bytesperpixel;
+    uint32_t rlevalue = 0;
+    uint32_t rlecount = 0;
+    uint8_t rgba[4] = {};
 
-    // decoding
-    uint8_t pixel8[4];
-    uint8_t comp = tgafile.pixel_size >> 3;
-    uint32_t rgb1555 = 0;
-    
-    if (tgafile.pixel_size !=  8 && tgafile.pixel_size != 16 &&
-        tgafile.pixel_size != 24 && tgafile.pixel_size != 32)
-    {
-        fprintf(stderr, "TGA, unsupported bits: %d.\n", tgafile.pixel_size);
-        return false;
-    }
-
-    uint8_t* pixels = (uint8_t*)malloc(xsize * ysize * ((tgafile.pixel_size == 16 ? 24 : tgafile.pixel_size)>>3));
+    uint8_t* pixels = (uint8_t*)malloc(xsize * ysize * bytesperpixel);
     uint8_t* rawptr = pixels;           // start of current dst row
     uint8_t* rawbuf = pixels;           // current dst row
-    
+
     if (pixels == NULL)
     {
         fprintf(stderr, "TGA: Out of memory\n");
         return false;
     }
 
-    memset(pixels, 0, xsize * ysize * ((tgafile.pixel_size == 16 ? 24 : tgafile.pixel_size) >> 3));
+    memset(pixels, 0, xsize * ysize * bytesperpixel);
     
     *ppdst = pixels;
     if (srcxsize != NULL) { *srcxsize = xsize; }
@@ -3664,97 +3665,48 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         case TGA_RGB_RLE:
         case TGA_BLACK_AND_WHITE_RLE:
         {
-            int32_t y = ysize;
-            int32_t x = xsize;
+            uint32_t y = 0;
+            uint32_t x = 0;
             
-            // 5-bits per color component
-            if (tgafile.pixel_size == 16)           // there is no 16-bit greyscale
+            while (y < ysize)
             {
-                while (y-- > 0)
+                rawbuf = rawptr;
+                rlecount = 0;
+                rlevalue = 0;
+                x = 0;
+
+                while (x < xsize)
                 {
-                    rawbuf = rawptr;
-                    rlecount = 0;
-                    rlevalue = 0;
-                    bytes = 0;
-                    
-                    while (bytes < x)
-                    {                        
-                        // get rle count
-                        if (rlecount == 0)
-                        {
-                            rlevalue = *srcbuf++;
-                            rlecount = (rlevalue & 0x7F) + 1;
-
-                            rgb1555 = 0;
-                            rgb1555 |= *srcbuf++;
-                            rgb1555 |= *srcbuf++ << 8;
-                        }
-                        else if (!(rlevalue & 0x80))
-                        {
-                            // if this is not a repeating count read next pixel of
-                            // component size
-                            rgb1555 = 0;
-                            rgb1555 |= *srcbuf++;
-                            rgb1555 |= *srcbuf++ << 8;
-                        }
-
-                        *rawbuf++ = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                        *rawbuf++ = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                        *rawbuf++ = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-                        
-                        bytes++;
-                        rlecount--;
-                    }
-
-                    if (y != 0)
+                    if (rlecount == 0)          // get rle count
                     {
-                        rawptr += pitch;
+                        rlevalue = *srcbuf++;
+                        rlecount = (rlevalue & 0x7F) + 1;
+
+                        for (uint32_t i = 0; i < bytesperpixel; ++i)
+                        {
+                            rgba[i] = *srcbuf++;
+                        }
                     }
+                    else if (!(rlevalue & 0x80))
+                    {
+                        // if this is not a repeating count read next pixel of
+                        // component size
+                        for (uint32_t i = 0; i < bytesperpixel; ++i)
+                        {
+                            rgba[i] = *srcbuf++;
+                        }
+                    }
+                    x++;
+
+                    memcpy(rawbuf, rgba, bytesperpixel);
+                    rawbuf += bytesperpixel;
+                    rlecount--;
                 }
-            }
-            else
-            {
-                while (y-- > 0)
-                {
-                    rawbuf = rawptr;
-                    rlecount = 0;
-                    rlevalue = 0;
-                    bytes = 0;
-                    
-                    while (bytes < x)
-                    {                        
-                        // get rle count
-                        if (rlecount == 0)
-                        {
-                            rlevalue = *srcbuf++;
-                            rlecount = (rlevalue & 0x7F) + 1;
+                y++;
 
-                            for (int i = 0; i < comp; ++i)
-                            {
-                                pixel8[i] = *srcbuf++;
-                            }
-                        }
-                        else if (!(rlevalue & 0x80))
-                        {
-                            // if this is not a repeating count read next pixel of
-                            // component size
-                            for (int i = 0; i < comp; ++i)
-                            {
-                                pixel8[i] = *srcbuf++;
-                            }
-                        }
-                        
-                        memcpy(rawbuf, pixel8, comp);
-                        rawbuf += comp;
-                        
-                        bytes++;
-                        rlecount--;
-                    }
-                    
-                    if (y != 0)
-                    {
-                        rawptr += pitch;
-                    }
+                if (y != ysize)
+                {
+                    rawptr += pitch;
                 }
             }
         } break;
@@ -3762,40 +3714,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         case TGA_RGB:
         case TGA_BLACK_AND_WHITE:
         {
-            int32_t y = ysize;
-            int32_t x = xsize;
-
-            // 5-bits per color component
-            if (tgafile.pixel_size == 16)
-            {
-                while (y-- > 0)
-                {
-                    rawbuf = rawptr;
-                    bytes = 0;
-                    
-                    while (bytes < x)
-                    {
-                        rgb1555 = 0;
-                        rgb1555 |= *srcbuf++;
-                        rgb1555 |= *srcbuf++ << 8;
-
-                        *rawbuf++ = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                        *rawbuf++ = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                        *rawbuf++ = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                        bytes++;
-                    }
-
-                    if (y != 0)
-                    {
-                        rawptr += pitch;
-                    }
-                }
-            }
-            else
-            {
-                memcpy(rawbuf, srcbuf, y * pitch);
-            }
+            memcpy(rawbuf, srcbuf, ysize * pitch);
         } break;
     }
 
