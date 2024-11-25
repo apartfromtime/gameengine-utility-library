@@ -3507,6 +3507,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         return false;
     }
 
+    // src stuff
     uint32_t srclen = psrcsize;
     uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
@@ -3528,11 +3529,19 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     tgafile.pixel_size          = *srcbuf++;            // pixel_size
     tgafile.image_descriptor    = *srcbuf++;            // image_descriptor
 
+    if (tgafile.pixel_size !=  8 && tgafile.pixel_size != 16 &&
+        tgafile.pixel_size != 24 && tgafile.pixel_size != 32)
+    {
+        fprintf(stderr, "TGA, unsupported bits: %d.\n", tgafile.pixel_size);
+        return false;
+    }
+
     if (tgafile.colormap_type == 1)
     {
         if (tgafile.image_type != TGA_MAPPED &&
             tgafile.image_type != TGA_MAPPED_RLE)
         {
+            fprintf(stderr, "TGA, colour map type and image type mismatch.\n");
             return false;
         }
         else if (tgafile.colormap_size !=  8 &&
@@ -3541,6 +3550,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                  tgafile.colormap_size != 24 &&
                  tgafile.colormap_size != 32)
         {
+            fprintf(stderr, "TGA, colour map type and colour map size mismatch.\n");
             return false;
         }
     }
@@ -3551,11 +3561,13 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             tgafile.image_type != TGA_BLACK_AND_WHITE &&
             tgafile.image_type != TGA_BLACK_AND_WHITE_RLE)
         {
+            fprintf(stderr, "TGA, colour map type and image type mismatch.\n");
             return false;
         }
     }
     else
     {
+        fprintf(stderr, "TGA, unsupported colour map type: %d.\n", tgafile.colormap_type);
         return false;
     }
 
@@ -3568,10 +3580,8 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             uint32_t palnum = tgafile.colormap_length < 256 ?
                 tgafile.colormap_length : 256;
             
-            if (pdstpalette != 0)
+            if (pdstpalette != NULL)
             {
-                memset(pdstpalette->data, 0, 256 * s_rgba_size);
-
                 if (tgafile.colormap_size == 15 || tgafile.colormap_size == 16)
                 {
                     for (size_t i = 0; i < palnum; ++i)
@@ -3619,39 +3629,30 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         }
     }
 
+    // skip the id and palette
     srcbuf = srcbuf + tgafile.id_length + tgafile.colormap_length *
-        ((tgafile.colormap_size==15 ? 16 : tgafile.colormap_size) >> 3);          // ptr to data
+        ((tgafile.colormap_size==15 ? 16 : tgafile.colormap_size) >> 3);
 
-    int32_t xsize = tgafile.width;         // image width 
-    int32_t ysize = tgafile.height;            // image height
-    int32_t rlevalue = 0;           // run-length value
-    int32_t rlecount = 0;           // run-length count
-    int32_t pitch = xsize * (tgafile.pixel_size>>3);           // pitch in bytes
-    int32_t bytes = 0;
+    // dst stuff
+    uint32_t xsize = tgafile.width;
+    uint32_t ysize = tgafile.height;
+    uint32_t bytesperpixel = tgafile.pixel_size >> 3;
+    uint32_t pitch = xsize * bytesperpixel;
+    uint32_t rlevalue = 0;
+    uint32_t rlecount = 0;
+    uint8_t rgba[4] = {};
 
-    // decoding
-    uint8_t pixel8[4];
-    uint8_t comp = tgafile.pixel_size >> 3;
-    uint32_t rgb1555 = 0;
-    
-    if (tgafile.pixel_size !=  8 && tgafile.pixel_size != 16 &&
-        tgafile.pixel_size != 24 && tgafile.pixel_size != 32)
-    {
-        fprintf(stderr, "TGA, unsupported bits: %d.\n", tgafile.pixel_size);
-        return false;
-    }
-
-    uint8_t* pixels = (uint8_t*)malloc(xsize * ysize * ((tgafile.pixel_size == 16 ? 24 : tgafile.pixel_size)>>3));
+    uint8_t* pixels = (uint8_t*)malloc(xsize * ysize * bytesperpixel);
     uint8_t* rawptr = pixels;           // start of current dst row
     uint8_t* rawbuf = pixels;           // current dst row
-    
+
     if (pixels == NULL)
     {
         fprintf(stderr, "TGA: Out of memory\n");
         return false;
     }
 
-    memset(pixels, 0, xsize * ysize * ((tgafile.pixel_size == 16 ? 24 : tgafile.pixel_size) >> 3));
+    memset(pixels, 0, xsize * ysize * bytesperpixel);
     
     *ppdst = pixels;
     if (srcxsize != NULL) { *srcxsize = xsize; }
@@ -3664,97 +3665,48 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         case TGA_RGB_RLE:
         case TGA_BLACK_AND_WHITE_RLE:
         {
-            int32_t y = ysize;
-            int32_t x = xsize;
+            uint32_t y = 0;
+            uint32_t x = 0;
             
-            // 5-bits per color component
-            if (tgafile.pixel_size == 16)           // there is no 16-bit greyscale
+            while (y < ysize)
             {
-                while (y-- > 0)
+                rawbuf = rawptr;
+                rlecount = 0;
+                rlevalue = 0;
+                x = 0;
+
+                while (x < xsize)
                 {
-                    rawbuf = rawptr;
-                    rlecount = 0;
-                    rlevalue = 0;
-                    bytes = 0;
-                    
-                    while (bytes < x)
-                    {                        
-                        // get rle count
-                        if (rlecount == 0)
-                        {
-                            rlevalue = *srcbuf++;
-                            rlecount = (rlevalue & 0x7F) + 1;
-
-                            rgb1555 = 0;
-                            rgb1555 |= *srcbuf++;
-                            rgb1555 |= *srcbuf++ << 8;
-                        }
-                        else if (!(rlevalue & 0x80))
-                        {
-                            // if this is not a repeating count read next pixel of
-                            // component size
-                            rgb1555 = 0;
-                            rgb1555 |= *srcbuf++;
-                            rgb1555 |= *srcbuf++ << 8;
-                        }
-
-                        *rawbuf++ = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                        *rawbuf++ = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                        *rawbuf++ = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-                        
-                        bytes++;
-                        rlecount--;
-                    }
-
-                    if (y != 0)
+                    if (rlecount == 0)          // get rle count
                     {
-                        rawptr += pitch;
+                        rlevalue = *srcbuf++;
+                        rlecount = (rlevalue & 0x7F) + 1;
+
+                        for (uint32_t i = 0; i < bytesperpixel; ++i)
+                        {
+                            rgba[i] = *srcbuf++;
+                        }
                     }
+                    else if (!(rlevalue & 0x80))
+                    {
+                        // if this is not a repeating count read next pixel of
+                        // component size
+                        for (uint32_t i = 0; i < bytesperpixel; ++i)
+                        {
+                            rgba[i] = *srcbuf++;
+                        }
+                    }
+                    x++;
+
+                    memcpy(rawbuf, rgba, bytesperpixel);
+                    rawbuf += bytesperpixel;
+                    rlecount--;
                 }
-            }
-            else
-            {
-                while (y-- > 0)
-                {
-                    rawbuf = rawptr;
-                    rlecount = 0;
-                    rlevalue = 0;
-                    bytes = 0;
-                    
-                    while (bytes < x)
-                    {                        
-                        // get rle count
-                        if (rlecount == 0)
-                        {
-                            rlevalue = *srcbuf++;
-                            rlecount = (rlevalue & 0x7F) + 1;
+                y++;
 
-                            for (int i = 0; i < comp; ++i)
-                            {
-                                pixel8[i] = *srcbuf++;
-                            }
-                        }
-                        else if (!(rlevalue & 0x80))
-                        {
-                            // if this is not a repeating count read next pixel of
-                            // component size
-                            for (int i = 0; i < comp; ++i)
-                            {
-                                pixel8[i] = *srcbuf++;
-                            }
-                        }
-                        
-                        memcpy(rawbuf, pixel8, comp);
-                        rawbuf += comp;
-                        
-                        bytes++;
-                        rlecount--;
-                    }
-                    
-                    if (y != 0)
-                    {
-                        rawptr += pitch;
-                    }
+                if (y != ysize)
+                {
+                    rawptr += pitch;
                 }
             }
         } break;
@@ -3762,40 +3714,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         case TGA_RGB:
         case TGA_BLACK_AND_WHITE:
         {
-            int32_t y = ysize;
-            int32_t x = xsize;
-
-            // 5-bits per color component
-            if (tgafile.pixel_size == 16)
-            {
-                while (y-- > 0)
-                {
-                    rawbuf = rawptr;
-                    bytes = 0;
-                    
-                    while (bytes < x)
-                    {
-                        rgb1555 = 0;
-                        rgb1555 |= *srcbuf++;
-                        rgb1555 |= *srcbuf++ << 8;
-
-                        *rawbuf++ = (((rgb1555 >>  0) & 0x1F) * 0xFF) / 0x1F;
-                        *rawbuf++ = (((rgb1555 >>  5) & 0x1F) * 0xFF) / 0x1F;
-                        *rawbuf++ = (((rgb1555 >> 10) & 0x1F) * 0xFF) / 0x1F;
-
-                        bytes++;
-                    }
-
-                    if (y != 0)
-                    {
-                        rawptr += pitch;
-                    }
-                }
-            }
-            else
-            {
-                memcpy(rawbuf, srcbuf, y * pitch);
-            }
+            memcpy(rawbuf, srcbuf, ysize * pitch);
         } break;
     }
 
@@ -4454,27 +4373,54 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     bmp_v3_info_t bmpinfo = {};
 
     // file struct
-    bmpfile.type    = ReadU16FromLE(srcbuf);    srcbuf += 2;           // type - 0x4D4 = 'BM'
-    bmpfile.size    = ReadU32FromLE(srcbuf);    srcbuf += 4;           // file size
-    srcbuf += 4;            // reserved1 and reserved2
-    bmpfile.offset  = ReadU32FromLE(srcbuf);    srcbuf += 4;            // offset to data
+    bmpfile.type        = ReadU16FromLE(srcbuf); srcbuf += 2;           // type - 0x4D42 = 'BM'
+    bmpfile.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // file size
+    bmpfile.reserved1   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved1
+    bmpfile.reserved2   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved2
+    bmpfile.offset      = ReadU32FromLE(srcbuf); srcbuf += 4;           // offset to data
 
     // info struct
-    bmpinfo.size        = ReadU32FromLE(srcbuf);        srcbuf += 4;            // info size
-    bmpinfo.width       = ReadI32FromLE(srcbuf);        srcbuf += 4;            // width
-    bmpinfo.height      = ReadI32FromLE(srcbuf);        srcbuf += 4;            // height
-    bmpinfo.planes      = ReadU16FromLE(srcbuf);        srcbuf += 2;            // planes
-    bmpinfo.bits        = ReadU16FromLE(srcbuf);        srcbuf += 2;            // bit count
-    bmpinfo.compression = ReadU32FromLE(srcbuf);        srcbuf += 4;            // compression
-    bmpinfo.imagesize   = ReadU32FromLE(srcbuf);        srcbuf += 4;            // imagesize
-    bmpinfo.xresolution = ReadI32FromLE(srcbuf);        srcbuf += 4;            // x-resolution
-    bmpinfo.yresolution = ReadI32FromLE(srcbuf);        srcbuf += 4;            // y-resolution
-    bmpinfo.num_colours = ReadU32FromLE(srcbuf);        srcbuf += 4;            // num_colours
-    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;            // num_colour_indexes
+    bmpinfo.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // info size
+    bmpinfo.width       = ReadI32FromLE(srcbuf); srcbuf += 4;           // width
+    bmpinfo.height      = ReadI32FromLE(srcbuf); srcbuf += 4;           // height
+    bmpinfo.planes      = ReadU16FromLE(srcbuf); srcbuf += 2;           // planes
+    bmpinfo.bits        = ReadU16FromLE(srcbuf); srcbuf += 2;           // bit count
+    bmpinfo.compression = ReadU32FromLE(srcbuf); srcbuf += 4;           // compression
+    bmpinfo.imagesize   = ReadU32FromLE(srcbuf); srcbuf += 4;           // imagesize
+    bmpinfo.xresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // x-resolution
+    bmpinfo.yresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // y-resolution
+    bmpinfo.num_colours = ReadU32FromLE(srcbuf); srcbuf += 4;           // num_colours
+    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;    // num_colour_indexes
 
-    if (bmpfile.type != 0x4D42 || bmpfile.reserved1 != 0 ||
-        bmpfile.reserved2 != 0 || bmpinfo.planes != 1 || bmpinfo.compression > 2)
+    if (bmpfile.type != 0x4D42)
     {
+        fprintf(stderr, "BMP, version mismatch: %d.\n", bmpfile.type);
+        return false;
+    }
+
+    if (bmpfile.reserved1 != 0 || bmpfile.reserved2 != 0)
+    {
+        fprintf(stderr, "BMP, reserved parameters non-zero: reserved1: %d, reserved2: \
+            %d.\n", bmpfile.reserved1, bmpfile.reserved2);
+        return false;
+    }
+
+    if (bmpinfo.planes != 1 || bmpinfo.compression > 2)
+    {
+        fprintf(stderr, "BMP, number of bit-planes must be 1: %d.\n", bmpinfo.planes);
+        return false;
+    }
+
+    if (bmpinfo.compression > 2)
+    {
+        fprintf(stderr, "BMP, invalid compression format: %d.\n", bmpinfo.compression);
+        return false;
+    }
+
+    if (bmpinfo.bits !=  1 && bmpinfo.bits !=  4 && bmpinfo.bits != 8 &&
+        bmpinfo.bits != 24 && bmpinfo.bits != 32)
+    {
+        fprintf(stderr, "BMP, unsupported bits: %d.\n", bmpinfo.bits);
         return false;
     }
 
@@ -4485,8 +4431,6 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
         if (pdstpalette != 0)
         {
-            memset(pdstpalette->data, 0, 256 * s_rgba_size);
-
             for (uint32_t i = 0; i < palnum; ++i)
             {
                 pdstpalette->data[i].b = *palptr++;
@@ -4519,22 +4463,18 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     srcbuf = srcptr + bmpfile.offset;            // ptr to data
 
     bool rle = ((bmpinfo.compression == BI_RLE8) || (bmpinfo.compression == BI_RLE4));          // BI_RLE4=2 && BI_RLE8=1
-    int32_t xsize = bmpinfo.width;         // image width
-    int32_t ysize = bmpinfo.height;            // image height
-    int32_t rlecount = 0;           // run-length count
-    int32_t pitch = xsize * (bmpinfo.bits < 8 ? 1 : (bmpinfo.bits >> 3));          // bytes per scanline of output
+    int32_t xsize = bmpinfo.width;
+    int32_t ysize = bmpinfo.height;
+    float pixelsperbyte = PIXELS_PER_BYTE(bmpinfo.bits);
+    int32_t pitch = (int32_t)(ceilf((float)(xsize) / pixelsperbyte));           // bytes per scanline of output
     int32_t widthbytes = ((xsize * bmpinfo.bits + 31) >> 5) * 4;           // 4-byte boundary
-    int32_t xsizebytes = (xsize * bmpinfo.bits + 7) >> 3;          // bytes per scanline of input 
-    int32_t padbytes = widthbytes - xsizebytes;
+    int32_t padbytes = widthbytes - pitch;
+    int32_t rlecount = 0;
     uint8_t sample = 0;
-    int32_t run = 0;            // run-length
-    int32_t max = 0;            // maximum run-length
-    int32_t bit = 0;            // bit-offset
 
-    uint8_t* pixels = (uint8_t*)malloc(xsize * ABS(ysize) *
-        (bmpinfo.bits < 8 ? 1 : (bmpinfo.bits >> 3)));
-    uint8_t* pixptr = pixels;           // start of current dst row
-    uint8_t* pixbuf = pixels;           // current dst row
+    uint8_t* pixels = (uint8_t*)malloc(ABS(ysize) * pitch);
+    uint8_t* pixptr = pixels;
+    uint8_t* pixbuf = pixels;
 
     if (pixels == NULL)
     {
@@ -4542,7 +4482,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         return false;
     }
 
-    memset(pixels, 0, (xsize * ysize * (bmpinfo.bits < 8 ? 1 : (bmpinfo.bits >> 3))));
+    memset(pixels, 0, ABS(ysize) * pitch);
 
     // bottom-up dib
     if (ysize >= 0)
@@ -4561,7 +4501,6 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     if (rle)            // run-length encoding
     {
         int32_t y = ABS(ysize);
-        int32_t x = xsize;
 
         while (y-- > 0)
         {
@@ -4584,21 +4523,13 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
                         switch (bmpinfo.bits)
                         {
-                            case 4:         // 4-bit
+                            case 4:
                             {
-                                for (int i = 0; i < rlecount; ++i)
-                                {
-                                    sample = *srcbuf++;
-                                    int d1 = sample & 0xF;
-                                    int d0 = sample >> 4;
-                                    *pixbuf++ = d0;
-                                    if ((i * 2) + 1 == data1) break;
-                                    *pixbuf++ = d1;
-                                }
-                                
-                                srcbuf += padbytes;
+                                memcpy(pixbuf, srcbuf, rlecount);
+                                pixbuf += rlecount;
+                                srcbuf += rlecount + padbytes;
                             } break;
-                            case 8:         // 8-bit
+                            case 8:
                             {
                                 memcpy(pixbuf, srcbuf, data1);
                                 pixbuf += data1;
@@ -4615,7 +4546,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                         if (y <= 0) break;
 
                         if (ysize >= 0) { pixptr = pixels + ((ysize-y) * ABS(pitch)); }
-                        else { pixptr = pixels + (y * pitch); }
+                        else { pixptr = pixels + (y * ABS(pitch)); }
                         pixbuf = pixptr + (dx > 2 ? dx << 1 : dx);
                     }
                     else if (data1 == 0x01)         // end of bitmap
@@ -4630,22 +4561,10 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 else            // run-length encoding
                 {
                     // rle count
-                    rlecount = data0;
-                    sample = data1;
-
                     switch (bmpinfo.bits)
                     {
-                        case 4:         // 4-bit
-                        {
-                            for (int i = 0; i < rlecount; ++i)
-                            {
-                                int d1 = sample & 0xF;
-                                int d0 = sample >> 4;
-                                if (i & 1) { *pixbuf++ = d1; }
-                                else { *pixbuf++ = d0; }
-                            }
-                        } break;
-                        case 8:         // 8-bit
+                        case 4:
+                        case 8:
                         {
                             memset(pixbuf, data1, data0);
                             pixbuf += data0;
@@ -4660,124 +4579,41 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             }
         }
     }
-    else            // index
+    else            // everything else
     {
-        switch (bmpinfo.bits)
+        int32_t y = ABS(ysize);
+
+        while (y-- > 0)
         {
-            // decode bmp
-            case 1:         // 1-bit
-            case 4:         // 4-bit
+            pixbuf = pixptr;
+            memcpy(pixbuf, srcbuf, pitch);
+            srcbuf += pitch + padbytes;
+
+            if (y != 0)
             {
-                if (bmpinfo.bits == 1)         // 1bit indexed
-                {
-                    max = 8;
-                    bit = 7;
-                }
-                else            // 4-bit indexed
-                {
-                    max = 2;
-                    bit = 4;
-                }
+                pixptr += pitch;
+            }
+        }
 
-                int32_t x = xsize;
-                int32_t y = ysize;
+        if (bmpinfo.bits == 32)
+        {
+            uint32_t alpha = 0;
+            pixbuf = pixels;
 
-                while (y-- > 0)
-                {
-                    pixbuf = pixptr;
-                    run = max;
-                    x = xsize;
-
-                    while (x > 0)
-                    {
-                        ExpandNbitsToIndex8(pixbuf, 1, *srcbuf, run, bit);
-                        pixbuf += run;
-                        srcbuf++;
-                        x -= run;
-                    }
-
-                    if (y != 0)
-                    {
-                        pixptr += pitch;
-                        srcbuf += padbytes;
-                    }
-                }
-            } break;
-            case  8:        // 8-bit
-            case 24:        // 24bit
+            for (int i = 0; i < xsize * ABS(ysize); ++i, pixbuf += 4)
             {
-                int32_t y = ysize;
-                int32_t x = xsize;
+                alpha |= pixbuf[3];
+            }
 
-                while (y-- > 0)
-                {
-                    pixbuf = pixptr;
-                    memcpy(pixbuf, srcbuf, ABS(pitch));
-                    srcbuf += ABS(pitch) + padbytes;
-
-                    if (y != 0)
-                    {
-                        pixptr += pitch;
-                    }
-                }   
-            } break;
-            case 32:        // 32bit
+            // if alpha is all 0's replace with 255's
+            if (alpha == 0)
             {
-                uint32_t alpha = 0;
-                int32_t x = 0;
-                int32_t y = 0;
-                uint8_t r = 0;
-                uint8_t g = 0;
-                uint8_t b = 0;
-                uint8_t a = 0;
+                pixbuf = pixels;
 
-                x = xsize;
-                y = ysize;
-
-                while (y-- > 0)
+                for (int i = 0; i < xsize * ABS(ysize); ++i, pixbuf += 4)
                 {
-                    pixbuf = pixptr;
-
-                    for (int32_t i = 0; i < x; ++i)
-                    {
-                        b = *srcbuf++;
-                        g = *srcbuf++;
-                        r = *srcbuf++;
-                        a = *srcbuf++;
-
-                        alpha |= a;
-
-                        *pixbuf++ = b;
-                        *pixbuf++ = g;
-                        *pixbuf++ = r;
-                        *pixbuf++ = a;
-                    }
-
-                    srcbuf += padbytes;
-
-                    if (y != 0)
-                    {
-                        pixptr += pitch;
-                    }
+                    pixbuf[3] = 255;
                 }
-
-                // if alpha is all 0's replace with 255's
-                if (alpha == 0)
-                {
-                    pixbuf = pixels;
-
-                    for (int i = 0; i < xsize * ysize; ++i, pixbuf += 4)
-                    {
-                        pixbuf[3] = 255;
-                    }
-                }
-
-            } break;
-            default:
-            {
-                // should never get here!
-                fprintf(stderr, "BMP, Corrupt\n");
-                return false;
             }
         }
     }
@@ -10167,6 +10003,71 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
         else if ((result = LoadFromMemoryBMP(&srcimage.data, &srcpalette, psrc,
             srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits)) == true)
         {
+            if (depthbits < 8)          // expand packed type
+            {
+                float srcpixelsperbyte = PIXELS_PER_BYTE(depthbits);
+                int32_t srcpitch = (int32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte));
+                int32_t dstpitch = (int32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte));
+
+                uint32_t runcount = 0;
+                uint32_t bpp = 0;
+                uint32_t bit = 0;
+                uint32_t padbytes = srcpitch - dstpitch;
+
+                if (depthbits == 1)
+                {
+                    bpp = 8;
+                    bit = 7;
+                }
+                else if (depthbits == 2)
+                {
+                    bpp = 4;
+                    bit = 6;
+                }
+                else if (depthbits == 4)
+                {
+                    bpp = 2;
+                    bit = 4;
+                }
+
+                uint8_t* pixels = (uint8_t*)malloc((srcimage.xsize * srcimage.ysize));
+                uint8_t* pixptr = pixels;
+                uint8_t* pixbuf = pixels;
+                memset(pixels, 0, srcimage.xsize * srcimage.ysize);
+
+                uint8_t* srcbuf = srcimage.data;
+                uint32_t x = 0;
+                uint32_t y = 0;
+
+                while (y < srcimage.ysize)
+                {
+                    pixbuf = pixptr;
+                    runcount = bpp;
+                    x = srcimage.xsize;
+
+                    while (x > 0)
+                    {
+                        if (x < runcount) { runcount = x; }
+                        ExpandNbitsToIndex8(pixbuf, 1, *srcbuf, runcount, bit);
+                        pixbuf += runcount;
+                        srcbuf++;
+                        x -= runcount;
+                    }
+
+                    srcbuf += padbytes;
+                    y++;
+
+                    if (y != srcimage.ysize)
+                    {
+                        pixptr += srcimage.xsize;
+                    }
+                }
+
+                free(srcimage.data);
+                srcimage.data = pixels;
+                depthbits = 8;
+            }
+
             srcimage.pixeltype = (depthbits == 32) ? PIXELTYPE_BGRA :
                 (depthbits == 24) ? PIXELTYPE_BGR : PIXELTYPE_COLOUR_INDEX;
             format = FILEFORMAT_BMP;
