@@ -3776,13 +3776,16 @@ static const uint32_t s_bmp_v3_info_size = 40;
 
 //------------------------------------------------------------------------------
 // SaveBMP
+// 
+// FIXME: For run-length encoding depths 4 & 8 pixels should be in unpacked index
+// format.
 //------------------------------------------------------------------------------
 static bool
 SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
-    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize, uint32_t srcdepthbits,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize, uint32_t srcdepth,
     palette_t* psrcpalette, rgba_t* pcolorkey, bool invertY)
 {
-    if (ppdst == NULL || ppdstsize == 0)
+    if (ppdst == NULL || ppdstsize == NULL)
     {
         fprintf(stderr, "BMP, Invalid dst data.\n");
         return false;
@@ -3790,55 +3793,42 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
     if (psrc == NULL)
     {
-        printf("BMP, Invalid src data.\n");
+        fprintf(stderr, "BMP, Invalid src data.\n");
         return false;
     }
 
-    if (srcdepthbits !=  1 && srcdepthbits !=  4 && srcdepthbits != 8 &&
-        srcdepthbits != 24 && srcdepthbits != 32)
+    if (srcdepth !=  1 && srcdepth !=  4 && srcdepth != 8 && srcdepth != 24 &&
+        srcdepth != 32)
     {
-        printf("BMP, Unsupported depth: %d.\n", srcdepthbits);
+        fprintf(stderr, "BMP, Unsupported depth: %d.\n", srcdepth);
         return false;
     }
-
-    uint8_t dstdepth = srcdepthbits;
-    int32_t xorigin = 0;
-    int32_t yorigin = 0;
-    int32_t xextent = srcxsize;
-    int32_t yextent = srcysize;
-
-    // dst stuff
-    float dstpixelsperbyte = PIXELS_PER_BYTE(dstdepth);
-    int32_t dstpitch = (int32_t)(ceilf((float)(xextent) / dstpixelsperbyte) + 1) & ~1;           // bytes per scanline
 
     uint32_t compression = BI_RGB;
 
     if (codec == ENCODE_RLE)
     {
-        if (dstdepth == 8)
+        if (srcdepth == 8)
         {
             compression = BI_RLE8;
         }
-        else if (dstdepth == 4)
+        else if (srcdepth == 4)
         {
             compression = BI_RLE4;
         }
     }
 
-    int32_t widthbytes = ((xextent * dstdepth + 31) >> 5) * 4;
-    int32_t xsizebytes = (xextent * dstdepth + 7) >> 3;
-    int32_t padbytes = widthbytes - xsizebytes;
+    uint32_t xextent = srcxsize;
+    uint32_t yextent = srcysize;
+    uint8_t dstdepth = srcdepth;
 
-    // src stuff
-    uint32_t srcbytesperpixel = ((srcdepthbits == 32) ? 4 : (srcdepthbits == 24) ? 3 : 1);
-    uint32_t srcpitch = srcxsize * srcbytesperpixel;
-    uint8_t* rawptr = psrc + (yorigin * srcpitch) + (xorigin * srcbytesperpixel);         // start of current row
-    uint8_t* rawbuf = psrc + (yorigin * srcpitch) + (xorigin * srcbytesperpixel);         // current row
+    // dst stuff
+    float dstpixelsperbyte = PIXELS_PER_BYTE(dstdepth);
+    uint32_t dstpitch = (uint32_t)(ceilf((float)(xextent) / dstpixelsperbyte) + 3) & ~3;           // bytes per scanline
+    uint32_t dstpalettesize = 0;
 
-    int32_t dstpalettesize = 0;           // palette
-    
     // palette
-    if (srcdepthbits <= 8)
+    if (srcdepth <= 8)
     {
         if (psrcpalette != NULL)
         {
@@ -3849,36 +3839,47 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         }
     }
 
-    int32_t type = 0x4D42;          // 'BM'
-    // total bytes per scanline required to encode bmp data
+    // src stuff
+    float srcpixelsperbyte = PIXELS_PER_BYTE(srcdepth);
+    uint32_t srcpitch = (uint32_t)(ceilf((float)(xextent) / srcpixelsperbyte));
+    uint8_t* rawptr = psrc;
+    uint8_t* rawbuf = psrc;
+
+    // FIXME: override srcpitch calculation
+    if (compression == BI_RLE4)
+    {
+        srcpitch = xextent;
+    }
+
+    uint32_t padbytes = dstpitch - srcpitch;
+
     // big array for true-color images
-    int32_t datasize = s_bmp_file_size + s_bmp_v3_info_size +
-        ((yextent * dstpitch) * sizeof(uint8_t)) + dstpalettesize;          // bmp data size
+    int32_t datasize = s_bmp_file_size + s_bmp_v3_info_size + ((yextent * dstpitch)) +
+        dstpalettesize;
     uint8_t* data = (uint8_t*)malloc(datasize);
 
     if (data == NULL)
     {
-        fprintf(stderr, "BMP: Out of memory\n");
+        fprintf(stderr, "BMP, Out of memory\n");
         return false;
     }
 
     memset(data, 0, datasize * sizeof(uint8_t));
 
-    uint32_t dstlen = datasize;
     uint8_t* dstptr = data;
     uint8_t* dstbuf = data;
-    uint8_t* dstend = data + dstlen;
 
     // fill in file and info header
     bmp_file_t bmpfile = {};
-    bmpfile.type = type;
+    bmp_v3_info_t bmpinfo = {};
+
+    bmpfile.type = 0x4D42;
     bmpfile.size = datasize;
     bmpfile.offset = s_bmp_file_size + s_bmp_v3_info_size + dstpalettesize;
 
-    bmp_v3_info_t bmpinfo = {};
     bmpinfo.size = s_bmp_v3_info_size;
     bmpinfo.width = xextent;
-    bmpinfo.height = (invertY == true) ? yextent : -yextent;          // bottom-up dib
+    bmpinfo.height = (invertY == true) ? yextent : -(int32_t)(yextent);          // bottom-up dib
     bmpinfo.planes = 1;
     bmpinfo.bits = dstdepth;
     bmpinfo.compression = compression;
@@ -3909,11 +3910,11 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     WriteU32ToLE(dstbuf, bmpinfo.num_colour_indexes); dstbuf += 4;      // num_colour_indexes
 
     // fill in the palette
-    if (srcdepthbits <= 8)
+    if (srcdepth <= 8)
     {
-        if (psrcpalette != 0)
+        if (psrcpalette != NULL)
         {
-            for (int32_t i = 0; i < dstpalettesize >> 2; ++i)
+            for (uint32_t i = 0; i < dstpalettesize >> 2; ++i)
             {
                 *dstbuf++ = psrcpalette->data[i].b;
                 *dstbuf++ = psrcpalette->data[i].g;
@@ -3923,374 +3924,306 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         }
     }
 
-    int32_t bytesencoded = 0;
-    int32_t x = 0;
-    int32_t y = 0;
-    bool rle = compression == ENCODE_RLE;            // ENCODING_RGB = 1 || ENCODE_RLE = 2
+    uint32_t bytesencoded = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
 
-    // encoding
-    if (psrc != 0)
+    if (psrc != NULL)
     {
-        if (srcdepthbits == 32)
+        if (compression != BI_RGB)            // run-length encoding
         {
-            while (y++ < yextent)
+            int32_t colorkey = -1;
+
+            if (pcolorkey != NULL && psrcpalette != NULL)
             {
-                rawbuf = rawptr;
-                x = 0;
-
-                while (x < xextent)
+                for (uint32_t i = 0; i < dstpalettesize >> 2; ++i)
                 {
-                    *dstbuf++ = *(rawbuf + ((x * srcbytesperpixel) + 0));         // b
-                    *dstbuf++ = *(rawbuf + ((x * srcbytesperpixel) + 1));         // g
-                    *dstbuf++ = *(rawbuf + ((x * srcbytesperpixel) + 2));         // r
-                    *dstbuf++ = *(rawbuf + ((x * srcbytesperpixel) + 3));         // a
-                    x++;
-                }
-
-                if (y != yextent)
-                {
-                    rawptr += srcpitch;           // set the next span
-                }
-                dstbuf += padbytes;
-                bytesencoded += srcpitch + padbytes;
-            }
-        }
-        else if (srcdepthbits == 24)
-        {
-            while (y++ < yextent)
-            {
-                rawbuf = rawptr;
-                x = 0;
-
-                while (x < xextent)
-                {
-                    *dstbuf++ = *(rawbuf + ((x * srcbytesperpixel) + 0));         // b
-                    *dstbuf++ = *(rawbuf + ((x * srcbytesperpixel) + 1));         // g
-                    *dstbuf++ = *(rawbuf + ((x * srcbytesperpixel) + 2));         // r
-                    x++;
-                }
-
-                if (y != yextent)
-                {
-                    rawptr += srcpitch;           // set the next span
-                }
-                dstbuf += padbytes;
-                bytesencoded += srcpitch + padbytes;
-            }
-        }
-        else if (srcdepthbits <= 8)
-        {
-            if (rle)            // run-length encoding
-            {
-                int32_t colorkey = -1;
-
-                if (pcolorkey != 0 && psrcpalette != 0)
-                {
-                    for (int i = 0; i < dstpalettesize >> 2; ++i)
+                    if (psrcpalette->data[i].r == pcolorkey->r &&
+                        psrcpalette->data[i].g == pcolorkey->g &&
+                        psrcpalette->data[i].b == pcolorkey->b &&
+                        psrcpalette->data[i].a == pcolorkey->a)
                     {
-                        if (psrcpalette->data[i].r == pcolorkey->r &&
-                            psrcpalette->data[i].g == pcolorkey->g &&
-                            psrcpalette->data[i].b == pcolorkey->b &&
-                            psrcpalette->data[i].a == pcolorkey->a)
+                        colorkey = i;
+                        break;
+                    }
+                }
+            }
+
+            uint32_t abscount = 0;
+            uint32_t rlecount = 0;
+            uint32_t rlevalue = 0;
+            uint32_t maxrle = 0xFF;
+            uint32_t maxabs = 0xFF;
+            int32_t absrem = 0;
+            int32_t rlerem = 0;
+            uint8_t sample0 = 0;
+            uint8_t sample1 = 0;
+            uint8_t sample2 = 0;
+
+            switch (dstdepth)
+            {
+            case 4:         // 4-bit encoding
+            {
+                while (y++ < yextent)
+                {
+                    rawbuf = rawptr;
+                    x = 0;
+
+                    while (x < xextent)
+                    {
+                        rlevalue = 0;
+                        sample0 = 0;
+                        sample1 = 0;
+                        sample2 = *(rawbuf + x);
+
+                        abscount = 1;
+                        absrem = xextent - (x + abscount);
+                        sample1 = sample2;
+
+                        while (absrem > 0 && abscount < maxabs)
                         {
-                            colorkey = i;
-                            break;
+                            sample0 = sample1;
+                            sample1 = *(rawbuf + x + abscount);
+
+                            if (sample0 == sample1)
+                            {
+                                break;
+                            }
+
+                            abscount++;
+                            absrem--;
+                            if (abscount + 1 < maxabs) { abscount++; absrem--; }
                         }
+
+                        rlecount = 1;
+                        rlerem = xextent - (x + rlecount);
+                        sample1 = sample2;
+
+                        while (rlerem > 0 && rlecount < maxrle)
+                        {
+                            sample0 = sample1;
+                            sample1 = *(rawbuf + x + rlecount);
+
+                            if (sample0 != sample1)
+                            {
+                                break;
+                            }
+
+                            rlecount++;
+                            rlerem--;
+                            if (rlecount + 1 < maxabs) { rlecount++; rlerem--; }
+                        }
+
+                        if (abscount >= 3 && abscount >= rlecount)
+                        {
+                            rlevalue = abscount;
+
+                            *dstbuf++ = 0x00;
+                            *dstbuf++ = rlevalue;
+                            bytesencoded++;
+                            bytesencoded++;
+
+                            for (uint32_t i = 0; i < (rlevalue >> 1); ++i)
+                            {
+                                sample2 = 0;
+                                sample2 |= *(rawbuf + x + i + 0) << 4;
+                                sample2 |= *(rawbuf + x + i + 1);
+                                *dstbuf++ = sample2;
+                                bytesencoded++;
+                            }
+
+                            // pad-byte
+                            if ((rlecount & 1))
+                            {
+                                *dstbuf++ = 0x00;
+                                bytesencoded++;
+                            }
+                        }
+                        else
+                        {
+                            rlevalue = rlecount;
+
+                            if (rlevalue == 1)
+                            {
+                                sample0 |= sample0 >> 4;
+                            }
+
+                            if (sample0 == colorkey)
+                            {
+                                *dstbuf++ = 0x00;
+                                *dstbuf++ = 0x02;
+                                bytesencoded++;
+                                bytesencoded++;
+
+                                sample0 = 0;
+                            }
+
+                            *dstbuf++ = rlevalue;
+                            *dstbuf++ = sample0;
+                            bytesencoded++;
+                            bytesencoded++;
+                        }
+
+                        x += rlevalue;
+                    }
+
+                    *dstbuf++ = 0x00;
+                    *dstbuf++ = 0x00;
+                    bytesencoded++;
+                    bytesencoded++;
+
+                    if (y != yextent)
+                    {
+                        rawptr += srcpitch;
                     }
                 }
 
-                int32_t abscount = 0;
-                int32_t rlecount = 0;           // run-length count
-                int32_t rlevalue = 0;           // run-length value
-                int32_t maxrle = 0xFF;          // max run-length count is 0xFF
-                int32_t maxabs = 0xFF;          // max abs-length count is 0xFF
-                int32_t absrem = 0;
-                int32_t rlerem = 0;
-                uint8_t sample0 = 0;
-                uint8_t sample1 = 0;
-                uint8_t sample2 = 0;
-                uint8_t sample3 = 0;
+                // end of bitmap 
+                *dstbuf++ = 0x00;
+                *dstbuf++ = 0x01;
+                bytesencoded++;
+                bytesencoded++;
 
-                switch (dstdepth)
-                {
-                    case 4:         // 4-bit encoding
-                    {
-                        while (y++ < yextent)
-                        {
-                            rawbuf = rawptr;
-                            x = 0;
-
-                            while (x < xextent)
-                            {
-                                rlevalue = 0;
-                                sample0 = 0;
-                                sample1 = 0;
-                                sample2 = *(rawbuf + x);
-
-                                abscount = 1;
-                                absrem = xextent - (x + abscount);
-                                sample1 = sample2;
-
-                                while (absrem > 0 && abscount < maxabs)
-                                {
-                                    sample0 = sample1;
-                                    sample1 = *(rawbuf + x + abscount);
-
-                                    if (sample0 == sample1)
-                                    {
-                                        break;
-                                    }
-
-                                    abscount++;
-                                    absrem--;
-                                    if (abscount + 1 < maxabs) {abscount++;absrem--;}
-                                }
-
-                                rlecount = 1;
-                                rlerem = xextent - (x + rlecount);
-                                sample1 = sample2;
-
-                                while (rlerem > 0 && rlecount < maxrle)
-                                {
-                                    sample0 = sample1;
-                                    sample1 = *(rawbuf + x + rlecount);
-
-                                    if (sample0 != sample1)
-                                    {
-                                        break;
-                                    }
-
-                                    rlecount++;
-                                    rlerem--;
-                                    if (rlecount + 1 < maxabs) {rlecount++;rlerem--;}
-                                }
-
-                                if (abscount >= 3 && abscount >= rlecount)
-                                {
-                                    rlevalue = abscount;
-                                    
-                                    *dstbuf++ = 0x00;
-                                    *dstbuf++ = rlevalue;
-                                    bytesencoded++;
-                                    bytesencoded++;
-
-                                    for (int i = 0; i < (rlevalue >> 1); ++i)
-                                    {
-                                        sample2 = 0;
-                                        sample2 |= *(rawbuf + x + i + 0) << 4;
-                                        sample2 |= *(rawbuf + x + i + 1);
-                                        *dstbuf++ = sample2;
-                                        bytesencoded++;
-                                    }
-
-                                    // pad-byte
-                                    if ((rlecount & 1))
-                                    {
-                                        *dstbuf++ = 0x00;
-                                        bytesencoded++;
-                                    }
-                                }
-                                else
-                                {
-                                    rlevalue = rlecount;
-
-                                    if (rlevalue == 1)
-                                    {
-                                        sample0 |= sample0 >> 4;
-                                    }
-
-                                    if (sample0 == colorkey)
-                                    {
-                                        *dstbuf++ = 0x00;
-                                        *dstbuf++ = 0x02;
-                                        bytesencoded++;
-                                        bytesencoded++;
-
-                                        sample0 = 0;
-                                    }
-
-                                    *dstbuf++ = rlevalue;
-                                    *dstbuf++ = sample0;
-                                    bytesencoded++;
-                                    bytesencoded++;
-                                }
-
-                                x += rlevalue;
-                            }
-
-                            *dstbuf++ = 0x00;
-                            *dstbuf++ = 0x00;
-                            bytesencoded++;
-                            bytesencoded++;
-
-                            if (y != yextent)
-                            {
-                                rawptr += srcpitch;           // set the next span
-                            }
-                        }
-
-                        // end of bitmap 
-                        *dstbuf++ = 0x00;
-                        *dstbuf++ = 0x01;
-                        bytesencoded++;
-                        bytesencoded++;
-
-                    } break;
-                    case 8:         // 8-bit encoding
-                    {
-                        while (y++ < yextent)
-                        {
-                            rawbuf = rawptr;
-                            x = 0;
-
-                            while (x < xextent)
-                            {
-                                rlevalue = 0;
-                                sample0 = 0;
-                                sample1 = 0;
-                                sample2 = *(rawbuf + x);
-
-                                abscount = 1;
-                                absrem = xextent - (x + abscount);
-                                sample1 = sample2;
-
-                                while (absrem > 0 && abscount < maxabs)
-                                {
-                                    sample0 = sample1;
-                                    sample1 = *(rawbuf + x + abscount);
-
-                                    if (sample0 == sample1)
-                                    {
-                                        break;
-                                    }
-
-                                    abscount++;
-                                    absrem--;
-                                }
-
-                                rlecount = 1;
-                                rlerem = xextent - (x + rlecount);
-                                sample1 = sample2;
-
-                                while (rlerem > 0 && rlecount < maxrle)
-                                {
-                                    sample0 = sample1;
-                                    sample1 = *(rawbuf + x + rlecount);
-
-                                    if (sample0 != sample1)
-                                    {
-                                        break;
-                                    }
-
-                                    rlecount++;
-                                    rlerem--;
-                                }
-
-                                if (abscount >= 3 && abscount >= rlecount)
-                                {
-                                    rlevalue = abscount;
-
-                                    *dstbuf++ = 0x00;
-                                    *dstbuf++ = rlevalue;
-                                    bytesencoded++;
-                                    bytesencoded++;
-
-                                    for (int i = 0; i < rlevalue; ++i)
-                                    {
-                                        *dstbuf++ = *(rawbuf + x + i);
-                                        bytesencoded++;
-                                    }
-
-                                    // pad-byte
-                                    if ((rlevalue & 1))
-                                    {
-                                        *dstbuf++ = 0x00;
-                                        bytesencoded++;
-                                    }
-                                }
-                                else
-                                {
-                                    rlevalue = rlecount;
-
-                                    if (sample0 == colorkey)
-                                    {
-                                        *dstbuf++ = 0x00;
-                                        *dstbuf++ = 0x02;
-                                        bytesencoded++;
-                                        bytesencoded++;
-
-                                        sample0 = 0;
-                                    }
-
-                                    *dstbuf++ = rlevalue;
-                                    *dstbuf++ = sample0;
-                                    bytesencoded++;
-                                    bytesencoded++;
-                                }
-
-                                x += rlevalue;
-                            }
-
-                            *dstbuf++ = 0x00;
-                            *dstbuf++ = 0x00;
-                            bytesencoded++;
-                            bytesencoded++;
-
-                            if (y != yextent)
-                            {
-                                rawptr += srcpitch;           // set the next span
-                            }
-                        }
-
-                        // end of bitmap 
-                        *dstbuf++ = 0x00;
-                        *dstbuf++ = 0x01;
-                        bytesencoded++;
-                        bytesencoded++;
-
-                    } break;
-                }
-            }
-            else            // index
+            } break;
+            case 8:         // 8-bit encoding
             {
-                int32_t sample = 0;
-
-                switch (dstdepth)
+                while (y++ < yextent)
                 {
-                    case  1:
-                    case  4:
-                    case  8:
-                    case 24:
-                    case 32:
+                    rawbuf = rawptr;
+                    x = 0;
+
+                    while (x < xextent)
                     {
-                        while (y++ < yextent)
+                        rlevalue = 0;
+                        sample0 = 0;
+                        sample1 = 0;
+                        sample2 = *(rawbuf + x);
+
+                        abscount = 1;
+                        absrem = xextent - (x + abscount);
+                        sample1 = sample2;
+
+                        while (absrem > 0 && abscount < maxabs)
                         {
-                            rawbuf = rawptr;
-                            memcpy(dstbuf, rawbuf, srcpitch);
-                            if (y != yextent)
+                            sample0 = sample1;
+                            sample1 = *(rawbuf + x + abscount);
+
+                            if (sample0 == sample1)
                             {
-                                rawptr += srcpitch;           // set the next span
+                                break;
                             }
-                            dstbuf += srcpitch + padbytes;
-                            bytesencoded += srcpitch + padbytes;
+
+                            abscount++;
+                            absrem--;
                         }
-                    } break;
+
+                        rlecount = 1;
+                        rlerem = xextent - (x + rlecount);
+                        sample1 = sample2;
+
+                        while (rlerem > 0 && rlecount < maxrle)
+                        {
+                            sample0 = sample1;
+                            sample1 = *(rawbuf + x + rlecount);
+
+                            if (sample0 != sample1)
+                            {
+                                break;
+                            }
+
+                            rlecount++;
+                            rlerem--;
+                        }
+
+                        if (abscount >= 3 && abscount >= rlecount)
+                        {
+                            rlevalue = abscount;
+
+                            *dstbuf++ = 0x00;
+                            *dstbuf++ = rlevalue;
+                            bytesencoded++;
+                            bytesencoded++;
+
+                            for (uint32_t i = 0; i < rlevalue; ++i)
+                            {
+                                *dstbuf++ = *(rawbuf + x + i);
+                                bytesencoded++;
+                            }
+
+                            // pad-byte
+                            if ((rlevalue & 1))
+                            {
+                                *dstbuf++ = 0x00;
+                                bytesencoded++;
+                            }
+                        }
+                        else
+                        {
+                            rlevalue = rlecount;
+
+                            if (sample0 == colorkey)
+                            {
+                                *dstbuf++ = 0x00;
+                                *dstbuf++ = 0x02;
+                                bytesencoded++;
+                                bytesencoded++;
+
+                                sample0 = 0;
+                            }
+
+                            *dstbuf++ = rlevalue;
+                            *dstbuf++ = sample0;
+                            bytesencoded++;
+                            bytesencoded++;
+                        }
+
+                        x += rlevalue;
+                    }
+
+                    *dstbuf++ = 0x00;
+                    *dstbuf++ = 0x00;
+                    bytesencoded++;
+                    bytesencoded++;
+
+                    if (y != yextent)
+                    {
+                        rawptr += srcpitch;
+                    }
                 }
+
+                // end of bitmap 
+                *dstbuf++ = 0x00;
+                *dstbuf++ = 0x01;
+                bytesencoded++;
+                bytesencoded++;
+            } break;
+            }
+        }
+        else            // everything else
+        {
+            while (y++ < yextent)
+            {
+                rawbuf = rawptr;
+                memcpy(dstbuf, rawbuf, srcpitch);
+                if (y != yextent)
+                {
+                    rawptr += srcpitch;
+                }
+                dstbuf += srcpitch + padbytes;
+                bytesencoded += srcpitch + padbytes;
             }
         }
     }
 
     datasize = s_bmp_file_size + s_bmp_v3_info_size + dstpalettesize +
-        (bytesencoded * sizeof(uint8_t));
+        bytesencoded;
 
     // rewrite file struct size
     dstbuf = dstptr + 2;
     WriteU32ToLE(dstbuf, datasize); dstbuf += 4;
 
-    // actual bmp data size
     *ppdstsize = datasize;
-    // reallocate array to a actual size
-    *ppdst = (uint8_t*)realloc(data, (*ppdstsize + 2) & ~1);
+    *ppdst = (uint8_t*)realloc(data, (*ppdstsize + 1) & ~1);
 
     return true;
 }
@@ -4299,54 +4232,52 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 // GetInfo
 //------------------------------------------------------------------------------
 static bool
-GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize,
-    uint8_t* srcdepthbits, uint8_t* psrc, uint32_t psrcsize)
+GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
+    uint8_t* psrc, uint32_t psrcsize)
 {
     if (psrc == NULL || psrcsize < s_bmp_file_size)
     {
         return false;
     }
 
-    uint32_t srclen = psrcsize;
-    uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
-    uint8_t* srcend = psrc + srclen;
 
     bmp_file_t bmpfile = {};
     bmp_v3_info_t bmpinfo = {};
 
     // file struct
-    bmpfile.type    = ReadU16FromLE(srcbuf);    srcbuf += 2;           // type - 0x4D4 = 'BM'
-    bmpfile.size    = ReadU32FromLE(srcbuf);    srcbuf += 4;           // file size
-    srcbuf += 4;            // reserved1 and reserved2
-    bmpfile.offset  = ReadU32FromLE(srcbuf);    srcbuf += 4;            // offset to data
+    bmpfile.type        = ReadU16FromLE(srcbuf); srcbuf += 2;           // type - 0x4D4 = 'BM'
+    bmpfile.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // file size
+    bmpfile.reserved1   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved1
+    bmpfile.reserved2   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved2
+    bmpfile.offset      = ReadU32FromLE(srcbuf); srcbuf += 4;           // offset to data
 
     // info struct
-    bmpinfo.size        = ReadU32FromLE(srcbuf);        srcbuf += 4;            // info size
-    bmpinfo.width       = ReadI32FromLE(srcbuf);        srcbuf += 4;            // width
-    bmpinfo.height      = ReadI32FromLE(srcbuf);        srcbuf += 4;            // height
-    bmpinfo.planes      = ReadU16FromLE(srcbuf);        srcbuf += 2;            // planes
-    bmpinfo.bits        = ReadU16FromLE(srcbuf);        srcbuf += 2;            // bit count
-    bmpinfo.compression = ReadU32FromLE(srcbuf);        srcbuf += 4;            // compression
-    bmpinfo.imagesize   = ReadU32FromLE(srcbuf);        srcbuf += 4;            // imagesize
-    bmpinfo.xresolution = ReadI32FromLE(srcbuf);        srcbuf += 4;            // x-resolution
-    bmpinfo.yresolution = ReadI32FromLE(srcbuf);        srcbuf += 4;            // y-resolution
-    bmpinfo.num_colours = ReadU32FromLE(srcbuf);        srcbuf += 4;            // num_colours
-    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;            // num_colour_indexes
+    bmpinfo.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // info size
+    bmpinfo.width       = ReadI32FromLE(srcbuf); srcbuf += 4;           // width
+    bmpinfo.height      = ReadI32FromLE(srcbuf); srcbuf += 4;           // height
+    bmpinfo.planes      = ReadU16FromLE(srcbuf); srcbuf += 2;           // planes
+    bmpinfo.bits        = ReadU16FromLE(srcbuf); srcbuf += 2;           // bit count
+    bmpinfo.compression = ReadU32FromLE(srcbuf); srcbuf += 4;           // compression
+    bmpinfo.imagesize   = ReadU32FromLE(srcbuf); srcbuf += 4;           // imagesize
+    bmpinfo.xresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // x-resolution
+    bmpinfo.yresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // y-resolution
+    bmpinfo.num_colours = ReadU32FromLE(srcbuf); srcbuf += 4;           // num_colours
+    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;    // num_colour_indexes
 
     uint32_t xsize = bmpinfo.width;         // image width
     uint32_t ysize = ABS(bmpinfo.height);           // image height
-    uint32_t depthbits = bmpinfo.bits;          // bits per pixel component
+    uint32_t depth = bmpinfo.bits;          // bits per pixel component
 
-    if (bmpfile.type != 0x4D42 || bmpfile.reserved1 != 0 ||
-        bmpfile.reserved2 != 0 || bmpinfo.planes != 1 || bmpinfo.compression > 2)
+    if (bmpfile.type != 0x4D42 || bmpfile.reserved1 != 0 || bmpfile.reserved2 != 0 ||
+        bmpinfo.planes != 1 || bmpinfo.compression > 2)
     {
         return false;
     }
 
     if (srcxsize != NULL) { *srcxsize = xsize; }
     if (srcysize != NULL) { *srcysize = ysize; }
-    if (srcdepthbits != NULL) { *srcdepthbits = depthbits; }
+    if (srcdepth != NULL) { *srcdepth = depth; }
 
     return true;
 }
@@ -4357,17 +4288,15 @@ GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize,
 static bool
 LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize,
-    uint8_t* srcdepthbits)
+    uint8_t* srcdepth)
 {
     if (ppdst == NULL || psrc == NULL || psrcsize < s_bmp_file_size)
     {
         return false;
     }
 
-    uint32_t srclen = psrcsize;
     uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
-    uint8_t* srcend = psrc + srclen;
 
     bmp_file_t bmpfile = {};
     bmp_v3_info_t bmpinfo = {};
@@ -4478,7 +4407,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
     if (pixels == NULL)
     {
-        fprintf(stderr, "BMP: Out of memory\n");
+        fprintf(stderr, "BMP, Out of memory\n");
         return false;
     }
 
@@ -4496,7 +4425,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     *ppdst = pixels;
     if (srcxsize != NULL) { *srcxsize = xsize; }
     if (srcysize != NULL) { *srcysize = ABS(ysize); }
-    if (srcdepthbits != NULL) { *srcdepthbits = (bmpinfo.bits & 0xFF); }
+    if (srcdepth != NULL) { *srcdepth = (bmpinfo.bits & 0xFF); }
 
     if (rle)            // run-length encoding
     {
@@ -4561,15 +4490,8 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 else            // run-length encoding
                 {
                     // rle count
-                    switch (bmpinfo.bits)
-                    {
-                        case 4:
-                        case 8:
-                        {
-                            memset(pixbuf, data1, data0);
-                            pixbuf += data0;
-                        } break;
-                    }
+                    memset(pixbuf, data1, data0);
+                    pixbuf += data0;
                 }
             }
 
@@ -4763,9 +4685,9 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint8_t* rawbuf = psrc;
 
     // total bytes per scanline required to encode pcx data
-    int32_t dsttotalbytes = colorplanes * dstpitch;
-    int32_t dstpalettesize = 0;
-    int32_t dstpadbytes = dstpitch - srcpitch;
+    uint32_t dsttotalbytes = colorplanes * dstpitch;
+    uint32_t dstpalettesize = 0;
+    uint32_t dstpadbytes = dstpitch - srcpitch;
     
     // palette
     if (srcdepth == 8 && psrcpalette != NULL)
@@ -4779,7 +4701,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
     if (data == NULL)
     {
-        fprintf(stderr, "PCX: Out of memory\n");
+        fprintf(stderr, "PCX, Out of memory\n");
         return false;
     }
 
