@@ -199,7 +199,7 @@ unsigned long Crc(unsigned char* buf, int len)
 }
 
 //------------------------------------------------------------------------------
-// Critical and acilliary chunk definitions
+// Critical and ancillary chunk definitions
 //------------------------------------------------------------------------------
 #define IHDR 0x52444849
 #define gAMA 0x414d4167
@@ -1940,6 +1940,27 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 }
 
                 idatlen += size; srcbuf += size;
+            } break;
+            case cHRM:
+            case sRGB:
+            case iCCP:
+            case iTXt:
+            case tEXt:
+            case zTXt:
+            case bKGD:
+            case pHYs:
+            case sBIT:
+            case sPLT:
+            case hIST:
+            case tIME:
+            {
+                if (first)
+                {
+                    fprintf(stderr, "PNG, First not IHDR.\n");
+                    return false;
+                }
+
+                srcbuf += size;
             } break;
             case IEND:
             {
