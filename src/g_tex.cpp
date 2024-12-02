@@ -1398,8 +1398,6 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
         srcbuf += 4;
     }
 
-
-
     if (srccolormap != NULL) { *srccolormap = paltest; }
     if (srcxsize != NULL) { *srcxsize = xsize; }
     if (srcysize != NULL) { *srcysize = ysize; }
@@ -1413,11 +1411,8 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
 //------------------------------------------------------------------------------
 static void
 ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip, uint32_t dstyskip,
-    uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth,
-    uint32_t dstbytesperpixel, uint8_t** ppsrc)
+    uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth, uint8_t** ppsrc)
 {
-    uint32_t depth = dstdepth * dstbytesperpixel;
-
     // filtering
     uint32_t width = 0;
     uint32_t xsize = 0;
@@ -1443,34 +1438,33 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip, uint32_t dstyski
     if (dstxsize != 0 && dstysize != 0)
     {
         ysize = dstysize;
+        bytesperpixel = (dstdepth + 7) >> 3;
 
-        if (depth < 8)
+        if (dstdepth < 8)
         {
-            if (depth == 1)
+            if (dstdepth == 1)
             {
                 ppb = 8;
                 bit = 7;
             }
-            else if (depth == 2)
+            else if (dstdepth == 2)
             {
                 ppb = 4;
                 bit = 6;
             }
-            else if (depth == 4)
+            else if (dstdepth == 4)
             {
                 ppb = 2;
                 bit = 4;
             }
 
-            bytesperpixel = 1;
-            width = ((dstxsize * depth) + 7) >> 3;         // width in bytes
+            width = ((dstxsize * dstdepth) + 7) >> 3;         // width in bytes
             i = dstxskip * ppb;
         }
         else
         {
-            bytesperpixel = (depth >> 3);
             width = dstxsize;
-            i = dstxskip * (depth >> 3);
+            i = dstxskip;
         }
 
         while (y < ysize)
@@ -1566,7 +1560,7 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip, uint32_t dstyski
                     } break;
                     }
 
-                    if (depth < 8)
+                    if (dstdepth < 8)
                     {
                         ExpandNbitsToIndex8(raw0buf, dstxskip, (sample & 0xFF), ppb, bit);
                     }
@@ -1600,13 +1594,14 @@ ExpandPNG(uint8_t* pdst, uint32_t ppdstsize, uint32_t dstxskip, uint32_t dstyski
 //------------------------------------------------------------------------------
 static void
 ExpandInterlacedPNG(uint8_t* dstptr, uint32_t dstlen, uint32_t dstxsize,
-    uint32_t dstysize, uint32_t dstpitch, uint32_t dstdepth,
-    uint32_t dstbytesperpixel, uint8_t** ppsrc)
+    uint32_t dstysize, uint32_t dstdepth, uint8_t** ppsrc)
 {
     const uint8_t i_xorigin[7] = { 0, 4, 0, 2, 0, 1, 0 };
     const uint8_t i_xextent[7] = { 8, 8, 4, 4, 2, 2, 1 };
     const uint8_t i_yorigin[7] = { 0, 0, 4, 0, 2, 0, 1 };
     const uint8_t i_yextent[7] = { 8, 8, 8, 4, 4, 2, 2 };
+    uint32_t dstbytesperpixel = ((dstdepth + 7) >> 3);
+    uint32_t dstpitch = dstxsize * dstbytesperpixel;
 
     for (int pass = 0; pass < 7; ++pass)
     {
@@ -1619,8 +1614,8 @@ ExpandInterlacedPNG(uint8_t* dstptr, uint32_t dstlen, uint32_t dstxsize,
         uint32_t rawlen = dstlen - (i_yorigin[pass] * dstpitch) +
             (i_xorigin[pass] * dstbytesperpixel);
 
-        ExpandPNG(rawbuf, rawlen, i_xextent[pass], i_yextent[pass] * dstpitch, w,
-            h, dstdepth, dstbytesperpixel, ppsrc);
+        ExpandPNG(rawbuf, rawlen, i_xextent[pass] * dstbytesperpixel,
+            i_yextent[pass] * dstpitch, w, h, dstdepth, ppsrc);
     }
 }
 
@@ -2245,13 +2240,11 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     // interlace and filter
     if (interlace == 1)
     {
-        ExpandInterlacedPNG(rawptr, pixlen, xsize, ysize, pitch, depth,
-            bytesperpixel, &datbuf);
+        ExpandInterlacedPNG(rawptr, pixlen, xsize, ysize, depth * bytesperpixel, &datbuf);
     }
     else
     {
-        ExpandPNG(rawbuf, pixlen, 1, pitch, xsize, ysize, depth, bytesperpixel,
-            &datbuf);
+        ExpandPNG(rawbuf, pixlen, bytesperpixel, pitch, xsize, ysize, depth * bytesperpixel, &datbuf);
     }
 
     free(datptr);
@@ -5450,8 +5443,8 @@ Point_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
         {
             x0 = lroundf(px);
 
-            uint16_t pixel = (bufsrc[(x0%srcxsize)*2+0] <<  8)
-                | (bufsrc[(x0%srcxsize)*2+1] <<  0);
+            uint16_t pixel = (bufsrc[(x0%srcxsize)*2+0] << 8)
+                | (bufsrc[(x0%srcxsize)*2+1] << 0);
 
             switch (dstformat)
             {
@@ -7950,9 +7943,9 @@ Blit_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
         bshift = 8;
         ashift = 0;
 
-        rmod = 0.2990f;
-        gmod = 0.5870f;
-        bmod = 0.1140f;
+        rmod = 1.0f;
+        gmod = 1.0f;
+        bmod = 1.0f;
         amod = 1.0f;
     } break;
     }
