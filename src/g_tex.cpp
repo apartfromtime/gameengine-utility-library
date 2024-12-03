@@ -2240,11 +2240,13 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     // interlace and filter
     if (interlace == 1)
     {
-        ExpandInterlacedPNG(rawptr, pixlen, xsize, ysize, depth * bytesperpixel, &datbuf);
+        ExpandInterlacedPNG(rawptr, pixlen, xsize, ysize, depth * bytesperpixel,
+            &datbuf);
     }
     else
     {
-        ExpandPNG(rawbuf, pixlen, bytesperpixel, pitch, xsize, ysize, depth * bytesperpixel, &datbuf);
+        ExpandPNG(rawbuf, pixlen, bytesperpixel, pitch, xsize, ysize,
+            depth * bytesperpixel, &datbuf);
     }
 
     free(datptr);
@@ -2279,13 +2281,30 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         }
     }
 
-    // grayscale + alpha
-    if (colortype == 4 && (depth == 1 || depth == 2 || depth == 4))
+    if (gamma != 0)
     {
-        for (unsigned int i = 0; i < xsize * ysize; ++i)
+        float fgamma = (gamma * (1.0f / 2.2f)) / 100000.0f;
+
+        // grayscale
+        if ((colortype == 0 || colortype == 4) && depth == 8)
         {
-            *ppix++ *= scale;
-            *ppix++ *= scale;
+            for (unsigned int i = 0; i < xsize * ysize; ++i)
+            {
+                ppix[0] = powf((ppix[0] / 255.0f), fgamma) * 255.0f;
+                ppix += bytesperpixel;
+            }
+        }
+
+        // rgb
+        if ((colortype == 2 || colortype == 6) && depth == 8)
+        {
+            for (unsigned int i = 0; i < xsize * ysize; ++i)
+            {
+                ppix[0] = powf((ppix[0] / 255.0f), fgamma) * 255.0f;
+                ppix[1] = powf((ppix[1] / 255.0f), fgamma) * 255.0f;
+                ppix[2] = powf((ppix[2] / 255.0f), fgamma) * 255.0f;
+                ppix += bytesperpixel;
+            }
         }
     }
 
