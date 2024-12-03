@@ -4703,17 +4703,19 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         }
     }
 
-    int32_t totalbytes = pcx.numBitPlanes * pcx.bytesPerLine;
-    int32_t ncolorplanes = pcx.numBitPlanes;
-    int32_t xsize = (pcx.xMax - pcx.xMin) + 1;
-    int32_t ysize = (pcx.yMax - pcx.yMin) + 1;
-    int32_t bytesperscanline = pcx.bytesPerLine;
-    int32_t pitch = bytesperscanline * ncolorplanes;
-    int32_t rlecount = 0;
-    int32_t subtotal = 0;
-    int32_t colorplane = 0;
+    float pixelsperbyte = PIXELS_PER_BYTE(pcx.bitsPerPixel);
+    uint32_t ncolorplanes = pcx.numBitPlanes;
+    uint32_t xsize = (pcx.xMax - pcx.xMin) + 1;
+    uint32_t ysize = (pcx.yMax - pcx.yMin) + 1;
+    uint32_t bytesperscanline = pcx.bytesPerLine;
+    uint32_t pitch = (uint32_t)(ceilf((float)(xsize) / pixelsperbyte));           // bytes per scanline of output
+    uint32_t padbytes = bytesperscanline - pitch;
+    uint32_t totalbytes = pcx.numBitPlanes * pitch;
+    uint32_t rlecount = 0;
+    uint32_t subtotal = 0;
+    uint32_t colorplane = 0;
 
-    uint8_t* pixels = (uint8_t*)malloc((ysize * pitch));
+    uint8_t* pixels = (uint8_t*)malloc(ysize * pitch);
     uint8_t* pixptr = pixels;
     uint8_t* pixbuf = pixels;
 
@@ -4755,8 +4757,9 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 pixbuf += ncolorplanes;
             }
 
-            if (subtotal % bytesperscanline == 0)
+            if (subtotal % pitch == 0)
             {
+                srcbuf += padbytes;
                 pixbuf = pixptr + colorplane++;
             }
 
@@ -9418,7 +9421,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
         0,
         PIXELTYPE_UNKNOWN
     };
-    uint8_t depthbits = 0;
+    uint8_t depth = 0;
     file_format_t format = FILEFORMAT_NONE;
 
     if (pdstimage != NULL)
@@ -9426,13 +9429,13 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
         rgba_t pngcolorkey = { 0, 0, 0, 0 };
 
         if ((result = LoadFromMemoryPNG(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits, &pngcolorkey)) == true)
+            srcsize, &srcimage.xsize, &srcimage.ysize, &depth, &pngcolorkey)) == true)
         {
-            if (depthbits == 32) { srcimage.pixeltype = PIXELTYPE_RGBA; }
-            else if (depthbits == 24) { srcimage.pixeltype = PIXELTYPE_RGB; }
-            else if (depthbits == 16) { srcimage.pixeltype = PIXELTYPE_LUMINANCE_ALPHA; }
-            else if (depthbits <=  8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
-            else if (depthbits <=  8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
+            if (depth == 32) { srcimage.pixeltype = PIXELTYPE_RGBA; }
+            else if (depth == 24) { srcimage.pixeltype = PIXELTYPE_RGB; }
+            else if (depth == 16) { srcimage.pixeltype = PIXELTYPE_LUMINANCE_ALPHA; }
+            else if (depth <=  8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
+            else if (depth <=  8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
             if (pngcolorkey.b != 0 && pngcolorkey.g != 0 && pngcolorkey.r != 0 && pngcolorkey.a != 0)
             {
                 colorkey = pngcolorkey;
@@ -9440,48 +9443,45 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
             format = FILEFORMAT_PNG;
         }
         else if ((result = LoadFromMemoryBMP(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits)) == true)
+            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true)
         {
-            if (depthbits < 8)          // expand packed type
+            if (depth < 8)          // expand packed type
             {
-                float srcpixelsperbyte = PIXELS_PER_BYTE(depthbits);
-                int32_t srcpitch = (int32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte));
-                int32_t dstpitch = (int32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte));
-
+                float srcpixelsperbyte = PIXELS_PER_BYTE(depth);
+                uint32_t srcpitch = (uint32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte));
                 uint32_t runcount = 0;
-                uint32_t bpp = 0;
+                uint32_t ppb = 0;
                 uint32_t bit = 0;
-                uint32_t padbytes = srcpitch - dstpitch;
+                uint32_t x = 0;
+                uint32_t y = 0;
 
-                if (depthbits == 1)
+                if (depth == 1)
                 {
-                    bpp = 8;
+                    ppb = 8;
                     bit = 7;
                 }
-                else if (depthbits == 2)
+                else if (depth == 2)
                 {
-                    bpp = 4;
+                    ppb = 4;
                     bit = 6;
                 }
-                else if (depthbits == 4)
+                else if (depth == 4)
                 {
-                    bpp = 2;
+                    ppb = 2;
                     bit = 4;
                 }
 
-                uint8_t* pixels = (uint8_t*)malloc((srcimage.xsize * srcimage.ysize));
+                uint8_t* pixels = (uint8_t*)malloc(srcimage.xsize * srcimage.ysize);
                 uint8_t* pixptr = pixels;
                 uint8_t* pixbuf = pixels;
                 memset(pixels, 0, srcimage.xsize * srcimage.ysize);
 
                 uint8_t* srcbuf = srcimage.data;
-                uint32_t x = 0;
-                uint32_t y = 0;
 
                 while (y < srcimage.ysize)
                 {
                     pixbuf = pixptr;
-                    runcount = bpp;
+                    runcount = ppb;
                     x = srcimage.xsize;
 
                     while (x > 0)
@@ -9492,8 +9492,6 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
                         srcbuf++;
                         x -= runcount;
                     }
-
-                    srcbuf += padbytes;
                     y++;
 
                     if (y != srcimage.ysize)
@@ -9504,56 +9502,53 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
 
                 free(srcimage.data);
                 srcimage.data = pixels;
-                depthbits = 8;
+                depth = 8;
             }
 
-            srcimage.pixeltype = (depthbits == 32) ? PIXELTYPE_BGRA :
-                (depthbits == 24) ? PIXELTYPE_BGR : PIXELTYPE_COLOUR_INDEX;
+            srcimage.pixeltype = (depth == 32) ? PIXELTYPE_BGRA :
+                (depth == 24) ? PIXELTYPE_BGR : PIXELTYPE_COLOUR_INDEX;
             format = FILEFORMAT_BMP;
         }
         else if ((result = LoadFromMemoryPCX(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits)) == true)
+            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true)
         {
-            if (depthbits < 8)          // expand packed type
+            if (depth < 8)          // expand packed type
             {
-                float srcpixelsperbyte = PIXELS_PER_BYTE(depthbits);
-                int32_t srcpitch = (int32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte) + 1) & ~1;
-                int32_t dstpitch = (int32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte));
-
+                float srcpixelsperbyte = PIXELS_PER_BYTE(depth);
+                uint32_t srcpitch = (uint32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte));
                 uint32_t runcount = 0;
-                uint32_t bpp = 0;
+                uint32_t ppb = 0;
                 uint32_t bit = 0;
-                uint32_t padbytes = srcpitch - dstpitch;
+                uint32_t x = 0;
+                uint32_t y = 0;
 
-                if (depthbits == 1)
+                if (depth == 1)
                 {
-                    bpp = 8;
+                    ppb = 8;
                     bit = 7;
                 }
-                else if (depthbits == 2)
+                else if (depth == 2)
                 {
-                    bpp = 4;
+                    ppb = 4;
                     bit = 6;
                 }
-                else if (depthbits == 4)
+                else if (depth == 4)
                 {
-                    bpp = 2;
+                    ppb = 2;
                     bit = 4;
                 }
 
-                uint8_t* pixels = (uint8_t*)malloc((srcimage.xsize * srcimage.ysize));
+                uint8_t* pixels = (uint8_t*)malloc(srcimage.xsize * srcimage.ysize);
                 uint8_t* pixptr = pixels;
                 uint8_t* pixbuf = pixels;
                 memset(pixels, 0, srcimage.xsize * srcimage.ysize);
 
                 uint8_t* srcbuf = srcimage.data;
-                uint32_t x = 0;
-                uint32_t y = 0;
 
                 while (y < srcimage.ysize)
                 {
                     pixbuf = pixptr;
-                    runcount = bpp;
+                    runcount = ppb;
                     x = srcimage.xsize;
 
                     while (x > 0)
@@ -9564,8 +9559,6 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
                         srcbuf++;
                         x -= runcount;
                     }
-
-                    srcbuf += padbytes;
                     y++;
 
                     if (y != srcimage.ysize)
@@ -9576,20 +9569,20 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
 
                 free(srcimage.data);
                 srcimage.data = pixels;
-                depthbits = 8;
+                depth = 8;
             }
 
-            srcimage.pixeltype = (depthbits <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;
+            srcimage.pixeltype = (depth <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;
             format = FILEFORMAT_PCX;
         }
         else if ((result = LoadFromMemoryTGA(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depthbits)) == true)
+            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true)
         {
-            if (depthbits == 32) { srcimage.pixeltype = PIXELTYPE_BGRA; }
-            else if (depthbits == 24) { srcimage.pixeltype = PIXELTYPE_BGR; }
-            else if (depthbits == 16) { srcimage.pixeltype = PIXELTYPE_XBGR1555; }
-            else if (depthbits ==  8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
-            else if (depthbits ==  8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
+            if (depth == 32) { srcimage.pixeltype = PIXELTYPE_BGRA; }
+            else if (depth == 24) { srcimage.pixeltype = PIXELTYPE_BGR; }
+            else if (depth == 16) { srcimage.pixeltype = PIXELTYPE_XBGR1555; }
+            else if (depth ==  8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
+            else if (depth ==  8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
             format = FILEFORMAT_TGA;
         }
         else { fprintf(stderr, "LoadImage, Unsupported image format\n"); }
@@ -9599,7 +9592,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
             psrcinfo->xsize = srcimage.xsize;
             psrcinfo->ysize = srcimage.ysize;
             psrcinfo->pixeltype = srcimage.pixeltype;
-            psrcinfo->depth = depthbits;
+            psrcinfo->depth = depth;
             psrcinfo->fileformat = format;
         }
 
