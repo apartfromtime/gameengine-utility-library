@@ -3996,11 +3996,15 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
     if (rle)            // run-length encoding
     {
+        int32_t x = 0;
         int32_t y = ABS(ysize);
+        uint8_t bit = 0;
 
         while (y-- > 0)
         {
             pixbuf = pixptr;
+            bit = 4;
+            x = 0;
 
             while (1)
             {    
@@ -4021,9 +4025,33 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                         {
                             case 4:
                             {
-                                memcpy(pixbuf, srcbuf, rlecount);
-                                pixbuf += rlecount;
-                                srcbuf += rlecount + padbytes;
+                                for (int i = 0; i < data1; ++i)
+                                {
+                                    if ((i & 1) == 0)
+                                    {
+                                        sample = *srcbuf++;
+                                    }
+
+                                    int d1 = sample & 0xF;
+                                    int d0 = sample >> 4;
+
+                                    if ((i & 1) == 0) {
+                                        *pixbuf |= d0 << bit;
+                                    }
+                                    if ((i & 1) == 1) {
+                                        *pixbuf |= d1 << bit;
+                                    }
+
+                                    bit ^= 4;
+                                    x++;
+
+                                    if ((x & 1) == 0)
+                                    {
+                                        pixbuf++;
+                                    }
+                                }
+
+                                srcbuf += padbytes;
                             } break;
                             case 8:
                             {
@@ -4038,12 +4066,23 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                         int dx = *srcbuf++;
                         int dy = *srcbuf++;
 
+                        dx += (int)(pixbuf - pixptr) * PIXELS_PER_BYTE(bmpinfo.bits);
                         y -= dy;
+
                         if (y <= 0) break;
 
-                        if (ysize >= 0) { pixptr = pixels + ((ysize-y) * ABS(pitch)); }
-                        else { pixptr = pixels + (y * ABS(pitch)); }
-                        pixbuf = pixptr + (dx > 2 ? dx << 1 : dx);
+                        if (ysize >= 0) {
+                            pixptr = pixels + (y * ABS(pitch));
+                        } else {
+                            pixptr = pixels + ((ysize - (y + 1)) * ABS(pitch));
+                        }
+
+                        if (bmpinfo.bits == 4)
+                        {
+                            dx = (dx >= 2) ? (dx >> 1) : dx;
+                        }
+
+                        pixbuf = pixptr + dx;
                     }
                     else if (data1 == 0x01)         // end of bitmap
                     {
@@ -4057,8 +4096,40 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 else            // run-length encoding
                 {
                     // rle count
-                    memset(pixbuf, data1, data0);
-                    pixbuf += data0;
+                    rlecount = data0;
+                    sample = data1;
+
+                    switch (bmpinfo.bits)
+                    {
+                    case 4:         // 4-bit
+                    {
+                        for (int i = 0; i < rlecount; ++i)
+                        {
+                            int d1 = sample & 0xF;
+                            int d0 = sample >> 4;
+
+                            if ((i & 1) == 0) {
+                                *pixbuf |= d0 << bit;
+                            }
+                            if ((i & 1) == 1) {
+                                *pixbuf |= d1 << bit;
+                            }
+
+                            bit ^= 4;
+                            x++;
+
+                            if ((x & 1) == 0)
+                            {
+                                pixbuf++;
+                            }
+                        }
+                    } break;
+                    case 8:         // 8-bit
+                    {
+                        memset(pixbuf, data1, data0);
+                        pixbuf += data0;
+                    } break;
+                    }
                 }
             }
 
@@ -4075,8 +4146,8 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         while (y-- > 0)
         {
             pixbuf = pixptr;
-            memcpy(pixbuf, srcbuf, pitch);
-            srcbuf += pitch + padbytes;
+            memcpy(pixbuf, srcbuf, ABS(pitch));
+            srcbuf += ABS(pitch) + padbytes;
 
             if (y != 0)
             {
