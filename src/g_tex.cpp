@@ -2309,27 +2309,18 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
         return false;
     }
 
-    uint32_t xextent = srcxsize;
-    uint32_t yextent = srcysize;
-
-    // dst stuff
-    uint8_t dstdepth = srcdepth;
-    uint32_t dstbytesperpixel = dstdepth >> 3;
-    uint32_t dstpitch = xextent * dstbytesperpixel;
-
     // src stuff
-    uint32_t srcbytesperpixel = srcdepth >> 3;
-    int32_t srcpitch = srcxsize * srcbytesperpixel;
+    uint32_t bytesperpixel = srcdepth >> 3;
+    uint32_t pitch = srcxsize * bytesperpixel;
     uint8_t* rawptr = psrc;
     uint8_t* rawbuf = psrc;
-
+    uint16_t colormap_index = 0;
+    uint16_t colormap_length = 0;
     uint8_t id_length = 0;
     uint8_t colormap_type = (psrcpalette != NULL) ? 1 : 0;
     uint8_t image_type = TGA_NO_IMAGE_DATA;
-    uint16_t colormap_index = 0;
-    uint16_t colormap_length = 0;
     uint8_t colormap_size = 0;
-    uint8_t pixel_size = dstdepth;
+    uint8_t pixel_size = srcdepth;
     uint8_t image_descriptor = 0;
     
     // palette
@@ -2398,7 +2389,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 
     uint32_t bytesencoded = 0;
     // big array for true-color images
-    uint32_t datasize = s_tga_file_size + ((yextent * dstpitch) * 2) + colormap_length;
+    uint32_t datasize = s_tga_file_size + ((srcysize * pitch) * 2) + colormap_length;
     uint8_t* data = (uint8_t*)malloc(datasize);
 
     if (data == NULL)
@@ -2409,7 +2400,6 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 
     memset(data, 0, datasize);
 
-    uint8_t* dstptr = data;
     uint8_t* dstbuf = data;
     
     // fill in file header
@@ -2421,10 +2411,10 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     tgafile.colormap_index = colormap_index;
     tgafile.colormap_length = colormap_length;
     tgafile.colormap_size = colormap_size;
-    tgafile.x_origin = (invertX == true ? 0 : xextent);
-    tgafile.y_origin = (invertY == true ? 0 : yextent);
-    tgafile.width = xextent;
-    tgafile.height = yextent;
+    tgafile.x_origin = (invertX == true ? 0 : srcxsize);
+    tgafile.y_origin = (invertY == true ? 0 : srcysize);
+    tgafile.width = srcxsize;
+    tgafile.height = srcysize;
     tgafile.pixel_size = pixel_size;
     tgafile.image_descriptor = image_descriptor;
 
@@ -2443,7 +2433,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 
     dstbuf += id_length;            // skip the image descriptor 
     
-    if (colormap_size != 0 && psrcpalette != NULL)
+    if (colormap_length != 0 && psrcpalette != NULL)
     {
         // fill in the palette
         if (colormap_size == 15 || colormap_size == 16)
@@ -2492,397 +2482,51 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 
         if (codec == ENCODE_RLE)            // run-length encoding
         {
-            uint32_t maxrle = 0x80;
-            uint32_t maxabs = 0xFF;
             uint32_t abscount = 0;
             uint32_t rlecount = 0;
             uint32_t rlevalue = 0;
             int32_t absrem = 0;
             int32_t rlerem = 0;
-            uint8_t sample0 = 0;
-            uint8_t sample1 = 0;
-            uint8_t sample2 = 0;
-            uint8_t sample3 = 0;
-            uint8_t sample4 = 0;
-            uint8_t sample5 = 0;
-            uint8_t sample6 = 0;
-            uint8_t sample7 = 0;
-            uint8_t b = 0;
-            uint8_t g = 0;
-            uint8_t r = 0;
-            uint8_t a = 0;
+            uint32_t sample0 = 0;
+            uint32_t sample1 = 0;
+            uint32_t sample2 = 0;
 
             switch (image_type)
             {
             case TGA_RGB_RLE:
-            {
-                if (srcdepth == 32)
-                {
-                    while (y++ < yextent)
-                    {
-                        rawbuf = rawptr;
-                        x = 0;
-
-                        while (x < xextent)
-                        {
-                            sample0 = 0;
-                            sample1 = 0;
-                            sample2 = 0;
-                            sample3 = 0;
-                            sample4 = 0;
-                            sample5 = 0;
-                            sample6 = 0;
-                            sample7 = 0;
-
-                            b = *(rawbuf + ((x * 4) + 0));
-                            g = *(rawbuf + ((x * 4) + 1));
-                            r = *(rawbuf + ((x * 4) + 2));
-                            a = *(rawbuf + ((x * 4) + 3));
-
-                            abscount = 1;
-                            absrem = xextent - (x + abscount);
-
-                            sample4 = b;
-                            sample5 = g;
-                            sample6 = r;
-                            sample7 = a;
-
-                            while (absrem > 0 && abscount < maxabs)
-                            {
-                                sample0 = sample4;
-                                sample1 = sample5;
-                                sample2 = sample6;
-                                sample3 = sample7;
-
-                                sample4 = *(rawbuf + (((x + abscount) * 4) + 0));
-                                sample5 = *(rawbuf + (((x + abscount) * 4) + 1));
-                                sample6 = *(rawbuf + (((x + abscount) * 4) + 2));
-                                sample7 = *(rawbuf + (((x + abscount) * 4) + 3));
-
-                                if (sample0 == sample4 &&
-                                    sample1 == sample5 &&
-                                    sample2 == sample6 &&
-                                    sample3 == sample7)
-                                {
-                                    break;
-                                }
-
-                                abscount++;
-                                absrem--;
-                            }
-
-                            rlecount = 1;
-                            rlerem = xextent - (x + rlecount);
-
-                            sample4 = b;
-                            sample5 = g;
-                            sample6 = r;
-                            sample7 = a;
-
-                            while (rlerem > 0 && rlecount < maxrle)
-                            {
-                                sample0 = sample4;
-                                sample1 = sample5;
-                                sample2 = sample6;
-                                sample3 = sample7;
-
-                                sample4 = *(rawbuf + (((x + rlecount) * 4) + 0));
-                                sample5 = *(rawbuf + (((x + rlecount) * 4) + 1));
-                                sample6 = *(rawbuf + (((x + rlecount) * 4) + 2));
-                                sample7 = *(rawbuf + (((x + rlecount) * 4) + 3));
-
-                                if (sample0 != sample4 ||
-                                    sample1 != sample5 ||
-                                    sample2 != sample6 ||
-                                    sample3 != sample7)
-                                {
-                                    break;
-                                }
-
-                                rlecount++;
-                                rlerem--;
-                            }
-
-                            if (abscount >= rlecount)
-                            {
-                                rlevalue = abscount;
-
-                                *dstbuf++ = (0 << 7) | (rlevalue - 1);
-                                bytesencoded++;
-
-                                for (uint32_t i = 0; i < rlevalue; ++i)
-                                {
-                                    *dstbuf++ = *(rawbuf + ((x * 4) + i) + 0);
-                                    *dstbuf++ = *(rawbuf + ((x * 4) + i) + 1);
-                                    *dstbuf++ = *(rawbuf + ((x * 4) + i) + 2);
-                                    *dstbuf++ = *(rawbuf + ((x * 4) + i) + 3);
-                                    bytesencoded++;
-                                    bytesencoded++;
-                                    bytesencoded++;
-                                    bytesencoded++;
-                                }
-                            }
-                            else
-                            {
-                                rlevalue = rlecount;
-
-                                *dstbuf++ = (1 << 7) | (rlevalue - 1);
-                                bytesencoded++;
-
-                                *dstbuf++ = sample0;
-                                *dstbuf++ = sample1;
-                                *dstbuf++ = sample2;
-                                *dstbuf++ = sample3;
-                                bytesencoded++;
-                                bytesencoded++;
-                                bytesencoded++;
-                                bytesencoded++;
-                            }
-
-                            x += rlevalue;
-                        }
-
-                        if (y != yextent)
-                        {
-                            rawptr += srcpitch;
-                        }
-                    }
-                }
-                else if (srcdepth == 24)
-                {
-                    while (y++ < yextent)
-                    {
-                        rawbuf = rawptr;
-                        x = 0;
-
-                        while (x < xextent)
-                        {
-                            sample0 = 0;
-                            sample1 = 0;
-                            sample2 = 0;
-                            sample3 = 0;
-                            sample4 = 0;
-                            sample5 = 0;
-
-                            b = *(rawbuf + ((x * 3) + 0));
-                            g = *(rawbuf + ((x * 3) + 1));
-                            r = *(rawbuf + ((x * 3) + 2));
-
-                            abscount = 1;
-                            absrem = xextent - (x + abscount);
-                            sample3 = b;
-                            sample4 = g;
-                            sample5 = r;
-
-                            while (absrem > 0 && abscount < maxabs)
-                            {
-                                sample0 = sample3;
-                                sample1 = sample4;
-                                sample2 = sample5;
-
-                                sample3 = *(rawbuf + (((x + abscount) * 3) + 0));
-                                sample4 = *(rawbuf + (((x + abscount) * 3) + 1));
-                                sample5 = *(rawbuf + (((x + abscount) * 3) + 2));
-
-                                if (sample0 == sample3 &&
-                                    sample1 == sample4 &&
-                                    sample2 == sample5)
-                                {
-                                    break;
-                                }
-
-                                abscount++;
-                                absrem--;
-                            }
-
-                            rlecount = 1;
-                            rlerem = xextent - (x + rlecount);
-                            sample3 = b;
-                            sample4 = g;
-                            sample5 = r;
-
-                            while (rlerem > 0 && rlecount < maxrle)
-                            {
-                                sample0 = sample3;
-                                sample1 = sample4;
-                                sample2 = sample5;
-
-                                sample3 = *(rawbuf + (((x + rlecount) * 3) + 0));
-                                sample4 = *(rawbuf + (((x + rlecount) * 3) + 1));
-                                sample5 = *(rawbuf + (((x + rlecount) * 3) + 2));
-
-                                if (sample0 != sample3 ||
-                                    sample1 != sample4 ||
-                                    sample2 != sample5)
-                                {
-                                    break;
-                                }
-
-                                rlecount++;
-                                rlerem--;
-                            }
-
-                            if (abscount >= rlecount)
-                            {
-                                rlevalue = abscount;
-
-                                *dstbuf++ = (0 << 7) | (rlevalue - 1);
-                                bytesencoded++;
-
-                                for (uint32_t i = 0; i < rlevalue; ++i)
-                                {
-                                    *dstbuf++ = *(rawbuf + ((x * 3) + i) + 0);
-                                    *dstbuf++ = *(rawbuf + ((x * 3) + i) + 1);
-                                    *dstbuf++ = *(rawbuf + ((x * 3) + i) + 2);
-                                    bytesencoded++;
-                                    bytesencoded++;
-                                    bytesencoded++;
-                                }
-                            }
-                            else
-                            {
-                                rlevalue = rlecount;
-
-                                *dstbuf++ = (1 << 7) | (rlevalue - 1);
-                                bytesencoded++;
-
-                                *dstbuf++ = sample0;
-                                *dstbuf++ = sample1;
-                                *dstbuf++ = sample2;
-
-                                bytesencoded++;
-                                bytesencoded++;
-                                bytesencoded++;
-                            }
-
-                            x += rlevalue;
-                        }
-
-                        if (y != yextent)
-                        {
-                            rawptr += srcpitch;
-                        }
-                    }
-                }
-                else if (srcdepth == 16)
-                {
-                    while (y++ < yextent)
-                    {
-                        rawbuf = rawptr;
-                        x = 0;
-
-                        while (x < xextent)
-                        {
-                            sample0 = 0;
-                            sample1 = 0;
-                            sample2 = 0;
-
-                            sample2 |= *(rawbuf + ((x * 2) + 0));
-                            sample2 |= *(rawbuf + ((x * 2) + 1)) << 8;
-
-                            abscount = 1;
-                            absrem = xextent - (x + abscount);
-                            sample1 = sample2;
-
-                            while (absrem > 0 && abscount < maxabs)
-                            {
-                                sample0 = sample1;
-                                sample1 = 0;
-
-                                sample1 |= *(rawbuf + ((x + abscount) * 2) + 0);
-                                sample1 |= *(rawbuf + ((x + abscount) * 2) + 1);
-
-                                if (sample0 == sample1)
-                                {
-                                    break;
-                                }
-
-                                abscount++;
-                                absrem--;
-                            }
-
-                            rlecount = 1;
-                            rlerem = xextent - (x + rlecount);
-                            sample1 = sample2;
-
-                            while (rlerem > 0 && rlecount < maxrle)
-                            {
-                                sample0 = sample1;
-                                sample1 = 0;
-
-                                sample1 |= *(rawbuf + ((x + rlecount) * 2) + 0);
-                                sample1 |= *(rawbuf + ((x + rlecount) * 2) + 1);
-
-                                if (sample0 != sample1)
-                                {
-                                    break;
-                                }
-
-                                rlecount++;
-                                rlerem--;
-                            }
-
-                            if (abscount >= rlecount)
-                            {
-                                rlevalue = abscount;
-
-                                *dstbuf++ = (0 << 7) | (rlevalue - 1);
-                                bytesencoded++;
-
-                                for (uint32_t i = 0; i < rlecount; ++i)
-                                {
-                                    *dstbuf++ = *(rawbuf + ((x * 2) + i) + 0);
-                                    *dstbuf++ = *(rawbuf + ((x * 2) + i) + 1);
-                                    bytesencoded++;
-                                    bytesencoded++;
-                                }
-                            }
-                            else
-                            {
-                                rlevalue = rlecount;
-
-                                *dstbuf++ = (1 << 7) | (rlevalue - 1);
-                                bytesencoded++;
-
-                                *dstbuf++ = (sample0 & 0xFF00);
-                                *dstbuf++ = (sample0 & 0x00FF);
-                                bytesencoded++;
-                                bytesencoded++;
-                                bytesencoded++;
-                            }
-
-                            x += rlevalue;
-                        }
-
-                        if (y != yextent)
-                        {
-                            rawptr += srcpitch;
-                        }
-                    }
-                }
-            } break;
             case TGA_MAPPED_RLE:
             case TGA_BLACK_AND_WHITE_RLE:
             {
-                while (y++ < yextent)
+                while (y++ < srcysize)
                 {
                     rawbuf = rawptr;
                     x = 0;
 
-                    while (x < xextent)
+                    while (x < srcxsize)
                     {
                         sample0 = 0;
                         sample1 = 0;
-                        sample2 = *(rawbuf + x);
+                        sample2 = 0;
 
                         abscount = 1;
-                        absrem = xextent - (x + abscount);
+                        absrem = srcxsize - (x + abscount);
+
+                        for (size_t i = 0; i < bytesperpixel; i++)
+                        {
+                            sample2 |= *(rawbuf + ((x * bytesperpixel) + i)) << (8 * i);
+                        }
+
                         sample1 = sample2;
 
-                        while (absrem > 0 && abscount < maxabs)
+                        while (absrem > 0 && abscount < 0xFF)
                         {
                             sample0 = sample1;
-                            sample1 = *(rawbuf + x + abscount);
+                            sample1 = 0;
+
+                            for (size_t i = 0; i < bytesperpixel; i++)
+                            {
+                                sample1 |= *(rawbuf + (((x + abscount) * bytesperpixel) + i)) << (8 * i);
+                            }
 
                             if (sample0 == sample1)
                             {
@@ -2894,13 +2538,19 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                         }
 
                         rlecount = 1;
-                        rlerem = xextent - (x + rlecount);
+                        rlerem = srcxsize - (x + rlecount);
+
                         sample1 = sample2;
 
-                        while (rlerem > 0 && rlecount < maxrle)
+                        while (rlerem > 0 && rlecount < 0x80)
                         {
                             sample0 = sample1;
-                            sample1 = sample1 = *(rawbuf + x + rlecount);
+                            sample1 = 0;
+
+                            for (size_t i = 0; i < bytesperpixel; i++)
+                            {
+                                sample1 |= *(rawbuf + (((x + rlecount) * bytesperpixel) + i)) << (8 * i);
+                            }
 
                             if (sample0 != sample1)
                             {
@@ -2918,10 +2568,13 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
 
-                            for (uint32_t i = 0; i < rlecount; ++i)
+                            for (uint32_t i = 0; i < rlevalue; ++i)
                             {
-                                *dstbuf++ = *(rawbuf + x + i);
-                                bytesencoded++;
+                                for (size_t j = 0; j < bytesperpixel; j++)
+                                {
+                                    *dstbuf++ = *(rawbuf + ((x * bytesperpixel) + i) + j);
+                                    bytesencoded++;
+                                }
                             }
                         }
                         else
@@ -2929,17 +2582,21 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             rlevalue = rlecount;
 
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
-                            *dstbuf++ = sample0;
                             bytesencoded++;
-                            bytesencoded++;
+
+                            for (size_t i = 0; i < bytesperpixel; i++)
+                            {
+                                *dstbuf++ = (sample0 >> (8 * i)) & 0xFF;
+                                bytesencoded++;
+                            }
                         }
 
                         x += rlevalue;
                     }
 
-                    if (y != yextent)
+                    if (y != srcysize)
                     {
-                        rawptr += srcpitch;
+                        rawptr += pitch;
                     }
                 }
             } break;
@@ -2947,9 +2604,9 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
         }
         else            // everything else
         {
-            memcpy(dstbuf, rawbuf, yextent * srcpitch);
-            dstbuf += yextent * srcpitch;
-            bytesencoded += yextent * srcpitch;
+            memcpy(dstbuf, rawbuf, srcysize * pitch);
+            dstbuf += srcysize * pitch;
+            bytesencoded += srcysize * pitch;
         }
     }
 
