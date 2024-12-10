@@ -133,7 +133,7 @@ static const uint8_t s_png_crcsize = 4;
 //------------------------------------------------------------------------------
 // Table of CRCs
 //------------------------------------------------------------------------------
-static unsigned long g_crc_table[256] = {
+static const unsigned long s_crc_table[256] = {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
     0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
     0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91, 0x1db71064, 0x6ab020f2,
@@ -191,7 +191,7 @@ unsigned long UpdateCrc(unsigned long crc, unsigned char* buf, int len)
 
     for (int n = 0; n < len; n++)
     {
-        c = g_crc_table[(c ^ buf[n]) & 0xFF] ^ (c >> 8);
+        c = s_crc_table[(c ^ buf[n]) & 0xFF] ^ (c >> 8);
     }
 
     return c;
@@ -2310,14 +2310,16 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     }
 
     // src stuff
+    uint32_t xextent = srcxsize;
+    uint32_t yextent = srcysize;
     uint32_t bytesperpixel = srcdepth >> 3;
-    uint32_t pitch = srcxsize * bytesperpixel;
+    uint32_t pitch = xextent * bytesperpixel;
     uint8_t* rawptr = psrc;
     uint8_t* rawbuf = psrc;
     uint16_t colormap_index = 0;
     uint16_t colormap_length = 0;
     uint8_t id_length = 0;
-    uint8_t colormap_type = (psrcpalette != NULL) ? 1 : 0;
+    uint8_t colormap_type = 0;
     uint8_t image_type = TGA_NO_IMAGE_DATA;
     uint8_t colormap_size = 0;
     uint8_t pixel_size = srcdepth;
@@ -2328,6 +2330,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     {
         if (psrcpalette != NULL)
         {
+            colormap_type = 1;
             colormap_length = psrcpalette->size;
             colormap_size = psrcpalette->bits;
         }
@@ -2389,7 +2392,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 
     uint32_t bytesencoded = 0;
     // big array for true-color images
-    uint32_t datasize = s_tga_file_size + ((srcysize * pitch) * 2) + colormap_length;
+    uint32_t datasize = s_tga_file_size + ((yextent * pitch) * 2) + colormap_length;
     uint8_t* data = (uint8_t*)malloc(datasize);
 
     if (data == NULL)
@@ -2411,10 +2414,10 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     tgafile.colormap_index = colormap_index;
     tgafile.colormap_length = colormap_length;
     tgafile.colormap_size = colormap_size;
-    tgafile.x_origin = (invertX == true ? 0 : srcxsize);
-    tgafile.y_origin = (invertY == true ? 0 : srcysize);
-    tgafile.width = srcxsize;
-    tgafile.height = srcysize;
+    tgafile.x_origin = (invertX == true ? 0 : xextent);
+    tgafile.y_origin = (invertY == true ? 0 : yextent);
+    tgafile.width = xextent;
+    tgafile.height = yextent;
     tgafile.pixel_size = pixel_size;
     tgafile.image_descriptor = image_descriptor;
 
@@ -2485,11 +2488,8 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
             uint32_t abscount = 0;
             uint32_t rlecount = 0;
             uint32_t rlevalue = 0;
-            int32_t absrem = 0;
-            int32_t rlerem = 0;
             uint32_t sample0 = 0;
             uint32_t sample1 = 0;
-            uint32_t sample2 = 0;
 
             switch (image_type)
             {
@@ -2497,28 +2497,25 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
             case TGA_MAPPED_RLE:
             case TGA_BLACK_AND_WHITE_RLE:
             {
-                while (y++ < srcysize)
+                while (y++ < yextent)
                 {
                     rawbuf = rawptr;
                     x = 0;
 
-                    while (x < srcxsize)
+                    while (x < xextent)
                     {
+                        abscount = 1;
                         sample0 = 0;
                         sample1 = 0;
-                        sample2 = 0;
-
-                        abscount = 1;
-                        absrem = srcxsize - (x + abscount);
 
                         for (size_t i = 0; i < bytesperpixel; i++)
                         {
-                            sample2 |= *(rawbuf + ((x * bytesperpixel) + i)) << (8 * i);
+                            sample0 |= *(rawbuf + ((x * bytesperpixel) + i)) << (8 * i);
                         }
 
-                        sample1 = sample2;
+                        sample1 = sample0;
 
-                        while (absrem > 0 && abscount < 0xFF)
+                        while ((x + abscount) < xextent && abscount < 0xFF)
                         {
                             sample0 = sample1;
                             sample1 = 0;
@@ -2534,15 +2531,20 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             }
 
                             abscount++;
-                            absrem--;
                         }
 
                         rlecount = 1;
-                        rlerem = srcxsize - (x + rlecount);
+                        sample0 = 0;
+                        sample1 = 0;
 
-                        sample1 = sample2;
+                        for (size_t i = 0; i < bytesperpixel; i++)
+                        {
+                            sample0 |= *(rawbuf + ((x * bytesperpixel) + i)) << (8 * i);
+                        }
 
-                        while (rlerem > 0 && rlecount < 0x80)
+                        sample1 = sample0;
+
+                        while ((x + rlecount) < xextent && rlecount < 0x80)
                         {
                             sample0 = sample1;
                             sample1 = 0;
@@ -2558,7 +2560,6 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             }
 
                             rlecount++;
-                            rlerem--;
                         }
 
                         if (abscount >= rlecount)
@@ -2594,7 +2595,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                         x += rlevalue;
                     }
 
-                    if (y != srcysize)
+                    if (y != yextent)
                     {
                         rawptr += pitch;
                     }
@@ -2604,9 +2605,9 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
         }
         else            // everything else
         {
-            memcpy(dstbuf, rawbuf, srcysize * pitch);
-            dstbuf += srcysize * pitch;
-            bytesencoded += srcysize * pitch;
+            memcpy(dstbuf, rawbuf, yextent * pitch);
+            dstbuf += yextent * pitch;
+            bytesencoded += yextent * pitch;
         }
     }
 
@@ -2635,18 +2636,18 @@ GetInfoFromMemoryTGA(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
     tga_file_t tgafile = {};
 
     // file struct
-    tgafile.id_length           = *srcbuf++;            // id length
-    tgafile.colormap_type       = *srcbuf++;            // colormap_type
-    tgafile.image_type          = *srcbuf++;            // image_type
-    tgafile.colormap_index      = ReadU16FromLE(srcbuf); srcbuf += 2;           // colormap_index
-    tgafile.colormap_length     = ReadU16FromLE(srcbuf); srcbuf += 2;           // colormap_length
-    tgafile.colormap_size       = *srcbuf++;          // colormap_size
-    tgafile.x_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // x_origin
-    tgafile.y_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // y_origin
-    tgafile.width               = ReadU16FromLE(srcbuf); srcbuf += 2;           // width
-    tgafile.height              = ReadU16FromLE(srcbuf); srcbuf += 2;           // height
-    tgafile.pixel_size          = *srcbuf++;            // pixel_size
-    tgafile.image_descriptor    = *srcbuf++;            // image_descriptor
+    tgafile.id_length           = *srcbuf++;
+    tgafile.colormap_type       = *srcbuf++;
+    tgafile.image_type          = *srcbuf++;
+    tgafile.colormap_index      = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.colormap_length     = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.colormap_size       = *srcbuf++;
+    tgafile.x_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.y_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.width               = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.height              = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.pixel_size          = *srcbuf++;
+    tgafile.image_descriptor    = *srcbuf++;
 
     if (tgafile.colormap_type == 1)
     {
@@ -2679,8 +2680,8 @@ GetInfoFromMemoryTGA(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
         return false;
     }
 
-    uint32_t xsize = tgafile.width;            // image width
-    uint32_t ysize = tgafile.height;           // image height
+    uint32_t xsize = tgafile.width;
+    uint32_t ysize = tgafile.height;
     uint8_t depth = tgafile.pixel_size;
     uint8_t colormap = tgafile.colormap_type;
 
@@ -2712,18 +2713,18 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     tga_file_t tgafile = {};
 
     // file struct
-    tgafile.id_length           = *srcbuf++;            // id length
-    tgafile.colormap_type       = *srcbuf++;            // colormap_type
-    tgafile.image_type          = *srcbuf++;            // image_type
-    tgafile.colormap_index      = ReadU16FromLE(srcbuf); srcbuf += 2;           // colormap_index
-    tgafile.colormap_length     = ReadU16FromLE(srcbuf); srcbuf += 2;           // colormap_length
-    tgafile.colormap_size       = *srcbuf++;          // colormap_size
-    tgafile.x_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // x_origin
-    tgafile.y_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // y_origin
-    tgafile.width               = ReadU16FromLE(srcbuf); srcbuf += 2;           // width
-    tgafile.height              = ReadU16FromLE(srcbuf); srcbuf += 2;           // height
-    tgafile.pixel_size          = *srcbuf++;            // pixel_size
-    tgafile.image_descriptor    = *srcbuf++;            // image_descriptor
+    tgafile.id_length           = *srcbuf++;
+    tgafile.colormap_type       = *srcbuf++;
+    tgafile.image_type          = *srcbuf++;
+    tgafile.colormap_index      = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.colormap_length     = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.colormap_size       = *srcbuf++;
+    tgafile.x_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.y_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.width               = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.height              = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.pixel_size          = *srcbuf++;
+    tgafile.image_descriptor    = *srcbuf++;
 
     if (tgafile.pixel_size !=  8 && tgafile.pixel_size != 16 &&
         tgafile.pixel_size != 24 && tgafile.pixel_size != 32)
@@ -2940,7 +2941,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 #define BI_RGB          0L
 #define BI_RLE8         1L
 #define BI_RLE4         2L
-#define BI_BITFIELDS    3L          // introduced in version 4.0
+#define BI_BITFIELDS    3L
 #endif // #ifdef _WIN32
 
 #define BMP_IDENTIFIER          0x4D42
@@ -3150,13 +3151,8 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
             uint32_t abscount = 0;
             uint32_t rlecount = 0;
             uint32_t rlevalue = 0;
-            uint32_t maxrle = 0xFF;
-            uint32_t maxabs = 0xFF;
-            int32_t absrem = 0;
-            int32_t rlerem = 0;
             uint8_t sample0 = 0;
             uint8_t sample1 = 0;
-            uint8_t sample2 = 0;
 
             switch (dstdepth)
             {
@@ -3169,16 +3165,11 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                     while (x < xextent)
                     {
-                        rlevalue = 0;
-                        sample0 = 0;
-                        sample1 = 0;
-                        sample2 = *(rawbuf + x);
-
                         abscount = 1;
-                        absrem = xextent - (x + abscount);
-                        sample1 = sample2;
+                        sample0 = *(rawbuf + x);
+                        sample1 = sample0;
 
-                        while (absrem > 0 && abscount < maxabs)
+                        while ((x + abscount) < xextent && abscount < 0xFF)
                         {
                             sample0 = sample1;
                             sample1 = *(rawbuf + x + abscount);
@@ -3189,15 +3180,14 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             }
 
                             abscount++;
-                            absrem--;
-                            if (abscount + 1 < maxabs) { abscount++; absrem--; }
+                            if (abscount + 1 < 0xFF) { abscount++; }
                         }
 
                         rlecount = 1;
-                        rlerem = xextent - (x + rlecount);
-                        sample1 = sample2;
+                        sample0 = *(rawbuf + x);
+                        sample1 = sample0;
 
-                        while (rlerem > 0 && rlecount < maxrle)
+                        while ((x + rlecount) < xextent && rlecount < 0xFF)
                         {
                             sample0 = sample1;
                             sample1 = *(rawbuf + x + rlecount);
@@ -3208,8 +3198,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             }
 
                             rlecount++;
-                            rlerem--;
-                            if (rlecount + 1 < maxabs) { rlecount++; rlerem--; }
+                            if (rlecount + 1 < 0xFF) { rlecount++; }
                         }
 
                         if (abscount >= 3 && abscount >= rlecount)
@@ -3223,10 +3212,10 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                             for (uint32_t i = 0; i < (rlevalue >> 1); ++i)
                             {
-                                sample2 = 0;
-                                sample2 |= *(rawbuf + x + i + 0) << 4;
-                                sample2 |= *(rawbuf + x + i + 1);
-                                *dstbuf++ = sample2;
+                                sample0 = 0;
+                                sample0 |= *(rawbuf + x + i + 0) << 4;
+                                sample0 |= *(rawbuf + x + i + 1);
+                                *dstbuf++ = sample0;
                                 bytesencoded++;
                             }
 
@@ -3292,16 +3281,11 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                     while (x < xextent)
                     {
-                        rlevalue = 0;
-                        sample0 = 0;
-                        sample1 = 0;
-                        sample2 = *(rawbuf + x);
-
                         abscount = 1;
-                        absrem = xextent - (x + abscount);
-                        sample1 = sample2;
+                        sample0 = *(rawbuf + x);
+                        sample1 = sample0;
 
-                        while (absrem > 0 && abscount < maxabs)
+                        while ((x + abscount) < xextent && abscount < 0xFF)
                         {
                             sample0 = sample1;
                             sample1 = *(rawbuf + x + abscount);
@@ -3312,14 +3296,13 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             }
 
                             abscount++;
-                            absrem--;
                         }
 
                         rlecount = 1;
-                        rlerem = xextent - (x + rlecount);
-                        sample1 = sample2;
+                        sample0 = *(rawbuf + x);
+                        sample1 = sample0;
 
-                        while (rlerem > 0 && rlecount < maxrle)
+                        while ((x + rlecount) < xextent && rlecount < 0xFF)
                         {
                             sample0 = sample1;
                             sample1 = *(rawbuf + x + rlecount);
@@ -3330,7 +3313,6 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             }
 
                             rlecount++;
-                            rlerem--;
                         }
 
                         if (abscount >= 3 && abscount >= rlecount)
@@ -3413,8 +3395,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         }
     }
 
-    datasize = s_bmp_file_size + s_bmp_v3_info_size + dstpalettesize +
-        bytesencoded;
+    datasize = s_bmp_file_size + s_bmp_v3_info_size + dstpalettesize + bytesencoded;
 
     // rewrite file struct size
     dstbuf = dstptr + 2;
@@ -3444,24 +3425,24 @@ GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
     bmp_v3_info_t bmpinfo = {};
 
     // file struct
-    bmpfile.type        = ReadU16FromLE(srcbuf); srcbuf += 2;           // type - 0x4D42 = 'BM'
-    bmpfile.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // file size
-    bmpfile.reserved1   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved1
-    bmpfile.reserved2   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved2
-    bmpfile.offset      = ReadU32FromLE(srcbuf); srcbuf += 4;           // offset to data
+    bmpfile.type        = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.size        = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpfile.reserved1   = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.reserved2   = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.offset      = ReadU32FromLE(srcbuf); srcbuf += 4;
 
     // info struct
-    bmpinfo.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // info size
-    bmpinfo.width       = ReadI32FromLE(srcbuf); srcbuf += 4;           // width
-    bmpinfo.height      = ReadI32FromLE(srcbuf); srcbuf += 4;           // height
-    bmpinfo.planes      = ReadU16FromLE(srcbuf); srcbuf += 2;           // planes
-    bmpinfo.bits        = ReadU16FromLE(srcbuf); srcbuf += 2;           // bit count
-    bmpinfo.compression = ReadU32FromLE(srcbuf); srcbuf += 4;           // compression
-    bmpinfo.imagesize   = ReadU32FromLE(srcbuf); srcbuf += 4;           // imagesize
-    bmpinfo.xresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // x-resolution
-    bmpinfo.yresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // y-resolution
-    bmpinfo.num_colours = ReadU32FromLE(srcbuf); srcbuf += 4;           // num_colours
-    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;    // num_colour_indexes
+    bmpinfo.size        = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.width       = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.height      = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.planes      = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpinfo.bits        = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpinfo.compression = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.imagesize   = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.xresolution = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.yresolution = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.num_colours = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;
 
     uint32_t xsize = bmpinfo.width;
     uint32_t ysize = ABS(bmpinfo.height);
@@ -3501,24 +3482,24 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     bmp_v3_info_t bmpinfo = {};
 
     // file struct
-    bmpfile.type        = ReadU16FromLE(srcbuf); srcbuf += 2;           // type - 0x4D42 = 'BM'
-    bmpfile.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // file size
-    bmpfile.reserved1   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved1
-    bmpfile.reserved2   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved2
-    bmpfile.offset      = ReadU32FromLE(srcbuf); srcbuf += 4;           // offset to data
+    bmpfile.type        = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.size        = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpfile.reserved1   = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.reserved2   = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.offset      = ReadU32FromLE(srcbuf); srcbuf += 4;
 
     // info struct
-    bmpinfo.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // info size
-    bmpinfo.width       = ReadI32FromLE(srcbuf); srcbuf += 4;           // width
-    bmpinfo.height      = ReadI32FromLE(srcbuf); srcbuf += 4;           // height
-    bmpinfo.planes      = ReadU16FromLE(srcbuf); srcbuf += 2;           // planes
-    bmpinfo.bits        = ReadU16FromLE(srcbuf); srcbuf += 2;           // bit count
-    bmpinfo.compression = ReadU32FromLE(srcbuf); srcbuf += 4;           // compression
-    bmpinfo.imagesize   = ReadU32FromLE(srcbuf); srcbuf += 4;           // imagesize
-    bmpinfo.xresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // x-resolution
-    bmpinfo.yresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // y-resolution
-    bmpinfo.num_colours = ReadU32FromLE(srcbuf); srcbuf += 4;           // num_colours
-    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;    // num_colour_indexes
+    bmpinfo.size        = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.width       = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.height      = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.planes      = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpinfo.bits        = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpinfo.compression = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.imagesize   = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.xresolution = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.yresolution = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.num_colours = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;
 
     if (bmpfile.type != 0x4D42)
     {
@@ -3957,7 +3938,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     // total bytes per scanline required to encode pcx data
     uint32_t dsttotalbytes = colorplanes * dstpitch;
     uint32_t dstpalettesize = 0;
-    uint32_t dstpadbytes = dstpitch - srcpitch;
+    uint32_t dstpadbytes = dstpitch - (srcpitch / srcbytesperpixel);
     
     // palette
     if (srcdepth == 8 && psrcpalette != NULL)
@@ -4005,17 +3986,11 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint32_t bytesencoded = 0;
     uint32_t colorplane = 0;
     uint32_t rlecount = 0;
-    uint32_t abscount = 0;
     uint32_t rlevalue = 0;
-    uint32_t maxrle = 0x3F;
-    uint32_t maxabs = 0x01;
-    int32_t absrem = 0;
-    int32_t rlerem = 0;
     uint32_t x = 0;
     uint32_t y = 0;
     uint8_t sample0 = 0;
     uint8_t sample1 = 0;
-    uint8_t sample2 = 0;
 
     while (y++ < yextent)
     {
@@ -4028,34 +4003,11 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
             while (x < xextent)
             {
-                sample0 = 0;
-                sample1 = 0;
-                sample2 = *(rawbuf + ((x * srcbytesperpixel) + colorplane));
-
-                abscount = 1;
-                absrem = xextent - (x + abscount);
-                sample1 = sample2;
-
-                while (absrem > 0 && abscount < maxabs)
-                {
-                    sample0 = sample1;
-                    sample1 = *(rawbuf + (((x + abscount) * srcbytesperpixel) +
-                        colorplane));
-
-                    if (sample0 == sample1)
-                    {
-                        break;
-                    }
-
-                    abscount++;
-                    absrem--;
-                }
-
                 rlecount = 1;
-                rlerem = xextent - (x + rlecount);
-                sample1 = sample2;
+                sample0 = *(rawbuf + ((x * srcbytesperpixel) + colorplane));
+                sample1 = sample0;
 
-                while (rlerem > 0 && rlecount < maxrle)
+                while ((x + rlecount) < xextent && rlecount < 0x3F)
                 {
                     sample0 = sample1;
                     sample1 = *(rawbuf + (((x + rlecount) * srcbytesperpixel) +
@@ -4067,13 +4019,12 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     }
 
                     rlecount++;
-                    rlerem--;
                 }
 
-                if (abscount >= rlecount)
-                {
-                    rlevalue = abscount;
+                rlevalue = rlecount;
 
+                if (rlecount == 1)
+                {
                     if ((0xC0 != (0xC0 & sample0)))
                     {
                         *dstbuf++ = sample0;
@@ -4089,8 +4040,6 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 }
                 else
                 {
-                    rlevalue = rlecount;
-
                     *dstbuf++ = rlevalue | 0xC0;
                     *dstbuf++ = sample0;
                     bytesencoded++;
@@ -4176,27 +4125,24 @@ GetInfoFromMemoryPCX(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
     uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
 
-    pcx_v5_info_t pcx = {};          // pcx header format
+    pcx_v5_info_t pcx = {};
 
-    pcx.identifier      = *srcbuf++;            // PCX Id number (Always 0x0A)
-    pcx.version         = *srcbuf++;            // Version number
-    pcx.encoding        = *srcbuf++;            // Encoding format
-    pcx.bitsPerPixel    = *srcbuf++;            // Bits per pixel
-    pcx.xMin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // Left of image
-    pcx.yMin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // Top of image
-    pcx.xMax            = ReadU16FromLE(srcbuf); srcbuf += 2;           // Right of image
-    pcx.yMax            = ReadU16FromLE(srcbuf); srcbuf += 2;           // Bottom of image
-    pcx.horzRes         = ReadU16FromLE(srcbuf); srcbuf += 2;           // Horizontal resolution
-    pcx.vertRes         = ReadU16FromLE(srcbuf); srcbuf += 2;           // Vertical resolution
-
-    uint8_t* egaptr = srcbuf;            // set pointer to 16-Color EGA Palette
+    pcx.identifier      = *srcbuf++;
+    pcx.version         = *srcbuf++;
+    pcx.encoding        = *srcbuf++;
+    pcx.bitsPerPixel    = *srcbuf++;
+    pcx.xMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.yMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.xMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.yMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.horzRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.vertRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
     srcbuf += 49;           // 16-Color EGA Palette + Reserved1 (Always 0)
-
-    pcx.numBitPlanes    = *srcbuf++;          // Number of bit planes
-    pcx.bytesPerLine    = ReadU16FromLE(srcbuf); srcbuf += 2;           // Bytes per scan-line
-    pcx.paletteType     = ReadU16FromLE(srcbuf); srcbuf += 2;           // Palette type
-    pcx.horzScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;           // Horizontal screen size
-    pcx.vertScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;           // Vertical screen size
+    pcx.numBitPlanes    = *srcbuf++;
+    pcx.bytesPerLine    = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.paletteType     = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.horzScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.vertScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
     srcbuf += 54;           // Reserved2 (Always 0)
 
     if (pcx.identifier != 0x0A)
@@ -8650,11 +8596,11 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
 
     if (psrcimage != NULL)
     {
+        // supported output formats
         switch (format)
         {
             case FILEFORMAT_PNG:
             {
-                // supported output formats
                 if (psrcimage->pixeltype == PIXELTYPE_RGBA
                     || psrcimage->pixeltype == PIXELTYPE_ABGR
                     || psrcimage->pixeltype == PIXELTYPE_BGRA)
@@ -8688,7 +8634,6 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             } break;
             case FILEFORMAT_BMP:
             {
-                // supported output formats
                 if (psrcimage->pixeltype == PIXELTYPE_RGBA
                     || psrcimage->pixeltype == PIXELTYPE_ABGR
                     || psrcimage->pixeltype == PIXELTYPE_BGRA)
@@ -8716,7 +8661,6 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             } break;
             case FILEFORMAT_PCX:
             {
-                // supported output formats
                 if (psrcimage->pixeltype == PIXELTYPE_RGBA
                     || psrcimage->pixeltype == PIXELTYPE_RGB
                     || psrcimage->pixeltype == PIXELTYPE_XBGR1555
@@ -8741,7 +8685,6 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             } break;
             case FILEFORMAT_TGA:
             {
-                // supported output formats
                 if (psrcimage->pixeltype == PIXELTYPE_RGBA
                     || psrcimage->pixeltype == PIXELTYPE_ABGR
                     || psrcimage->pixeltype == PIXELTYPE_BGRA)
@@ -8898,10 +8841,7 @@ SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec
 
     if (hFile != NULL && fileSize != 0)
     {
-        if (dstbuf != NULL)
-        {
-            bytesWritten = fwrite(dstbuf, sizeof(uint8_t), fileSize, hFile);
-        }
+        bytesWritten = fwrite(dstbuf, sizeof(uint8_t), fileSize, hFile);
 
         fclose(hFile);
         hFile = NULL;
@@ -9038,15 +8978,15 @@ GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
         hFile = NULL;
     }
 
-    if (fileSize == bytesRead)
+    if (fileSize == bytesRead && bytesRead != 0)
     {
         // image info
         result = GetImageInfoFromMemory(psrcinfo, rawsrc, (uint32_t)bytesRead);
-    }
 
-    free(srcbuf);
-    srcbuf = NULL;
-    rawsrc = NULL;
+        free(srcbuf);
+        srcbuf = NULL;
+        rawsrc = NULL;
+    }
 
     return result;
 }
@@ -9348,16 +9288,16 @@ LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
         hFile = NULL;
     }
 
-    if (fileSize == bytesRead)
+    if (fileSize == bytesRead && bytesRead != 0)
     {
         // load image
         result = LoadImageFromMemory(pdstimage, pdstpalette, pdstrect, rawsrc,
             (uint32_t)bytesRead, format, psrcrect, filter, colorkey, psrcinfo);
-    }
 
-    free(srcbuf);
-    srcbuf = NULL;
-    rawsrc = NULL;
+        free(srcbuf);
+        srcbuf = NULL;
+        rawsrc = NULL;
+    }
 
     return result;
 }
