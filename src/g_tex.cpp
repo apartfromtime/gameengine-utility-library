@@ -2317,7 +2317,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     uint16_t colormap_index = 0;
     uint16_t colormap_length = 0;
     uint8_t id_length = 0;
-    uint8_t colormap_type = (psrcpalette != NULL) ? 1 : 0;
+    uint8_t colormap_type = 0;
     uint8_t image_type = TGA_NO_IMAGE_DATA;
     uint8_t colormap_size = 0;
     uint8_t pixel_size = srcdepth;
@@ -2328,6 +2328,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     {
         if (psrcpalette != NULL)
         {
+            colormap_type = 1;
             colormap_length = psrcpalette->size;
             colormap_size = psrcpalette->bits;
         }
@@ -2635,18 +2636,18 @@ GetInfoFromMemoryTGA(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
     tga_file_t tgafile = {};
 
     // file struct
-    tgafile.id_length           = *srcbuf++;            // id length
-    tgafile.colormap_type       = *srcbuf++;            // colormap_type
-    tgafile.image_type          = *srcbuf++;            // image_type
-    tgafile.colormap_index      = ReadU16FromLE(srcbuf); srcbuf += 2;           // colormap_index
-    tgafile.colormap_length     = ReadU16FromLE(srcbuf); srcbuf += 2;           // colormap_length
-    tgafile.colormap_size       = *srcbuf++;          // colormap_size
-    tgafile.x_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // x_origin
-    tgafile.y_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // y_origin
-    tgafile.width               = ReadU16FromLE(srcbuf); srcbuf += 2;           // width
-    tgafile.height              = ReadU16FromLE(srcbuf); srcbuf += 2;           // height
-    tgafile.pixel_size          = *srcbuf++;            // pixel_size
-    tgafile.image_descriptor    = *srcbuf++;            // image_descriptor
+    tgafile.id_length           = *srcbuf++;
+    tgafile.colormap_type       = *srcbuf++;
+    tgafile.image_type          = *srcbuf++;
+    tgafile.colormap_index      = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.colormap_length     = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.colormap_size       = *srcbuf++;
+    tgafile.x_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.y_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.width               = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.height              = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.pixel_size          = *srcbuf++;
+    tgafile.image_descriptor    = *srcbuf++;
 
     if (tgafile.colormap_type == 1)
     {
@@ -2679,8 +2680,8 @@ GetInfoFromMemoryTGA(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
         return false;
     }
 
-    uint32_t xsize = tgafile.width;            // image width
-    uint32_t ysize = tgafile.height;           // image height
+    uint32_t xsize = tgafile.width;
+    uint32_t ysize = tgafile.height;
     uint8_t depth = tgafile.pixel_size;
     uint8_t colormap = tgafile.colormap_type;
 
@@ -2712,18 +2713,18 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     tga_file_t tgafile = {};
 
     // file struct
-    tgafile.id_length           = *srcbuf++;            // id length
-    tgafile.colormap_type       = *srcbuf++;            // colormap_type
-    tgafile.image_type          = *srcbuf++;            // image_type
-    tgafile.colormap_index      = ReadU16FromLE(srcbuf); srcbuf += 2;           // colormap_index
-    tgafile.colormap_length     = ReadU16FromLE(srcbuf); srcbuf += 2;           // colormap_length
-    tgafile.colormap_size       = *srcbuf++;          // colormap_size
-    tgafile.x_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // x_origin
-    tgafile.y_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // y_origin
-    tgafile.width               = ReadU16FromLE(srcbuf); srcbuf += 2;           // width
-    tgafile.height              = ReadU16FromLE(srcbuf); srcbuf += 2;           // height
-    tgafile.pixel_size          = *srcbuf++;            // pixel_size
-    tgafile.image_descriptor    = *srcbuf++;            // image_descriptor
+    tgafile.id_length           = *srcbuf++;
+    tgafile.colormap_type       = *srcbuf++;
+    tgafile.image_type          = *srcbuf++;
+    tgafile.colormap_index      = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.colormap_length     = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.colormap_size       = *srcbuf++;
+    tgafile.x_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.y_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.width               = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.height              = ReadU16FromLE(srcbuf); srcbuf += 2;
+    tgafile.pixel_size          = *srcbuf++;
+    tgafile.image_descriptor    = *srcbuf++;
 
     if (tgafile.pixel_size !=  8 && tgafile.pixel_size != 16 &&
         tgafile.pixel_size != 24 && tgafile.pixel_size != 32)
@@ -2940,7 +2941,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 #define BI_RGB          0L
 #define BI_RLE8         1L
 #define BI_RLE4         2L
-#define BI_BITFIELDS    3L          // introduced in version 4.0
+#define BI_BITFIELDS    3L
 #endif // #ifdef _WIN32
 
 #define BMP_IDENTIFIER          0x4D42
@@ -3444,24 +3445,24 @@ GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
     bmp_v3_info_t bmpinfo = {};
 
     // file struct
-    bmpfile.type        = ReadU16FromLE(srcbuf); srcbuf += 2;           // type - 0x4D42 = 'BM'
-    bmpfile.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // file size
-    bmpfile.reserved1   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved1
-    bmpfile.reserved2   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved2
-    bmpfile.offset      = ReadU32FromLE(srcbuf); srcbuf += 4;           // offset to data
+    bmpfile.type        = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.size        = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpfile.reserved1   = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.reserved2   = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.offset      = ReadU32FromLE(srcbuf); srcbuf += 4;
 
     // info struct
-    bmpinfo.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // info size
-    bmpinfo.width       = ReadI32FromLE(srcbuf); srcbuf += 4;           // width
-    bmpinfo.height      = ReadI32FromLE(srcbuf); srcbuf += 4;           // height
-    bmpinfo.planes      = ReadU16FromLE(srcbuf); srcbuf += 2;           // planes
-    bmpinfo.bits        = ReadU16FromLE(srcbuf); srcbuf += 2;           // bit count
-    bmpinfo.compression = ReadU32FromLE(srcbuf); srcbuf += 4;           // compression
-    bmpinfo.imagesize   = ReadU32FromLE(srcbuf); srcbuf += 4;           // imagesize
-    bmpinfo.xresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // x-resolution
-    bmpinfo.yresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // y-resolution
-    bmpinfo.num_colours = ReadU32FromLE(srcbuf); srcbuf += 4;           // num_colours
-    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;    // num_colour_indexes
+    bmpinfo.size        = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.width       = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.height      = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.planes      = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpinfo.bits        = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpinfo.compression = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.imagesize   = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.xresolution = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.yresolution = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.num_colours = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;
 
     uint32_t xsize = bmpinfo.width;
     uint32_t ysize = ABS(bmpinfo.height);
@@ -3501,24 +3502,24 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     bmp_v3_info_t bmpinfo = {};
 
     // file struct
-    bmpfile.type        = ReadU16FromLE(srcbuf); srcbuf += 2;           // type - 0x4D42 = 'BM'
-    bmpfile.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // file size
-    bmpfile.reserved1   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved1
-    bmpfile.reserved2   = ReadU16FromLE(srcbuf); srcbuf += 2;           // reserved2
-    bmpfile.offset      = ReadU32FromLE(srcbuf); srcbuf += 4;           // offset to data
+    bmpfile.type        = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.size        = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpfile.reserved1   = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.reserved2   = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpfile.offset      = ReadU32FromLE(srcbuf); srcbuf += 4;
 
     // info struct
-    bmpinfo.size        = ReadU32FromLE(srcbuf); srcbuf += 4;           // info size
-    bmpinfo.width       = ReadI32FromLE(srcbuf); srcbuf += 4;           // width
-    bmpinfo.height      = ReadI32FromLE(srcbuf); srcbuf += 4;           // height
-    bmpinfo.planes      = ReadU16FromLE(srcbuf); srcbuf += 2;           // planes
-    bmpinfo.bits        = ReadU16FromLE(srcbuf); srcbuf += 2;           // bit count
-    bmpinfo.compression = ReadU32FromLE(srcbuf); srcbuf += 4;           // compression
-    bmpinfo.imagesize   = ReadU32FromLE(srcbuf); srcbuf += 4;           // imagesize
-    bmpinfo.xresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // x-resolution
-    bmpinfo.yresolution = ReadI32FromLE(srcbuf); srcbuf += 4;           // y-resolution
-    bmpinfo.num_colours = ReadU32FromLE(srcbuf); srcbuf += 4;           // num_colours
-    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;    // num_colour_indexes
+    bmpinfo.size        = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.width       = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.height      = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.planes      = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpinfo.bits        = ReadU16FromLE(srcbuf); srcbuf += 2;
+    bmpinfo.compression = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.imagesize   = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.xresolution = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.yresolution = ReadI32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.num_colours = ReadU32FromLE(srcbuf); srcbuf += 4;
+    bmpinfo.num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;
 
     if (bmpfile.type != 0x4D42)
     {
@@ -4176,27 +4177,24 @@ GetInfoFromMemoryPCX(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
     uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
 
-    pcx_v5_info_t pcx = {};          // pcx header format
+    pcx_v5_info_t pcx = {};
 
-    pcx.identifier      = *srcbuf++;            // PCX Id number (Always 0x0A)
-    pcx.version         = *srcbuf++;            // Version number
-    pcx.encoding        = *srcbuf++;            // Encoding format
-    pcx.bitsPerPixel    = *srcbuf++;            // Bits per pixel
-    pcx.xMin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // Left of image
-    pcx.yMin            = ReadU16FromLE(srcbuf); srcbuf += 2;           // Top of image
-    pcx.xMax            = ReadU16FromLE(srcbuf); srcbuf += 2;           // Right of image
-    pcx.yMax            = ReadU16FromLE(srcbuf); srcbuf += 2;           // Bottom of image
-    pcx.horzRes         = ReadU16FromLE(srcbuf); srcbuf += 2;           // Horizontal resolution
-    pcx.vertRes         = ReadU16FromLE(srcbuf); srcbuf += 2;           // Vertical resolution
-
-    uint8_t* egaptr = srcbuf;            // set pointer to 16-Color EGA Palette
+    pcx.identifier      = *srcbuf++;
+    pcx.version         = *srcbuf++;
+    pcx.encoding        = *srcbuf++;
+    pcx.bitsPerPixel    = *srcbuf++;
+    pcx.xMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.yMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.xMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.yMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.horzRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.vertRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
     srcbuf += 49;           // 16-Color EGA Palette + Reserved1 (Always 0)
-
-    pcx.numBitPlanes    = *srcbuf++;          // Number of bit planes
-    pcx.bytesPerLine    = ReadU16FromLE(srcbuf); srcbuf += 2;           // Bytes per scan-line
-    pcx.paletteType     = ReadU16FromLE(srcbuf); srcbuf += 2;           // Palette type
-    pcx.horzScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;           // Horizontal screen size
-    pcx.vertScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;           // Vertical screen size
+    pcx.numBitPlanes    = *srcbuf++;
+    pcx.bytesPerLine    = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.paletteType     = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.horzScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
+    pcx.vertScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
     srcbuf += 54;           // Reserved2 (Always 0)
 
     if (pcx.identifier != 0x0A)
@@ -8650,11 +8648,11 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
 
     if (psrcimage != NULL)
     {
+        // supported output formats
         switch (format)
         {
             case FILEFORMAT_PNG:
             {
-                // supported output formats
                 if (psrcimage->pixeltype == PIXELTYPE_RGBA
                     || psrcimage->pixeltype == PIXELTYPE_ABGR
                     || psrcimage->pixeltype == PIXELTYPE_BGRA)
@@ -8688,7 +8686,6 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             } break;
             case FILEFORMAT_BMP:
             {
-                // supported output formats
                 if (psrcimage->pixeltype == PIXELTYPE_RGBA
                     || psrcimage->pixeltype == PIXELTYPE_ABGR
                     || psrcimage->pixeltype == PIXELTYPE_BGRA)
@@ -8716,7 +8713,6 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             } break;
             case FILEFORMAT_PCX:
             {
-                // supported output formats
                 if (psrcimage->pixeltype == PIXELTYPE_RGBA
                     || psrcimage->pixeltype == PIXELTYPE_RGB
                     || psrcimage->pixeltype == PIXELTYPE_XBGR1555
@@ -8741,7 +8737,6 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             } break;
             case FILEFORMAT_TGA:
             {
-                // supported output formats
                 if (psrcimage->pixeltype == PIXELTYPE_RGBA
                     || psrcimage->pixeltype == PIXELTYPE_ABGR
                     || psrcimage->pixeltype == PIXELTYPE_BGRA)
