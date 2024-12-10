@@ -2310,8 +2310,10 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     }
 
     // src stuff
+    uint32_t xextent = srcxsize;
+    uint32_t yextent = srcysize;
     uint32_t bytesperpixel = srcdepth >> 3;
-    uint32_t pitch = srcxsize * bytesperpixel;
+    uint32_t pitch = xextent * bytesperpixel;
     uint8_t* rawptr = psrc;
     uint8_t* rawbuf = psrc;
     uint16_t colormap_index = 0;
@@ -2390,7 +2392,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 
     uint32_t bytesencoded = 0;
     // big array for true-color images
-    uint32_t datasize = s_tga_file_size + ((srcysize * pitch) * 2) + colormap_length;
+    uint32_t datasize = s_tga_file_size + ((yextent * pitch) * 2) + colormap_length;
     uint8_t* data = (uint8_t*)malloc(datasize);
 
     if (data == NULL)
@@ -2412,10 +2414,10 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     tgafile.colormap_index = colormap_index;
     tgafile.colormap_length = colormap_length;
     tgafile.colormap_size = colormap_size;
-    tgafile.x_origin = (invertX == true ? 0 : srcxsize);
-    tgafile.y_origin = (invertY == true ? 0 : srcysize);
-    tgafile.width = srcxsize;
-    tgafile.height = srcysize;
+    tgafile.x_origin = (invertX == true ? 0 : xextent);
+    tgafile.y_origin = (invertY == true ? 0 : yextent);
+    tgafile.width = xextent;
+    tgafile.height = yextent;
     tgafile.pixel_size = pixel_size;
     tgafile.image_descriptor = image_descriptor;
 
@@ -2486,11 +2488,8 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
             uint32_t abscount = 0;
             uint32_t rlecount = 0;
             uint32_t rlevalue = 0;
-            int32_t absrem = 0;
-            int32_t rlerem = 0;
             uint32_t sample0 = 0;
             uint32_t sample1 = 0;
-            uint32_t sample2 = 0;
 
             switch (image_type)
             {
@@ -2498,28 +2497,25 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
             case TGA_MAPPED_RLE:
             case TGA_BLACK_AND_WHITE_RLE:
             {
-                while (y++ < srcysize)
+                while (y++ < yextent)
                 {
                     rawbuf = rawptr;
                     x = 0;
 
-                    while (x < srcxsize)
+                    while (x < xextent)
                     {
+                        abscount = 1;
                         sample0 = 0;
                         sample1 = 0;
-                        sample2 = 0;
-
-                        abscount = 1;
-                        absrem = srcxsize - (x + abscount);
 
                         for (size_t i = 0; i < bytesperpixel; i++)
                         {
-                            sample2 |= *(rawbuf + ((x * bytesperpixel) + i)) << (8 * i);
+                            sample0 |= *(rawbuf + ((x * bytesperpixel) + i)) << (8 * i);
                         }
 
-                        sample1 = sample2;
+                        sample1 = sample0;
 
-                        while (absrem > 0 && abscount < 0xFF)
+                        while ((x + abscount) < xextent && abscount < 0xFF)
                         {
                             sample0 = sample1;
                             sample1 = 0;
@@ -2535,15 +2531,20 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             }
 
                             abscount++;
-                            absrem--;
                         }
 
                         rlecount = 1;
-                        rlerem = srcxsize - (x + rlecount);
+                        sample0 = 0;
+                        sample1 = 0;
 
-                        sample1 = sample2;
+                        for (size_t i = 0; i < bytesperpixel; i++)
+                        {
+                            sample0 |= *(rawbuf + ((x * bytesperpixel) + i)) << (8 * i);
+                        }
 
-                        while (rlerem > 0 && rlecount < 0x80)
+                        sample1 = sample0;
+
+                        while ((x + rlecount) < xextent && rlecount < 0x80)
                         {
                             sample0 = sample1;
                             sample1 = 0;
@@ -2559,7 +2560,6 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             }
 
                             rlecount++;
-                            rlerem--;
                         }
 
                         if (abscount >= rlecount)
@@ -2595,7 +2595,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                         x += rlevalue;
                     }
 
-                    if (y != srcysize)
+                    if (y != yextent)
                     {
                         rawptr += pitch;
                     }
@@ -2605,9 +2605,9 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
         }
         else            // everything else
         {
-            memcpy(dstbuf, rawbuf, srcysize * pitch);
-            dstbuf += srcysize * pitch;
-            bytesencoded += srcysize * pitch;
+            memcpy(dstbuf, rawbuf, yextent * pitch);
+            dstbuf += yextent * pitch;
+            bytesencoded += yextent * pitch;
         }
     }
 
@@ -3151,13 +3151,8 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
             uint32_t abscount = 0;
             uint32_t rlecount = 0;
             uint32_t rlevalue = 0;
-            uint32_t maxrle = 0xFF;
-            uint32_t maxabs = 0xFF;
-            int32_t absrem = 0;
-            int32_t rlerem = 0;
             uint8_t sample0 = 0;
             uint8_t sample1 = 0;
-            uint8_t sample2 = 0;
 
             switch (dstdepth)
             {
@@ -3170,16 +3165,11 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                     while (x < xextent)
                     {
-                        rlevalue = 0;
-                        sample0 = 0;
-                        sample1 = 0;
-                        sample2 = *(rawbuf + x);
-
                         abscount = 1;
-                        absrem = xextent - (x + abscount);
-                        sample1 = sample2;
+                        sample0 = *(rawbuf + x);
+                        sample1 = sample0;
 
-                        while (absrem > 0 && abscount < maxabs)
+                        while ((x + abscount) < xextent && abscount < 0xFF)
                         {
                             sample0 = sample1;
                             sample1 = *(rawbuf + x + abscount);
@@ -3190,15 +3180,14 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             }
 
                             abscount++;
-                            absrem--;
-                            if (abscount + 1 < maxabs) { abscount++; absrem--; }
+                            if (abscount + 1 < 0xFF) { abscount++; }
                         }
 
                         rlecount = 1;
-                        rlerem = xextent - (x + rlecount);
-                        sample1 = sample2;
+                        sample0 = *(rawbuf + x);
+                        sample1 = sample0;
 
-                        while (rlerem > 0 && rlecount < maxrle)
+                        while ((x + rlecount) < xextent && rlecount < 0xFF)
                         {
                             sample0 = sample1;
                             sample1 = *(rawbuf + x + rlecount);
@@ -3209,8 +3198,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             }
 
                             rlecount++;
-                            rlerem--;
-                            if (rlecount + 1 < maxabs) { rlecount++; rlerem--; }
+                            if (rlecount + 1 < 0xFF) { rlecount++; }
                         }
 
                         if (abscount >= 3 && abscount >= rlecount)
@@ -3224,10 +3212,10 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                             for (uint32_t i = 0; i < (rlevalue >> 1); ++i)
                             {
-                                sample2 = 0;
-                                sample2 |= *(rawbuf + x + i + 0) << 4;
-                                sample2 |= *(rawbuf + x + i + 1);
-                                *dstbuf++ = sample2;
+                                sample0 = 0;
+                                sample0 |= *(rawbuf + x + i + 0) << 4;
+                                sample0 |= *(rawbuf + x + i + 1);
+                                *dstbuf++ = sample0;
                                 bytesencoded++;
                             }
 
@@ -3293,16 +3281,11 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                     while (x < xextent)
                     {
-                        rlevalue = 0;
-                        sample0 = 0;
-                        sample1 = 0;
-                        sample2 = *(rawbuf + x);
-
                         abscount = 1;
-                        absrem = xextent - (x + abscount);
-                        sample1 = sample2;
+                        sample0 = *(rawbuf + x);
+                        sample1 = sample0;
 
-                        while (absrem > 0 && abscount < maxabs)
+                        while ((x + abscount) < xextent && abscount < 0xFF)
                         {
                             sample0 = sample1;
                             sample1 = *(rawbuf + x + abscount);
@@ -3313,14 +3296,13 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             }
 
                             abscount++;
-                            absrem--;
                         }
 
                         rlecount = 1;
-                        rlerem = xextent - (x + rlecount);
-                        sample1 = sample2;
+                        sample0 = *(rawbuf + x);
+                        sample1 = sample0;
 
-                        while (rlerem > 0 && rlecount < maxrle)
+                        while ((x + rlecount) < xextent && rlecount < 0xFF)
                         {
                             sample0 = sample1;
                             sample1 = *(rawbuf + x + rlecount);
@@ -3331,7 +3313,6 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             }
 
                             rlecount++;
-                            rlerem--;
                         }
 
                         if (abscount >= 3 && abscount >= rlecount)
@@ -3414,8 +3395,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
         }
     }
 
-    datasize = s_bmp_file_size + s_bmp_v3_info_size + dstpalettesize +
-        bytesencoded;
+    datasize = s_bmp_file_size + s_bmp_v3_info_size + dstpalettesize + bytesencoded;
 
     // rewrite file struct size
     dstbuf = dstptr + 2;
@@ -3958,7 +3938,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     // total bytes per scanline required to encode pcx data
     uint32_t dsttotalbytes = colorplanes * dstpitch;
     uint32_t dstpalettesize = 0;
-    uint32_t dstpadbytes = dstpitch - srcpitch;
+    uint32_t dstpadbytes = dstpitch - (srcpitch / srcbytesperpixel);
     
     // palette
     if (srcdepth == 8 && psrcpalette != NULL)
@@ -4006,17 +3986,11 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint32_t bytesencoded = 0;
     uint32_t colorplane = 0;
     uint32_t rlecount = 0;
-    uint32_t abscount = 0;
     uint32_t rlevalue = 0;
-    uint32_t maxrle = 0x3F;
-    uint32_t maxabs = 0x01;
-    int32_t absrem = 0;
-    int32_t rlerem = 0;
     uint32_t x = 0;
     uint32_t y = 0;
     uint8_t sample0 = 0;
     uint8_t sample1 = 0;
-    uint8_t sample2 = 0;
 
     while (y++ < yextent)
     {
@@ -4029,34 +4003,11 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
             while (x < xextent)
             {
-                sample0 = 0;
-                sample1 = 0;
-                sample2 = *(rawbuf + ((x * srcbytesperpixel) + colorplane));
-
-                abscount = 1;
-                absrem = xextent - (x + abscount);
-                sample1 = sample2;
-
-                while (absrem > 0 && abscount < maxabs)
-                {
-                    sample0 = sample1;
-                    sample1 = *(rawbuf + (((x + abscount) * srcbytesperpixel) +
-                        colorplane));
-
-                    if (sample0 == sample1)
-                    {
-                        break;
-                    }
-
-                    abscount++;
-                    absrem--;
-                }
-
                 rlecount = 1;
-                rlerem = xextent - (x + rlecount);
-                sample1 = sample2;
+                sample0 = *(rawbuf + ((x * srcbytesperpixel) + colorplane));
+                sample1 = sample0;
 
-                while (rlerem > 0 && rlecount < maxrle)
+                while ((x + rlecount) < xextent && rlecount < 0x3F)
                 {
                     sample0 = sample1;
                     sample1 = *(rawbuf + (((x + rlecount) * srcbytesperpixel) +
@@ -4068,13 +4019,12 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     }
 
                     rlecount++;
-                    rlerem--;
                 }
 
-                if (abscount >= rlecount)
-                {
-                    rlevalue = abscount;
+                rlevalue = rlecount;
 
+                if (rlecount == 1)
+                {
                     if ((0xC0 != (0xC0 & sample0)))
                     {
                         *dstbuf++ = sample0;
@@ -4090,8 +4040,6 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 }
                 else
                 {
-                    rlevalue = rlecount;
-
                     *dstbuf++ = rlevalue | 0xC0;
                     *dstbuf++ = sample0;
                     bytesencoded++;
