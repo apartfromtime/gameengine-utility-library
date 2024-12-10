@@ -8893,10 +8893,7 @@ SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec
 
     if (hFile != NULL && fileSize != 0)
     {
-        if (dstbuf != NULL)
-        {
-            bytesWritten = fwrite(dstbuf, sizeof(uint8_t), fileSize, hFile);
-        }
+        bytesWritten = fwrite(dstbuf, sizeof(uint8_t), fileSize, hFile);
 
         fclose(hFile);
         hFile = NULL;
@@ -9033,15 +9030,15 @@ GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
         hFile = NULL;
     }
 
-    if (fileSize == bytesRead)
+    if (fileSize == bytesRead && bytesRead != 0)
     {
         // image info
         result = GetImageInfoFromMemory(psrcinfo, rawsrc, (uint32_t)bytesRead);
-    }
 
-    free(srcbuf);
-    srcbuf = NULL;
-    rawsrc = NULL;
+        free(srcbuf);
+        srcbuf = NULL;
+        rawsrc = NULL;
+    }
 
     return result;
 }
@@ -9343,16 +9340,16 @@ LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
         hFile = NULL;
     }
 
-    if (fileSize == bytesRead)
+    if (fileSize == bytesRead && bytesRead != 0)
     {
         // load image
         result = LoadImageFromMemory(pdstimage, pdstpalette, pdstrect, rawsrc,
             (uint32_t)bytesRead, format, psrcrect, filter, colorkey, psrcinfo);
-    }
 
-    free(srcbuf);
-    srcbuf = NULL;
-    rawsrc = NULL;
+        free(srcbuf);
+        srcbuf = NULL;
+        rawsrc = NULL;
+    }
 
     return result;
 }
