@@ -1352,6 +1352,7 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
 
 //------------------------------------------------------------------------------
 // ExpandPNG
+// TODO: de-interlaced packed types
 //------------------------------------------------------------------------------
 static void
 ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth,
@@ -9026,71 +9027,17 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             {
                 colorkey = pngcolorkey;
             }
+
+            if (depth < 8)          // load expands to 1-byte per pixel
+            {
+                depth = 8;
+            }
+
             format = FILEFORMAT_PNG;
         }
         else if ((result = LoadFromMemoryBMP(&srcimage.data, &srcpalette, psrc,
             srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true)
         {
-            if (depth < 8)          // expand packed type
-            {
-                float srcpixelsperbyte = PIXELS_PER_BYTE(depth);
-                uint32_t srcpitch = (uint32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte));
-                uint32_t runcount = 0;
-                uint32_t ppb = 0;
-                uint32_t bit = 0;
-                uint32_t x = 0;
-                uint32_t y = 0;
-
-                if (depth == 1)
-                {
-                    ppb = 8;
-                    bit = 7;
-                }
-                else if (depth == 2)
-                {
-                    ppb = 4;
-                    bit = 6;
-                }
-                else if (depth == 4)
-                {
-                    ppb = 2;
-                    bit = 4;
-                }
-
-                uint8_t* pixels = (uint8_t*)malloc(srcimage.xsize * srcimage.ysize);
-                uint8_t* pixptr = pixels;
-                uint8_t* pixbuf = pixels;
-                memset(pixels, 0, srcimage.xsize * srcimage.ysize);
-
-                uint8_t* srcbuf = srcimage.data;
-
-                while (y < srcimage.ysize)
-                {
-                    pixbuf = pixptr;
-                    runcount = ppb;
-                    x = srcimage.xsize;
-
-                    while (x > 0)
-                    {
-                        if (x < runcount) { runcount = x; }
-                        ExpandNbitsToIndex8(pixbuf, 1, *srcbuf, runcount, bit);
-                        pixbuf += runcount;
-                        srcbuf++;
-                        x -= runcount;
-                    }
-                    y++;
-
-                    if (y != srcimage.ysize)
-                    {
-                        pixptr += srcimage.xsize;
-                    }
-                }
-
-                free(srcimage.data);
-                srcimage.data = pixels;
-                depth = 8;
-            }
-
             srcimage.pixeltype = (depth == 32) ? PIXELTYPE_BGRA :
                 (depth == 24) ? PIXELTYPE_BGR : PIXELTYPE_COLOUR_INDEX;
             format = FILEFORMAT_BMP;
@@ -9098,66 +9045,6 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         else if ((result = LoadFromMemoryPCX(&srcimage.data, &srcpalette, psrc,
             srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true)
         {
-            if (depth < 8)          // expand packed type
-            {
-                float srcpixelsperbyte = PIXELS_PER_BYTE(depth);
-                uint32_t srcpitch = (uint32_t)(ceilf((float)(srcimage.xsize) / srcpixelsperbyte));
-                uint32_t runcount = 0;
-                uint32_t ppb = 0;
-                uint32_t bit = 0;
-                uint32_t x = 0;
-                uint32_t y = 0;
-
-                if (depth == 1)
-                {
-                    ppb = 8;
-                    bit = 7;
-                }
-                else if (depth == 2)
-                {
-                    ppb = 4;
-                    bit = 6;
-                }
-                else if (depth == 4)
-                {
-                    ppb = 2;
-                    bit = 4;
-                }
-
-                uint8_t* pixels = (uint8_t*)malloc(srcimage.xsize * srcimage.ysize);
-                uint8_t* pixptr = pixels;
-                uint8_t* pixbuf = pixels;
-                memset(pixels, 0, srcimage.xsize * srcimage.ysize);
-
-                uint8_t* srcbuf = srcimage.data;
-
-                while (y < srcimage.ysize)
-                {
-                    pixbuf = pixptr;
-                    runcount = ppb;
-                    x = srcimage.xsize;
-
-                    while (x > 0)
-                    {
-                        if (x < runcount) { runcount = x; }
-                        ExpandNbitsToIndex8(pixbuf, 1, *srcbuf, runcount, bit);
-                        pixbuf += runcount;
-                        srcbuf++;
-                        x -= runcount;
-                    }
-                    y++;
-
-                    if (y != srcimage.ysize)
-                    {
-                        pixptr += srcimage.xsize;
-                    }
-                }
-
-                free(srcimage.data);
-                srcimage.data = pixels;
-                depth = 8;
-            }
-
             srcimage.pixeltype = (depth <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;
             format = FILEFORMAT_PCX;
         }
@@ -9180,6 +9067,48 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             psrcinfo->pixeltype = srcimage.pixeltype;
             psrcinfo->depth = depth;
             psrcinfo->fileformat = format;
+        }
+
+        // expand packed type
+        if ((format == FILEFORMAT_BMP || format == FILEFORMAT_PCX) && depth < 8)
+        {
+            uint32_t runcount = 0;
+            uint32_t x = 0;
+            uint32_t y = 0;
+            uint8_t* pixels = (uint8_t*)malloc(srcimage.xsize * srcimage.ysize);
+            uint8_t* pixptr = pixels;
+            uint8_t* pixbuf = pixels;
+            uint8_t* srcbuf = srcimage.data;
+            uint8_t ppb = PIXELS_PER_BYTE(depth);
+            uint8_t bit = bit = 8 - depth;
+
+            memset(pixels, 0, srcimage.xsize * srcimage.ysize);
+
+            while (y < srcimage.ysize)
+            {
+                pixbuf = pixptr;
+                runcount = ppb;
+                x = srcimage.xsize;
+
+                while (x > 0)
+                {
+                    if (x < runcount) { runcount = x; }
+                    ExpandNbitsToIndex8(pixbuf, 1, *srcbuf, runcount, bit);
+                    pixbuf += runcount;
+                    srcbuf++;
+                    x -= runcount;
+                }
+                y++;
+
+                if (y != srcimage.ysize)
+                {
+                    pixptr += srcimage.xsize;
+                }
+            }
+
+            free(srcimage.data);
+            srcimage.data = pixels;
+            depth = 8;
         }
 
         // convert to format and filter
