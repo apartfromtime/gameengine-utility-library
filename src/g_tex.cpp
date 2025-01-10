@@ -8472,17 +8472,23 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolorkey,
     else if (image->pixeltype == PIXELTYPE_LUMINANCE_ALPHA)
     {
         pitch = xsize * 2;
+
+        uint8_t dstC = (uint8_t)(dstcolorkey.r * 0.2990f + dstcolorkey.g * 0.5870f + dstcolorkey.b * 0.1140f);
+        uint8_t srcC = (uint8_t)(srccolorkey.r * 0.2990f + srccolorkey.g * 0.5870f + srccolorkey.b * 0.1140f);
+        uint8_t dstA = dstcolorkey.a;
+        uint8_t srcA = srccolorkey.a;
+
         while (y < ysize)
         {
             bufdst = rawsrc;
             x = 0;
             while (x < xsize)
             {
-                if (bufdst[x*2+0] == srccolorkey.r &&
-                    bufdst[x*2+1] == srccolorkey.a)
+                if (bufdst[x*2+0] == srcC &&
+                    bufdst[x*2+1] == srcA)
                 {
-                    bufdst[x*2+0] = dstcolorkey.r;
-                    bufdst[x*2+1] = dstcolorkey.a;
+                    bufdst[x*2+0] = dstC;
+                    bufdst[x*2+1] = dstA;
                 }
                 x++;
             }
@@ -8496,16 +8502,20 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolorkey,
     }
     else if (image->pixeltype == PIXELTYPE_LUMINANCE)
     {
-        pitch = xsize * 1;
+        pitch = xsize;
+
+        uint8_t dstC = (uint8_t)(dstcolorkey.r * 0.2990f + dstcolorkey.g * 0.5870f + dstcolorkey.b * 0.1140f);
+        uint8_t srcC = (uint8_t)(srccolorkey.r * 0.2990f + srccolorkey.g * 0.5870f + srccolorkey.b * 0.1140f);
+
         while (y < ysize)
         {
             bufdst = rawsrc;
             x = 0;
             while (x < xsize)
             {
-                if (bufdst[x] == srccolorkey.r)
+                if (bufdst[x] == srcC)
                 {
-                    bufdst[x] = dstcolorkey.r;
+                    bufdst[x] = dstC;
                 }
                 x++;
             }
@@ -8524,7 +8534,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolorkey,
             return;
         }
 
-        pitch = xsize * 1;
+        pitch = xsize;
         int32_t dstcolorindex = -1;
         int32_t srccolorindex = -1;
 
