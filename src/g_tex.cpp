@@ -8267,8 +8267,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
 // ReplaceColor
 //-----------------------------------------------------------------------------
 static void
-ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolorkey,
-    rgba_t srccolorkey)
+ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolor, rgba_t srccolor)
 {
     uint8_t* rawsrc = NULL;
     uint8_t* bufdst = NULL;
@@ -8278,6 +8277,7 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolorkey,
     uint32_t pitch = 0;
     uint32_t x = 0;
     uint32_t y = 0;
+    uint8_t bytesperpixel = 0;
 
     if (image == NULL)
     {
@@ -8293,297 +8293,151 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolorkey,
     xsize = image->xsize;
     ysize = image->ysize;
 
-    if (image->pixeltype == PIXELTYPE_RGBA)
+    uint32_t dstC = 0;
+    uint32_t srcC = 0;
+
+    switch (image->pixeltype)
+    {
+    case PIXELTYPE_RGBA:
     {
         pitch = xsize * 4;
-        while (y < ysize)
-        {
-            bufdst = rawsrc;
-            x = 0;
-            while (x < xsize)
-            {
-                if (bufdst[x*4+0] == srccolorkey.r &&
-                    bufdst[x*4+1] == srccolorkey.g &&
-                    bufdst[x*4+2] == srccolorkey.b &&
-                    bufdst[x*4+3] == srccolorkey.a)
-                {
-                    bufdst[x*4+0] = dstcolorkey.r;
-                    bufdst[x*4+1] = dstcolorkey.g;
-                    bufdst[x*4+2] = dstcolorkey.b;
-                    bufdst[x*4+3] = dstcolorkey.a;
-                }
-                x++;
-            }
-            y++;
-
-            if (y != ysize)
-            {
-                rawsrc += pitch;
-            }
-        }
-    }
-    else if (image->pixeltype == PIXELTYPE_RGB)
+        bytesperpixel = 4;
+        dstC = dstcolor.a << 24 + dstcolor.b << 16 + dstcolor.g << 8 + dstcolor.r;
+        srcC = srccolor.a << 24 + srccolor.b << 16 + srccolor.g << 8 + srccolor.r;
+    } break;
+    case PIXELTYPE_ABGR:
+    {
+        pitch = xsize * 4;
+        bytesperpixel = 4;
+        dstC = dstcolor.r << 24 + dstcolor.g << 16 + dstcolor.b << 8 + dstcolor.a;
+        srcC = srccolor.r << 24 + srccolor.g << 16 + srccolor.b << 8 + srccolor.a;
+    } break;
+    case PIXELTYPE_BGRA:
+    {
+        pitch = xsize * 4;
+        bytesperpixel = 4;
+        dstC = dstcolor.a << 24 + dstcolor.r << 16 + dstcolor.g << 8 + dstcolor.b;
+        srcC = srccolor.a << 24 + srccolor.r << 16 + srccolor.g << 8 + srccolor.b;
+    } break;
+    case PIXELTYPE_RGB:
     {
         pitch = xsize * 3;
-        while (y < ysize)
-        {
-            bufdst = rawsrc;
-            x = 0;
-            while (x < xsize)
-            {
-                if (bufdst[x*3+0] == srccolorkey.r &&
-                    bufdst[x*3+1] == srccolorkey.g &&
-                    bufdst[x*3+2] == srccolorkey.b)
-                {
-                    bufdst[x*3+0] = dstcolorkey.r;
-                    bufdst[x*3+1] = dstcolorkey.g;
-                    bufdst[x*3+2] = dstcolorkey.b;
-                }
-                x++;
-            }
-            y++;
-
-            if (y != ysize)
-            {
-                rawsrc += pitch;
-            }
-        }
-    }
-    else if (image->pixeltype == PIXELTYPE_ABGR)
-    {
-        pitch = xsize * 4;
-        while (y < ysize)
-        {
-            bufdst = rawsrc;
-            x = 0;
-            while (x < xsize)
-            {
-                if (bufdst[x*4+0] == srccolorkey.a &&
-                    bufdst[x*4+1] == srccolorkey.b &&
-                    bufdst[x*4+2] == srccolorkey.g &&
-                    bufdst[x*4+3] == srccolorkey.r)
-                {
-                    bufdst[x*4+0] = dstcolorkey.a;
-                    bufdst[x*4+1] = dstcolorkey.b;
-                    bufdst[x*4+2] = dstcolorkey.g;
-                    bufdst[x*4+3] = dstcolorkey.r;
-                }
-                x++;
-            }
-            y++;
-
-            if (y != ysize)
-            {
-                rawsrc += pitch;
-            }
-        }
-    }
-    else if (image->pixeltype == PIXELTYPE_BGRA)
-    {
-        pitch = xsize * 4;
-        while (y < ysize)
-        {
-            bufdst = rawsrc;
-            x = 0;
-            while (x < xsize)
-            {
-                if (bufdst[x*4+0] == srccolorkey.b &&
-                    bufdst[x*4+1] == srccolorkey.g &&
-                    bufdst[x*4+2] == srccolorkey.r &&
-                    bufdst[x*4+3] == srccolorkey.a)
-                {
-                    bufdst[x*4+0] = dstcolorkey.b;
-                    bufdst[x*4+1] = dstcolorkey.g;
-                    bufdst[x*4+2] = dstcolorkey.r;
-                    bufdst[x*4+3] = dstcolorkey.a;
-                }
-                x++;
-            }
-            y++;
-
-            if (y != ysize)
-            {
-                rawsrc += pitch;
-            }
-        }
-    }
-    else if (image->pixeltype == PIXELTYPE_BGR)
+        bytesperpixel = 3;
+        dstC = dstcolor.b << 16 + dstcolor.g << 8 + dstcolor.r;
+        srcC = srccolor.b << 16 + srccolor.g << 8 + srccolor.r;
+    } break;
+    case PIXELTYPE_BGR:
     {
         pitch = xsize * 3;
-        while (y < ysize)
-        {
-            bufdst = rawsrc;
-            x = 0;
-            while (x < xsize)
-            {
-                if (bufdst[x*3+0] == srccolorkey.b &&
-                    bufdst[x*3+1] == srccolorkey.g &&
-                    bufdst[x*3+2] == srccolorkey.r)
-                {
-                    bufdst[x*3+0] = dstcolorkey.b;
-                    bufdst[x*3+1] = dstcolorkey.g;
-                    bufdst[x*3+2] = dstcolorkey.r;
-                }
-                x++;
-            }
-            y++;
-
-            if (y != ysize)
-            {
-                rawsrc += pitch;
-            }
-        }
-    }
-    else if (image->pixeltype == PIXELTYPE_XBGR1555)
+        bytesperpixel = 3;
+        dstC = dstcolor.r << 16 + dstcolor.g << 8 + dstcolor.b;
+        srcC = srccolor.r << 16 + srccolor.g << 8 + srccolor.b;
+    } break;
+    case PIXELTYPE_XBGR1555:
     {
         pitch = xsize * 2;
-        uint8_t r0 = (dstcolorkey.r * 0x1F) / 0xFF;
-        uint8_t g0 = (dstcolorkey.g * 0x1F) / 0xFF;
-        uint8_t b0 = (dstcolorkey.b * 0x1F) / 0xFF;
-        uint8_t r1 = (srccolorkey.r * 0x1F) / 0xFF;
-        uint8_t g1 = (srccolorkey.g * 0x1F) / 0xFF;
-        uint8_t b1 = (srccolorkey.b * 0x1F) / 0xFF;
-        uint16_t dstcolor = ((r0 & 0xFF) << 10) | ((g0 & 0xFF) << 5) | (b0 & 0xFF);
-        uint16_t srccolor = ((r1 & 0xFF) << 10) | ((g1 & 0xFF) << 5) | (b1 & 0xFF);
-
-        while (y < ysize)
-        {
-            bufdst = rawsrc;
-            x = 0;
-            while (x < xsize)
-            {                
-                if (bufdst[x*2+0] == (srccolor & 0x00FF) &&
-                    bufdst[x*2+1] == (srccolor & 0xFF00) >> 8)
-                {
-
-                    bufdst[x*2+0] = (dstcolor & 0x00FF);
-                    bufdst[x*2+1] = (dstcolor & 0xFF00) >> 8;
-                }
-                x++;
-            }
-            y++;
-
-            if (y != ysize)
-            {
-                rawsrc += pitch;
-            }
-        }
-    }
-    else if (image->pixeltype == PIXELTYPE_LUMINANCE_ALPHA)
+        bytesperpixel = 2;
+        uint8_t r0 = (dstcolor.r * 0x1F) / 0xFF;
+        uint8_t g0 = (dstcolor.g * 0x1F) / 0xFF;
+        uint8_t b0 = (dstcolor.b * 0x1F) / 0xFF;
+        uint8_t r1 = (srccolor.r * 0x1F) / 0xFF;
+        uint8_t g1 = (srccolor.g * 0x1F) / 0xFF;
+        uint8_t b1 = (srccolor.b * 0x1F) / 0xFF;
+        dstC = ((r0 & 0xFF) << 10) | ((g0 & 0xFF) << 5) | (b0 & 0xFF);
+        srcC = ((r1 & 0xFF) << 10) | ((g1 & 0xFF) << 5) | (b1 & 0xFF);
+    } break;
+    case PIXELTYPE_LUMINANCE_ALPHA:
     {
         pitch = xsize * 2;
+        bytesperpixel = 2;
+        dstC = (uint8_t)(dstcolor.r * 0.2990f + dstcolor.g * 0.5870f +
+            dstcolor.b * 0.1140f) << 8 + dstcolor.a;
+        srcC = (uint8_t)(srccolor.r * 0.2990f + srccolor.g * 0.5870f +
+            srccolor.b * 0.1140f) << 8 + srccolor.a;
+    } break;
+    case PIXELTYPE_LUMINANCE:
+    {
+        pitch = xsize * 1;
+        bytesperpixel = 1;
+        dstC = (uint8_t)(dstcolor.r * 0.2990f + dstcolor.g * 0.5870f +
+            dstcolor.b * 0.1140f);
+        srcC = (uint8_t)(srccolor.r * 0.2990f + srccolor.g * 0.5870f +
+            srccolor.b * 0.1140f);
+    } break;
+    case PIXELTYPE_COLOUR_INDEX:
+    {
+        pitch = xsize * 1;
+        bytesperpixel = 1;
 
-        uint8_t dstC = (uint8_t)(dstcolorkey.r * 0.2990f + dstcolorkey.g * 0.5870f + dstcolorkey.b * 0.1140f);
-        uint8_t srcC = (uint8_t)(srccolorkey.r * 0.2990f + srccolorkey.g * 0.5870f + srccolorkey.b * 0.1140f);
-        uint8_t dstA = dstcolorkey.a;
-        uint8_t srcA = srccolorkey.a;
+        int32_t dstindex = -1;
+        int32_t srcindex = -1;
 
-        while (y < ysize)
+        for (uint32_t i = 0; i < ppalette->size; ++i)
         {
-            bufdst = rawsrc;
-            x = 0;
-            while (x < xsize)
+            if (ppalette->data[i].r == dstcolor.r &&
+                ppalette->data[i].g == dstcolor.g &&
+                ppalette->data[i].b == dstcolor.b &&
+                ppalette->data[i].a == dstcolor.a)
             {
-                if (bufdst[x*2+0] == srcC &&
-                    bufdst[x*2+1] == srcA)
-                {
-                    bufdst[x*2+0] = dstC;
-                    bufdst[x*2+1] = dstA;
-                }
-                x++;
-            }
-            y++;
-
-            if (y != ysize)
-            {
-                rawsrc += pitch;
+                dstindex = i;
+                break;
             }
         }
-    }
-    else if (image->pixeltype == PIXELTYPE_LUMINANCE)
-    {
-        pitch = xsize;
 
-        uint8_t dstC = (uint8_t)(dstcolorkey.r * 0.2990f + dstcolorkey.g * 0.5870f + dstcolorkey.b * 0.1140f);
-        uint8_t srcC = (uint8_t)(srccolorkey.r * 0.2990f + srccolorkey.g * 0.5870f + srccolorkey.b * 0.1140f);
-
-        while (y < ysize)
+        for (uint32_t i = 0; i < ppalette->size; ++i)
         {
-            bufdst = rawsrc;
-            x = 0;
-            while (x < xsize)
+            if (ppalette->data[i].r == srccolor.r &&
+                ppalette->data[i].g == srccolor.g &&
+                ppalette->data[i].b == srccolor.b &&
+                ppalette->data[i].a == srccolor.a)
             {
-                if (bufdst[x] == srcC)
-                {
-                    bufdst[x] = dstC;
-                }
-                x++;
-            }
-            y++;
-
-            if (y != ysize)
-            {
-                rawsrc += pitch;
+                srcindex = i;
+                break;
             }
         }
-    }
-    else if (image->pixeltype == PIXELTYPE_COLOUR_INDEX)
-    {
-        if (ppalette == NULL)
+
+        if (dstindex == -1 || srcindex == -1 || ppalette == NULL)
         {
             return;
         }
 
-        pitch = xsize;
-        int32_t dstcolorindex = -1;
-        int32_t srccolorindex = -1;
+        dstC = dstindex;
+        srcC = srcindex;
+    } break;
+    }
 
-        for (uint32_t i = 0; i < ppalette->size; ++i)
+    uint32_t sample = 0;
+
+    while (y < ysize)
+    {
+        bufdst = rawsrc;
+        x = 0;
+        
+        while (x < xsize)
         {
-            if (ppalette->data[i].r == dstcolorkey.r &&
-                ppalette->data[i].g == dstcolorkey.g &&
-                ppalette->data[i].b == dstcolorkey.b &&
-                ppalette->data[i].a == dstcolorkey.a)
+            sample = 0;
+
+            for (size_t i = 0; i < bytesperpixel; i++)
             {
-                dstcolorindex = i;
-                break;
+                sample |= *(bufdst + ((x * bytesperpixel) + i)) << (8 * i);
             }
-        }
 
-        for (uint32_t i = 0; i < ppalette->size; ++i)
-        {
-            if (ppalette->data[i].r == srccolorkey.r &&
-                ppalette->data[i].g == srccolorkey.g &&
-                ppalette->data[i].b == srccolorkey.b &&
-                ppalette->data[i].a == srccolorkey.a)
+            if (sample == srcC)
             {
-                srccolorindex = i;
-                break;
-            }
-        }
-
-        if ((dstcolorindex != srccolorindex) && dstcolorindex != -1 &&
-            srccolorindex != -1)
-        {
-            while (y < ysize)
-            {
-                bufdst = rawsrc;
-                x = 0;
-                while (x < xsize)
+                for (size_t i = 0; i < bytesperpixel; i++)
                 {
-                    if (bufdst[x] == srccolorindex)
-                    {
-                        bufdst[x] = dstcolorindex;
-                    }
-                    x++;
-                }
-                y++;
-
-                if (y != ysize)
-                {
-                    rawsrc += pitch;
+                    *bufdst++ = (dstC >> (8 * i)) & 0xFF;
                 }
             }
+
+            x++;
+        }
+
+        y++;
+
+        if (y != ysize)
+        {
+            rawsrc += pitch;
         }
     }
 }
