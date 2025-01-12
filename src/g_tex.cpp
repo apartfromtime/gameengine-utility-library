@@ -39,8 +39,9 @@ static unsigned char s_bitmask[8] = { 0, 0, 0, 0, 0x0F, 0, 0x03, 0x01 };
 //-----------------------------------------------------------------------------
 // Shrink 8-bits per index to N-pixels per byte
 //-----------------------------------------------------------------------------
-void ShrinkIndex8ToNbits(uint8_t* pdst, uint8_t* psrc, uint32_t srcskip,
-    uint8_t count, uint8_t bitstart)
+static void
+ShrinkIndex8ToNbits(uint8_t* pdst, uint8_t* psrc, uint32_t srcskip, uint8_t count,
+    uint8_t bitstart)
 {
     uint8_t srcofs = 0;
     uint8_t dstofs = bitstart;
@@ -66,8 +67,9 @@ void ShrinkIndex8ToNbits(uint8_t* pdst, uint8_t* psrc, uint32_t srcskip,
 //-----------------------------------------------------------------------------
 // Expand N-pixels per byte to 8-bits per index
 //-----------------------------------------------------------------------------
-void ExpandNbitsToIndex8(uint8_t* pdst, uint32_t dstskip, uint8_t sample,
-    uint8_t count, uint8_t bitstart)
+static void
+ExpandNbitsToIndex8(uint8_t* pdst, uint32_t dstskip, uint8_t sample, uint8_t count,
+    uint8_t bitstart)
 {
     uint8_t dstofs = 0;
     uint8_t srcofs = bitstart;
@@ -185,7 +187,8 @@ static const unsigned long s_crc_table[256] = {
 // is the 1's complement of the final running CRC (see the
 // crc() routine below)).
 //------------------------------------------------------------------------------
-unsigned long UpdateCrc(unsigned long crc, unsigned char* buf, int len)
+static unsigned long
+UpdateCrc(unsigned long crc, unsigned char* buf, int len)
 {
     unsigned long c = crc;
 
@@ -200,7 +203,8 @@ unsigned long UpdateCrc(unsigned long crc, unsigned char* buf, int len)
 //------------------------------------------------------------------------------
 // Return the CRC of the bytes buf[0..len-1].
 //------------------------------------------------------------------------------
-unsigned long Crc(unsigned char* buf, int len)
+static unsigned long
+Crc(unsigned char* buf, int len)
 {
     return UpdateCrc(0xFFFFFFFFL, buf, len) ^ 0xFFFFFFFFL;
 }
