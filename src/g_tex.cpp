@@ -8306,36 +8306,36 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolor, rgba_t srccol
     {
         pitch = xsize * 4;
         bytesperpixel = 4;
-        dstC = dstcolor.a << 24 + dstcolor.b << 16 + dstcolor.g << 8 + dstcolor.r;
-        srcC = srccolor.a << 24 + srccolor.b << 16 + srccolor.g << 8 + srccolor.r;
+        dstC = (dstcolor.a << 24) + (dstcolor.b << 16) + (dstcolor.g << 8) + dstcolor.r;
+        srcC = (srccolor.a << 24) + (srccolor.b << 16) + (srccolor.g << 8) + srccolor.r;
     } break;
     case PIXELTYPE_ABGR:
     {
         pitch = xsize * 4;
         bytesperpixel = 4;
-        dstC = dstcolor.r << 24 + dstcolor.g << 16 + dstcolor.b << 8 + dstcolor.a;
-        srcC = srccolor.r << 24 + srccolor.g << 16 + srccolor.b << 8 + srccolor.a;
+        dstC = (dstcolor.r << 24) + (dstcolor.g << 16) + (dstcolor.b << 8) + dstcolor.a;
+        srcC = (srccolor.r << 24) + (srccolor.g << 16) + (srccolor.b << 8) + srccolor.a;
     } break;
     case PIXELTYPE_BGRA:
     {
         pitch = xsize * 4;
         bytesperpixel = 4;
-        dstC = dstcolor.a << 24 + dstcolor.r << 16 + dstcolor.g << 8 + dstcolor.b;
-        srcC = srccolor.a << 24 + srccolor.r << 16 + srccolor.g << 8 + srccolor.b;
+        dstC = (dstcolor.a << 24) + (dstcolor.r << 16) + (dstcolor.g << 8) + dstcolor.b;
+        srcC = (srccolor.a << 24) + (srccolor.r << 16) + (srccolor.g << 8) + srccolor.b;
     } break;
     case PIXELTYPE_RGB:
     {
         pitch = xsize * 3;
         bytesperpixel = 3;
-        dstC = dstcolor.b << 16 + dstcolor.g << 8 + dstcolor.r;
-        srcC = srccolor.b << 16 + srccolor.g << 8 + srccolor.r;
+        dstC = (dstcolor.b << 16) + (dstcolor.g << 8) + dstcolor.r;
+        srcC = (srccolor.b << 16) + (srccolor.g << 8) + srccolor.r;
     } break;
     case PIXELTYPE_BGR:
     {
         pitch = xsize * 3;
         bytesperpixel = 3;
-        dstC = dstcolor.r << 16 + dstcolor.g << 8 + dstcolor.b;
-        srcC = srccolor.r << 16 + srccolor.g << 8 + srccolor.b;
+        dstC = (dstcolor.r << 16) + (dstcolor.g << 8) + dstcolor.b;
+        srcC = (srccolor.r << 16) + (srccolor.g << 8) + srccolor.b;
     } break;
     case PIXELTYPE_XBGR1555:
     {
@@ -8354,10 +8354,10 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolor, rgba_t srccol
     {
         pitch = xsize * 2;
         bytesperpixel = 2;
-        dstC = (uint8_t)(dstcolor.r * 0.2990f + dstcolor.g * 0.5870f +
-            dstcolor.b * 0.1140f) << 8 + dstcolor.a;
-        srcC = (uint8_t)(srccolor.r * 0.2990f + srccolor.g * 0.5870f +
-            srccolor.b * 0.1140f) << 8 + srccolor.a;
+        dstC = ((uint8_t)(dstcolor.r * 0.2990f + dstcolor.g * 0.5870f +
+            dstcolor.b * 0.1140f) << 8) + dstcolor.a;
+        srcC = ((uint8_t)(srccolor.r * 0.2990f + srccolor.g * 0.5870f +
+            srccolor.b * 0.1140f) << 8) + srccolor.a;
     } break;
     case PIXELTYPE_LUMINANCE:
     {
