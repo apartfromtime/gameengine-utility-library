@@ -8944,7 +8944,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             uint8_t* pixbuf = pixels;
             uint8_t* srcbuf = srcimage.data;
             uint8_t ppb = PIXELS_PER_BYTE(depth);
-            uint8_t bit = bit = 8 - depth;
+            uint8_t bit = 8 - depth;
 
             memset(pixels, 0, srcimage.xsize * srcimage.ysize);
 
