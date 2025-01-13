@@ -3311,10 +3311,58 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
             } break;
             case 8:         // 8-bit encoding
             {
-                while (y++ < yextent)
+                while (y < yextent)
                 {
                     rawbuf = rawptr;
                     x = 0;
+
+                    if (*rawbuf == colorkey)
+                    {
+                        uint32_t count = 0;
+
+                        while (count < xextent * (yextent - y))
+                        {
+                            if (*(rawbuf + count) != colorkey)
+                            {
+                                break;
+                            }
+
+                            count++;
+                        }
+
+                        if (count >= xextent)
+                        {
+                            uint32_t dx = 0;
+                            uint32_t dy = 0;
+
+                            while (count >= xextent)
+                            {
+                                count -= xextent;
+                                dy++;
+                            }
+
+                            dx = count;
+
+                            y += dy;
+                            x += dx;
+
+                            *dstbuf++ = 0x00;
+                            *dstbuf++ = 0x02;
+                            *dstbuf++ = dx;
+                            *dstbuf++ = dy;
+
+                            bytesencoded++;
+                            bytesencoded++;
+                            bytesencoded++;
+                            bytesencoded++;
+
+                            if (y != yextent)
+                            {
+                                rawptr = psrc + (y * srcpitch);
+                                rawbuf = rawptr + x;
+                            }
+                        }
+                    }
 
                     while (x < xextent)
                     {
@@ -3401,6 +3449,8 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                     *dstbuf++ = 0x00;
                     bytesencoded++;
                     bytesencoded++;
+
+                    y++;
 
                     if (y != yextent)
                     {
