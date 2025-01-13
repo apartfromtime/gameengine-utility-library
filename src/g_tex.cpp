@@ -2980,9 +2980,6 @@ static const uint32_t s_bmp_v3_info_size = 40;
 
 //------------------------------------------------------------------------------
 // SaveBMP
-// 
-// FIXME: For run-length encoding depth 4 pixels should be in unpacked index
-// format.
 //------------------------------------------------------------------------------
 static bool
 SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
@@ -3048,13 +3045,6 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     uint32_t srcpitch = (uint32_t)(ceilf((float)(xextent) / srcpixelsperbyte));
     uint8_t* rawptr = psrc;
     uint8_t* rawbuf = psrc;
-
-    // FIXME: override srcpitch calculation
-    if (compression == BI_RLE4)
-    {
-        srcpitch = xextent;
-    }
-
     uint32_t padbytes = dstpitch - srcpitch;
 
     // big array for true-color images
@@ -3163,47 +3153,89 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
             {
             case 4:         // 4-bit encoding
             {
+                uint8_t sample = 0;
+                uint8_t bit = 0;
+
                 while (y++ < yextent)
                 {
                     rawbuf = rawptr;
+                    bit = 4;
                     x = 0;
 
                     while (x < xextent)
                     {
-                        abscount = 1;
-                        sample0 = *(rawbuf + x);
-                        sample1 = sample0;
+                        bit = 4;
+                        abscount = 0;
+                        sample = *(rawbuf + x);
+                        sample0 = sample;
+                        sample1 = 0;
 
                         while ((x + abscount) < xextent && abscount < 0xFF)
                         {
-                            sample0 = sample1;
-                            sample1 = *(rawbuf + x + abscount);
-
-                            if (sample0 == sample1)
+                            if (((x + abscount) & 1) == 0)
                             {
-                                break;
+                                sample = *(rawbuf + x + abscount);
+                                sample0 = sample1;
+                                sample1 = 0;
                             }
 
-                            abscount++;
+                            int d1 = sample & 0xF;
+                            int d0 = sample >> 4;
+
+                            if (((x + abscount) & 1) == 0) {
+                                sample1 |= d0 << bit;
+                            }
+                            if (((x + abscount) & 1) == 1) {
+                                sample1 |= d1 << bit;
+                            }
+
+                            bit ^= 4;
                             if (abscount + 1 < 0xFF) { abscount++; }
+
+                            if ((abscount & 1) == 0)
+                            {
+                                if (sample0 == sample1)
+                                {
+                                    break;
+                                }
+                            }
                         }
 
-                        rlecount = 1;
-                        sample0 = *(rawbuf + x);
-                        sample1 = sample0;
+                        bit = 4;
+                        rlecount = 0;
+                        sample = *(rawbuf + x);
+                        sample0 = sample;
+                        sample1 = 0;
 
                         while ((x + rlecount) < xextent && rlecount < 0xFF)
                         {
-                            sample0 = sample1;
-                            sample1 = *(rawbuf + x + rlecount);
-
-                            if (sample0 != sample1)
+                            if (((x + rlecount) & 1) == 0)
                             {
-                                break;
+                                sample = *(rawbuf + x + rlecount);
+                                sample0 = sample1;
+                                sample1 = 0;
                             }
 
-                            rlecount++;
+                            int d1 = sample & 0xF;
+                            int d0 = sample >> 4;
+
+                            if (((x + rlecount) & 1) == 0) {
+                                sample1 |= d0 << bit;
+                            }
+                            if (((x + rlecount) & 1) == 1) {
+                                sample1 |= d1 << bit;
+                            }
+
+                            bit ^= 4;
                             if (rlecount + 1 < 0xFF) { rlecount++; }
+
+                            if ((rlecount & 1) == 0)
+                            {
+                                if (sample0 != sample1)
+                                {
+                                    break;
+                                }
+                            }
                         }
 
                         if (abscount >= 3 && abscount >= rlecount)
@@ -3225,7 +3257,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             }
 
                             // pad-byte
-                            if ((rlecount & 1))
+                            if ((rlevalue & 1))
                             {
                                 *dstbuf++ = 0x00;
                                 bytesencoded++;
