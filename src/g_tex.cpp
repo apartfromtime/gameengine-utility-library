@@ -3245,6 +3245,18 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
 
                         if (abscount >= 3 && abscount >= rlecount)
                         {
+                            for (uint32_t i = 0; i < abscount; i++)
+                            {
+                                if (*(rawbuf + x + i) == colorkey)
+                                {
+                                    abscount = i;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (abscount >= 3 && abscount >= rlecount)
+                        {
                             rlevalue = abscount;
 
                             *dstbuf++ = 0x00;
