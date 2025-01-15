@@ -3040,6 +3040,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     // src stuff
     float srcpixelsperbyte = PIXELS_PER_BYTE(srcdepth);
     uint32_t srcpitch = (uint32_t)(ceilf((float)(xextent) / srcpixelsperbyte));
+    uint8_t* rawsrc = psrc;
     uint8_t* rawptr = psrc;
     uint8_t* rawbuf = psrc;
     uint32_t padbytes = dstpitch - srcpitch;
@@ -3150,10 +3151,51 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
             {
             case 4:         // 4-bit encoding
             {
-                // TODO:
-            } break;
+                uint32_t runcount = 0;
+                x = 0;
+                y = 0;
+                uint8_t* pixels = (uint8_t*)malloc(srcxsize * srcysize);
+                uint8_t* pixptr = pixels;
+                uint8_t* pixbuf = pixels;
+                uint8_t* srcbuf = rawbuf;
+                uint8_t ppb = PIXELS_PER_BYTE(srcdepth);
+                uint8_t bit = 8 - srcdepth;
+
+                memset(pixels, 0, srcxsize * srcysize);
+
+                while (y < srcysize)
+                {
+                    pixbuf = pixptr;
+                    runcount = ppb;
+                    x = srcxsize;
+
+                    while (x > 0)
+                    {
+                        if (x < runcount) { runcount = x; }
+                        ExpandNbitsToIndex8(pixbuf, 1, *srcbuf, runcount, bit);
+                        pixbuf += runcount;
+                        srcbuf++;
+                        x -= runcount;
+                    }
+                    y++;
+
+                    if (y != srcysize)
+                    {
+                        pixptr += srcxsize;
+                    }
+                }
+
+                srcpitch = xextent;
+                x = 0;
+                y = 0;
+                rawsrc = pixels;
+                rawbuf = pixels;
+                rawptr = pixels;
+            };
             case 8:         // 8-bit encoding
             {
+                uint8_t sample = 0;
+
                 while (y < yextent)
                 {
                     rawbuf = rawptr;
@@ -3264,9 +3306,31 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                             bytesencoded++;
                             bytesencoded++;
 
-                            for (uint32_t i = 0; i < rlevalue; ++i)
+                            uint32_t count = rlevalue;
+
+                            if (dstdepth == 4)
                             {
-                                *dstbuf++ = *(rawbuf + x + i);
+                                count = (rlevalue >> 1);
+                            }
+
+                            for (uint32_t i = 0; i < count; ++i)
+                            {
+                                sample = 0;
+
+                                switch (dstdepth)
+                                {
+                                case 4:
+                                {
+                                    sample |= *(rawbuf + x + i + 0) << 4;
+                                    sample |= *(rawbuf + x + i + 1);
+                                } break;
+                                case 8:
+                                {
+                                    sample = *(rawbuf + x + i);
+                                } break;
+                                }
+
+                                *dstbuf++ = sample;
                                 bytesencoded++;
                             }
 
@@ -3281,6 +3345,8 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                         {
                             rlevalue = rlecount;
 
+                            sample = 0;
+
                             if (sample0 == colorkey)
                             {
                                 *dstbuf++ = 0x00;
@@ -3288,11 +3354,28 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                                 bytesencoded++;
                                 bytesencoded++;
 
-                                sample0 = 0;
+                                sample = 0;
+                            }
+                            else
+                            {
+                                switch (dstdepth)
+                                {
+                                case 4:
+                                {
+                                    int d1 = sample0 & 0xF;
+                                    int d0 = sample0 << 4;
+
+                                    sample = d0 + d1;
+                                } break;
+                                case 8:
+                                {
+                                    sample = sample0;
+                                } break;
+                                }
                             }
 
                             *dstbuf++ = rlevalue;
-                            *dstbuf++ = sample0;
+                            *dstbuf++ = sample;
                             bytesencoded++;
                             bytesencoded++;
                         }
@@ -3318,6 +3401,12 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 *dstbuf++ = 0x01;
                 bytesencoded++;
                 bytesencoded++;
+
+                if (dstdepth == 4)
+                {
+                    free(rawsrc);
+                    rawsrc = NULL;
+                }
             } break;
             }
         }
