@@ -1362,25 +1362,20 @@ static void
 ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth,
     bool interlaced, uint8_t* psrc)
 {
-    uint8_t* raw0buf = 0;            // Raw(x)
-    uint8_t* raw1buf = 0;            // Raw(x-bpp)
-    uint8_t* pri0buf = 0;            // Pri(x)
-    uint8_t* pri1buf = 0;            // Pri(x-bpp)
     uint8_t* dstbuf = pdst;
+    uint8_t* rawbuf = NULL;
     uint8_t* srcbuf = psrc;
-    uint32_t bytesdecoded = 0;
-    uint32_t xsize = dstxsize;
-    uint32_t ysize = dstysize;
+    uint32_t srcofs = 0;
     uint32_t dstbytes = (dstdepth + 7) >> 3;
     uint32_t dstpitch = (dstxsize * dstbytes);
     uint32_t dstxskip = dstbytes;
     uint32_t dstyskip = dstpitch;
-    uint32_t xskip = dstxskip;
-    uint32_t yskip = dstyskip;
+    uint32_t rawxskip = dstxskip;
+    uint32_t xsize = dstxsize;
+    uint32_t ysize = dstysize;
     uint32_t x = 0;
     uint32_t y = 0;
     uint32_t passes = interlaced != 1 ? 1 : 7;
-
     uint16_t sample = 0;
     uint16_t pae0 = 0;
     uint16_t raw0 = 0;
@@ -1391,7 +1386,6 @@ ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth
     uint16_t pa = 0;
     uint16_t pb = 0;
     uint16_t pc = 0;
-    int16_t p0 = 0;
     uint8_t filter = 0;
 
     for (uint32_t pass = 0; pass < passes; ++pass)
@@ -1408,44 +1402,27 @@ ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth
             dstbuf = pdst + (i_yorigin[pass] * dstpitch) + (i_xorigin[pass] * dstbytes);
             dstxskip = i_xextent[pass] * dstbytes;
             dstyskip = i_yextent[pass] * dstpitch;
+            rawxskip = dstxskip;
 
-            srcbuf = psrc + bytesdecoded;
+            srcbuf = psrc + srcofs;
         }
 
         if (dstdepth < 8)
         {
             xsize = ((xsize * dstdepth) + 7) >> 3;         // width in bytes
-            xskip = dstxskip * PIXELS_PER_BYTE(dstdepth);
+            rawxskip = dstxskip * PIXELS_PER_BYTE(dstdepth);
         }
         
         y = 0;
 
         while (y < ysize)
         {
-            filter = *srcbuf++;
-            bytesdecoded++;
-            raw0buf = dstbuf;
-            raw1buf = dstbuf;
-            pri0buf = dstbuf;
-            pri1buf = dstbuf;
-            pae0 = 0;
-            raw0 = 0;
-            raw1 = 0;
-            pri0 = 0;
-            pri1 = 0;
-            bpp = 0;
-            p0 = 0;
-            pa = 0;
-            pb = 0;
-            pc = 0;
+            filter = *srcbuf++; srcofs++;
+            rawbuf = dstbuf;
             x = 0;
-
-            if (y != 0) { pri1buf = raw1buf - dstyskip; }
-            if (y != 0) { pri0buf = raw0buf - dstyskip; }
 
             while (x < xsize)
             {
-                raw0 = 0;
                 pri1 = 0;
                 raw1 = 0;
                 pri0 = 0;
@@ -1455,28 +1432,23 @@ ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth
                 {
                     if (y != 0 && x != 0)
                     {
-                        pri1 = pri1buf[bpp];
+                        pri1 = (rawbuf - dstyskip - dstxskip)[bpp];
                     }
 
                     if (y != 0)
                     {
-                        pri0 = pri0buf[bpp];
+                        pri0 = (rawbuf - dstyskip)[bpp];
                     }
 
                     if (x != 0)
                     {
-                        raw1 = raw1buf[bpp];
+                        raw1 = (rawbuf - dstxskip)[bpp];
                     }
 
-                    raw0 = *srcbuf++;
-                    bytesdecoded++;
+                    raw0 = sample = *srcbuf++; srcofs++;
 
                     switch (filter)
                     {
-                    case 0:         // None
-                    {
-                        sample = raw0 & 0xFF;
-                    } break;
                     case 1:         // Sub
                     {
                         sample = (raw0 + raw1) & 0xFF;
@@ -1492,10 +1464,9 @@ ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth
                     case 4:         // Paeth
                     {
                         // paeth predictor
-                        p0 = raw1 + pri0 - pri1;
-                        pa = ABS(p0 - raw1);
-                        pb = ABS(p0 - pri0);
-                        pc = ABS(p0 - pri1);
+                        pa = ABS(pri0 - pri1);
+                        pb = ABS(raw1 - pri1);
+                        pc = ABS(raw1 + pri0 - (2 * pri1));
 
                         if (pa <= pb && pa <= pc)
                         {
@@ -1516,21 +1487,18 @@ ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth
 
                     if (dstdepth < 8)
                     {
-                        ExpandNbitsToIndex8(raw0buf, dstxskip, (sample & 0xFF),
+                        ExpandNbitsToIndex8(rawbuf, dstxskip, (sample & 0xFF),
                             PIXELS_PER_BYTE(dstdepth), 8 - dstdepth);
                     }
                     else
                     {
-                        raw0buf[bpp] = (sample & 0xFF);
+                        rawbuf[bpp] = (sample & 0xFF);
                     }
 
                     bpp++;
                 }
 
-                if (y != 0 && x != 0) { pri1buf += xskip; }
-                if (x != 0) { raw1buf += xskip; }
-                pri0buf += xskip;
-                raw0buf += xskip;
+                rawbuf += rawxskip;
                 x++;
             }
             y++;
