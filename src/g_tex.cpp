@@ -2398,10 +2398,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                         sample0 = 0;
                         sample1 = 0;
 
-                        for (size_t i = 0; i < bytesperpixel; i++)
-                        {
-                            sample0 |= *(rawbuf + ((x * bytesperpixel) + i)) << (8 * i);
-                        }
+                        memcpy(&sample0, (rawbuf + (x * bytesperpixel)), bytesperpixel);
 
                         sample1 = sample0;
 
@@ -2410,10 +2407,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             sample0 = sample1;
                             sample1 = 0;
 
-                            for (size_t i = 0; i < bytesperpixel; i++)
-                            {
-                                sample1 |= *(rawbuf + (((x + abscount) * bytesperpixel) + i)) << (8 * i);
-                            }
+                            memcpy(&sample1, (rawbuf + ((x + abscount) * bytesperpixel)), bytesperpixel);
 
                             if (sample0 == sample1)
                             {
@@ -2427,10 +2421,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                         sample0 = 0;
                         sample1 = 0;
 
-                        for (size_t i = 0; i < bytesperpixel; i++)
-                        {
-                            sample0 |= *(rawbuf + ((x * bytesperpixel) + i)) << (8 * i);
-                        }
+                        memcpy(&sample0, (rawbuf + (x * bytesperpixel)), bytesperpixel);
 
                         sample1 = sample0;
 
@@ -2439,10 +2430,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             sample0 = sample1;
                             sample1 = 0;
 
-                            for (size_t i = 0; i < bytesperpixel; i++)
-                            {
-                                sample1 |= *(rawbuf + (((x + rlecount) * bytesperpixel) + i)) << (8 * i);
-                            }
+                            memcpy(&sample1, (rawbuf + ((x + rlecount) * bytesperpixel)), bytesperpixel);
 
                             if (sample0 != sample1)
                             {
@@ -2459,14 +2447,9 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             *dstbuf++ = (0 << 7) | (rlevalue - 1);
                             bytesencoded++;
 
-                            for (uint32_t i = 0; i < rlevalue; ++i)
-                            {
-                                for (size_t j = 0; j < bytesperpixel; j++)
-                                {
-                                    *dstbuf++ = *(rawbuf + ((x * bytesperpixel) + i) + j);
-                                    bytesencoded++;
-                                }
-                            }
+                            memcpy(&dstbuf, (rawbuf + (x * bytesperpixel) * rlevalue), bytesperpixel);
+                            dstbuf += bytesperpixel * rlevalue;
+                            bytesencoded += bytesperpixel * rlevalue;
                         }
                         else
                         {
@@ -2475,11 +2458,9 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             *dstbuf++ = (1 << 7) | (rlevalue - 1);
                             bytesencoded++;
 
-                            for (size_t i = 0; i < bytesperpixel; i++)
-                            {
-                                *dstbuf++ = (sample0 >> (8 * i)) & 0xFF;
-                                bytesencoded++;
-                            }
+                            memcpy(dstbuf, &sample0, bytesperpixel);
+                            dstbuf += bytesperpixel;
+                            bytesencoded += bytesperpixel;
                         }
 
                         x += rlevalue;
