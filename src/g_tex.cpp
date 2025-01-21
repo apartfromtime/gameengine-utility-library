@@ -233,28 +233,29 @@ Crc(unsigned char* buf, int len)
 
 //------------------------------------------------------------------------------
 // ShrinkPNG
+// TODO: interlaced packed types
 //------------------------------------------------------------------------------
 static void
-ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxsize,
-    uint32_t srcysize, uint32_t srcdepth, uint32_t srcxskip, uint32_t srcyskip,
+ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
+    uint32_t srcysize, uint32_t srcdepth, uint8_t interlaced, uint8_t filtertype,
     uint8_t* psrc)
 {
-    uint8_t* raw0buf = NULL;           // Raw(x)
-    uint8_t* raw1buf = NULL;           // Raw(x-bpp)
-    uint8_t* pri0buf = NULL;           // Pri(x)
-    uint8_t* pri1buf = NULL;           // Pri(x-bpp)
+    uint8_t* rawbuf = NULL;
     uint8_t* dstbuf = pdst;
     uint8_t* srcbuf = psrc;
     uint8_t* bufptr = NULL;
     uint8_t* buffer = NULL;
     uint32_t bytesencoded = 0;
+    uint32_t srcbytes = (srcdepth + 7) >> 3;
+    uint32_t srcpitch = srcxsize * srcbytes;
+    uint32_t srcxskip = srcbytes;
+    uint32_t srcyskip = srcpitch;
+    uint32_t rawxskip = srcxskip;
     uint32_t xsize = srcxsize;
     uint32_t ysize = srcysize;
-    uint32_t bytes = (srcdepth >> 3);
-    uint32_t xskip = srcxskip * (srcdepth >> 3);
-    uint32_t yskip = srcyskip * srcxsize * bytes;
     uint32_t x = 0;
     uint32_t y = 0;
+    uint32_t passes = interlaced != 1 ? 1 : 7;
     uint16_t sample = 0;
     uint16_t pae0 = 0;
     uint16_t raw0 = 0;
@@ -265,17 +266,10 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxsiz
     uint16_t pa = 0;
     uint16_t pb = 0;
     uint16_t pc = 0;
-    int16_t p0 = 0;
     uint8_t enc = 0;
     uint8_t filter = 0;
 
-    if (srcdepth < 8)
-    {
-        bytes = 1;
-        xskip = srcxskip;
-    }
-
-    bufptr = (uint8_t*)malloc((xsize + 8) * bytes);
+    bufptr = (uint8_t*)malloc((xsize + 8) * srcbytes);
     buffer = bufptr;
 
     if (bufptr == NULL)
@@ -287,269 +281,262 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxsiz
     // filtering - None = 0; Sub = 1; Up = 2; Average = 3; Paeth = 4
     filter = (filtertype >= PNG_FILTER_COUNT) ? 0 : filtertype;
 
-    while (y < ysize)
+    for (uint32_t pass = 0; pass < passes; ++pass)
     {
-        raw0buf = srcbuf;
-        raw1buf = srcbuf;
-        pri0buf = srcbuf;
-        pri1buf = srcbuf;
-        x = 0;
-
-        pae0 = 0;
-        raw0 = 0;
-        raw1 = 0;
-        pri0 = 0;
-        pri1 = 0;
-        bpp = 0;
-        p0 = 0;
-        pa = 0;
-        pb = 0;
-        pc = 0;
-        enc = filter;
-
-        if (filter == PNG_FILTER_ADAPTIVE)
+        if (interlaced)
         {
-            uint32_t sum[2] = { UINT32_MAX };
-            enc = 0;
+            const uint8_t i_xorigin[7] = { 0, 4, 0, 2, 0, 1, 0 };
+            const uint8_t i_xextent[7] = { 8, 8, 4, 4, 2, 2, 1 };
+            const uint8_t i_yorigin[7] = { 0, 0, 4, 0, 2, 0, 1 };
+            const uint8_t i_yextent[7] = { 8, 8, 8, 4, 4, 2, 2 };
 
-            for (int f = 0; f < PNG_FILTER_COUNT - 1; ++f)
-            {
-                raw0buf = srcbuf;
-                raw1buf = srcbuf;
-                pri0buf = srcbuf;
-                pri1buf = srcbuf;
-                x = 0;
+            xsize = (srcxsize - i_xorigin[pass] + i_xextent[pass] - 1) / i_xextent[pass];
+            ysize = (srcysize - i_yorigin[pass] + i_yextent[pass] - 1) / i_yextent[pass];
 
-                if (y != 0) { pri1buf = raw1buf - srcyskip; }
-                if (y != 0) { pri0buf = raw0buf - srcyskip; }
+            srcbuf = psrc + (i_yorigin[pass] * srcpitch) + (i_xorigin[pass] * srcbytes);
+            srcxskip = i_xextent[pass] * srcbytes;
+            srcyskip = i_yextent[pass] * srcpitch;
+            rawxskip = srcxskip;
 
-                sum[1] = 0;
-
-                while (x < xsize)
-                {
-                    raw0 = 0;
-                    raw1 = 0;
-                    pri0 = 0;
-                    pri1 = 0;
-                    bpp = 0;
-
-                    while (bpp < bytes)
-                    {
-                        if (y != 0 && x != 0)
-                        {
-                            pri1 = pri1buf[bpp];
-                        }
-
-                        if (y != 0)
-                        {
-                            pri0 = pri0buf[bpp];
-                        }
-
-                        if (x != 0)
-                        {
-                            raw1 = raw1buf[bpp];
-                        }
-
-                        raw0 = raw0buf[bpp];
-
-                        switch (f)
-                        {
-                        case 0:         // None
-                        {
-                            sample = raw0 & 0xFF;
-                        } break;
-                        case 1:         // Sub
-                        {
-                            sample = (raw0 - raw1) & 0xFF;
-                        } break;
-                        case 2:         // Up
-                        {
-                            sample = (raw0 - pri0) & 0xFF;
-                        } break;
-                        case 3:         // Average
-                        {
-                            sample = (raw0 - FLOOR((raw1 + pri0) / 2)) & 0xFF;
-                        } break;
-                        case 4:         // Paeth
-                        {
-                            // paeth predictor
-                            p0 = raw1 + pri0 - pri1;
-                            pa = ABS(p0 - raw1);
-                            pb = ABS(p0 - pri0);
-                            pc = ABS(p0 - pri1);
-
-                            if (pa <= pb && pa <= pc)
-                            {
-                                pae0 = (raw0 - raw1) & 0xFF;
-                            }
-                            else if (pb <= pc)
-                            {
-                                pae0 = (raw0 - pri0) & 0xFF;
-                            }
-                            else
-                            {
-                                pae0 = (raw0 - pri1) & 0xFF;
-                            }
-
-                            sample = pae0;
-                        } break;
-                        }
-
-                        sum[1] += sample;
-                        bpp++;
-                    }
-
-                    if (y != 0 && x != 0) { pri1buf += xskip; }
-                    if (x != 0) { raw1buf += xskip; }
-                    pri0buf += xskip;
-                    raw0buf += xskip;
-
-                    x++;
-                }
-
-                if (sum[1] < sum[0])
-                {
-                    sum[0] = sum[1];
-                    enc = f;
-                }
-            }
+            dstbuf = pdst + bytesencoded;
         }
 
-        raw0buf = srcbuf;
-        raw1buf = srcbuf;
-        pri0buf = srcbuf;
-        pri1buf = srcbuf;
-        x = 0;
-
-        if (y != 0) { pri1buf = raw1buf - srcyskip; }
-        if (y != 0) { pri0buf = raw0buf - srcyskip; }
-
-        memset(bufptr, 0, (xsize + 8) * bytes);
-        buffer = bufptr;
-
-        *dstbuf++ = enc;           // filter-type byte
-        bytesencoded++;
-
-        while (x < xsize)
+        if (srcdepth < 8)
         {
+            rawxskip = srcxskip;
+        }
+
+        y = 0;
+
+        while (y < ysize)
+        {
+            rawbuf = srcbuf;
+            pae0 = 0;
             raw0 = 0;
             raw1 = 0;
             pri0 = 0;
             pri1 = 0;
+            enc = filter;
             bpp = 0;
+            pa = 0;
+            pb = 0;
+            pc = 0;
+            x = 0;
 
-            while (bpp < bytes)
+            if (filter == PNG_FILTER_ADAPTIVE)
             {
-                if (y != 0 && x != 0)
-                {
-                    pri1 = pri1buf[bpp];
-                }
+                uint32_t sum[2] = { UINT32_MAX };
+                enc = 0;
 
-                if (y != 0)
+                for (int f = 0; f < PNG_FILTER_COUNT - 1; ++f)
                 {
-                    pri0 = pri0buf[bpp];
-                }
+                    rawbuf = srcbuf;
+                    x = 0;
 
-                if (x != 0)
-                {
-                    raw1 = raw1buf[bpp];
-                }
+                    sum[1] = 0;
 
-                raw0 = raw0buf[bpp];
-
-                switch (enc)
-                {
-                case 0:         // None
-                {
-                    sample = raw0 & 0xFF;
-                } break;
-                case 1:         // Sub
-                {
-                    sample = (raw0 - raw1) & 0xFF;
-                } break;
-                case 2:         // Up
-                {
-                    sample = (raw0 - pri0) & 0xFF;
-                } break;
-                case 3:         // Average
-                {
-                    sample = (raw0 - FLOOR((raw1 + pri0) / 2)) & 0xFF;
-                } break;
-                case 4:         // Paeth
-                {
-                    // paeth predictor
-                    p0 = raw1 + pri0 - pri1;
-                    pa = ABS(p0 - raw1);
-                    pb = ABS(p0 - pri0);
-                    pc = ABS(p0 - pri1);
-
-                    if (pa <= pb && pa <= pc)
+                    while (x < xsize)
                     {
-                        pae0 = (raw0 - raw1) & 0xFF;
-                    }
-                    else if (pb <= pc)
-                    {
-                        pae0 = (raw0 - pri0) & 0xFF;
-                    }
-                    else
-                    {
-                        pae0 = (raw0 - pri1) & 0xFF;
+                        raw0 = 0;
+                        raw1 = 0;
+                        pri0 = 0;
+                        pri1 = 0;
+                        bpp = 0;
+
+                        while (bpp < srcbytes)
+                        {
+                            if (y != 0 && x != 0)
+                            {
+                                pri1 = (rawbuf - srcyskip - srcxskip)[bpp];
+                            }
+
+                            if (y != 0)
+                            {
+                                pri0 = (rawbuf - srcyskip)[bpp];
+                            }
+
+                            if (x != 0)
+                            {
+                                raw1 = (rawbuf - srcxskip)[bpp];
+                            }
+
+                            raw0 = sample = rawbuf[bpp];
+
+                            switch (f)
+                            {
+                            case 1:         // Sub
+                            {
+                                sample = (raw0 - raw1) & 0xFF;
+                            } break;
+                            case 2:         // Up
+                            {
+                                sample = (raw0 - pri0) & 0xFF;
+                            } break;
+                            case 3:         // Average
+                            {
+                                sample = (raw0 - FLOOR((raw1 + pri0) / 2)) & 0xFF;
+                            } break;
+                            case 4:         // Paeth
+                            {
+                                // paeth predictor
+                                pa = ABS(pri0 - pri1);
+                                pb = ABS(raw1 - pri1);
+                                pc = ABS(raw1 + pri0 - (2 * pri1));
+
+                                if (pa <= pb && pa <= pc)
+                                {
+                                    pae0 = (raw0 - raw1) & 0xFF;
+                                }
+                                else if (pb <= pc)
+                                {
+                                    pae0 = (raw0 - pri0) & 0xFF;
+                                }
+                                else
+                                {
+                                    pae0 = (raw0 - pri1) & 0xFF;
+                                }
+
+                                sample = pae0;
+                            } break;
+                            }
+
+                            sum[1] += sample;
+                            bpp++;
+                        }
+
+                        rawbuf += rawxskip;
+                        x++;
                     }
 
-                    sample = pae0;
-                } break;
+                    if (sum[1] < sum[0])
+                    {
+                        sum[0] = sum[1];
+                        enc = f;
+                    }
                 }
-
-                *buffer++ = (sample & 0xFF);
-                bpp++;
             }
 
-            if (y != 0 && x != 0) { pri1buf += xskip; }
-            if (x != 0) { raw1buf += xskip; }
-            pri0buf += xskip;
-            raw0buf += xskip;
+            rawbuf = srcbuf;
+            x = 0;
 
-            x++;
-        }
+            memset(bufptr, 0, (xsize + 8) * srcbytes);
+            buffer = bufptr;
 
-        buffer = bufptr;
-        bpp = 0;
-        x = 0;
+            *dstbuf++ = enc;           // filter-type byte
+            bytesencoded++;
 
-        if (srcdepth < 8)
-        {
-            int32_t rem = xsize;
-            int32_t count = PIXELS_PER_BYTE(srcdepth);
-
-            while (rem > 0)
-            {
-                if (rem < count) { count = rem; }
-                ShrinkIndex8ToNbits(dstbuf, buffer, 1, count, (8 - srcdepth));
-                buffer += count;
-                dstbuf++;
-                bytesencoded++;
-                rem -= count;
-            }
-        }
-        else
-        {
             while (x < xsize)
             {
+                raw0 = 0;
+                raw1 = 0;
+                pri0 = 0;
+                pri1 = 0;
                 bpp = 0;
-                while (bpp < bytes)
+
+                while (bpp < srcbytes)
                 {
-                    *dstbuf++ = *buffer++;
-                    bytesencoded++;
+                    if (y != 0 && x != 0)
+                    {
+                        pri1 = (rawbuf - srcyskip - srcxskip)[bpp];
+                    }
+
+                    if (y != 0)
+                    {
+                        pri0 = (rawbuf - srcyskip)[bpp];
+                    }
+
+                    if (x != 0)
+                    {
+                        raw1 = (rawbuf - srcxskip)[bpp];
+                    }
+
+                    raw0 = sample = rawbuf[bpp];
+
+                    switch (enc)
+                    {
+                    case 1:         // Sub
+                    {
+                        sample = (raw0 - raw1) & 0xFF;
+                    } break;
+                    case 2:         // Up
+                    {
+                        sample = (raw0 - pri0) & 0xFF;
+                    } break;
+                    case 3:         // Average
+                    {
+                        sample = (raw0 - FLOOR((raw1 + pri0) / 2)) & 0xFF;
+                    } break;
+                    case 4:         // Paeth
+                    {
+                        // paeth predictor
+                        pa = ABS(pri0 - pri1);
+                        pb = ABS(raw1 - pri1);
+                        pc = ABS(raw1 + pri0 - (2 * pri1));
+
+                        if (pa <= pb && pa <= pc)
+                        {
+                            pae0 = (raw0 - raw1) & 0xFF;
+                        }
+                        else if (pb <= pc)
+                        {
+                            pae0 = (raw0 - pri0) & 0xFF;
+                        }
+                        else
+                        {
+                            pae0 = (raw0 - pri1) & 0xFF;
+                        }
+
+                        sample = pae0;
+                    } break;
+                    }
+
+                    *buffer++ = (sample & 0xFF);
                     bpp++;
                 }
+
+                rawbuf += rawxskip;
                 x++;
             }
-        }
-        y++;
 
-        if (y != ysize)
-        {
-            srcbuf += srcyskip;
+            buffer = bufptr;
+            bpp = 0;
+            x = 0;
+
+            if (srcdepth < 8)
+            {
+                int32_t rem = xsize;
+                int32_t count = PIXELS_PER_BYTE(srcdepth);
+
+                while (rem > 0)
+                {
+                    if (rem < count) { count = rem; }
+                    ShrinkIndex8ToNbits(dstbuf, buffer, 1, count, (8 - srcdepth));
+                    buffer += count;
+                    dstbuf++;
+                    bytesencoded++;
+                    rem -= count;
+                }
+            }
+            else
+            {
+                while (x < xsize)
+                {
+                    bpp = 0;
+                    while (bpp < srcbytes)
+                    {
+                        *dstbuf++ = *buffer++;
+                        bytesencoded++;
+                        bpp++;
+                    }
+                    x++;
+                }
+            }
+            y++;
+
+            if (y != ysize)
+            {
+                srcbuf += srcyskip;
+            }
         }
     }
 
@@ -557,45 +544,6 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint8_t filtertype, uint32_t srcxsiz
     bufptr = NULL;
 
     if (pdstlen != NULL) { *pdstlen = bytesencoded; }
-}
-
-//------------------------------------------------------------------------------
-// ShrinkInterlacedPNG
-//------------------------------------------------------------------------------
-static void
-ShrinkInterlacedPNG(uint8_t* dstptr, uint32_t* pdstlen, uint8_t filtermode,
-    uint32_t srcxsize, uint32_t srcysize, uint32_t srcdepth, uint8_t* srcptr)
-{
-    uint32_t srcbytesperpixel = (srcdepth < 8) ? 1 : (srcdepth >> 3);
-    uint32_t srcpitch = srcxsize * srcbytesperpixel;
-    uint32_t bytesencoded = 0;
-    uint32_t dstlen = 0;
-    uint32_t w = 0;
-    uint32_t h = 0;
-    uint8_t* srcbuf = NULL;
-    uint8_t* dstbuf = NULL;
-
-    const uint8_t i_xorigin[7] = { 0, 4, 0, 2, 0, 1, 0 };
-    const uint8_t i_yorigin[7] = { 0, 0, 4, 0, 2, 0, 1 };
-    const uint8_t i_xextent[7] = { 8, 8, 4, 4, 2, 2, 1 };
-    const uint8_t i_yextent[7] = { 8, 8, 8, 4, 4, 2, 2 };
-
-    for (int pass = 0; pass < 7; ++pass)
-    {
-        w = (srcxsize - i_xorigin[pass] + i_xextent[pass] - 1) / i_xextent[pass];
-        h = (srcysize - i_yorigin[pass] + i_yextent[pass] - 1) / i_yextent[pass];
-
-        srcbuf = srcptr + (i_yorigin[pass] * srcpitch) +
-            (i_xorigin[pass] * srcbytesperpixel);
-        dstbuf = dstptr + dstlen;
-
-        ShrinkPNG(dstbuf, &bytesencoded, filtermode, w, h, srcdepth, i_xextent[pass],
-            i_yextent[pass] * srcpitch, srcbuf);
-
-        dstlen += bytesencoded;
-    }
-
-    if (pdstlen != NULL) { *pdstlen = dstlen; }
 }
 
 //------------------------------------------------------------------------------
@@ -885,21 +833,10 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     }
 
     // IDAT chunk
-    if (codec == ENCODE_INTERLACE)           // interlacing
+    // interlace and filter
+    if (dstxsize != 0 && dstysize != 0)
     {
-        if (dstxsize != 0 && dstysize != 0)
-        {
-            ShrinkInterlacedPNG(idatbuf, &idatlen, filtermode, dstxsize, dstysize,
-                srcdepth, rawbuf);
-        }
-    }
-    else            // no-interlacing
-    {
-        if (dstxsize != 0 && dstysize != 0)
-        {
-            ShrinkPNG(idatbuf, &idatlen, filtermode, dstxsize, dstysize,
-                srcdepth, 1, dstpitch, rawbuf);
-        }
+        ShrinkPNG(idatbuf, &idatlen, dstxsize, dstysize, srcdepth, interlace, filtermode, rawbuf);
     }
 
     idatbuf = idatptr;
@@ -1360,14 +1297,14 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
 //------------------------------------------------------------------------------
 static void
 ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth,
-    bool interlaced, uint8_t* psrc)
+    uint8_t interlaced, uint8_t* psrc)
 {
-    uint8_t* dstbuf = pdst;
     uint8_t* rawbuf = NULL;
+    uint8_t* dstbuf = pdst;
     uint8_t* srcbuf = psrc;
     uint32_t srcofs = 0;
     uint32_t dstbytes = (dstdepth + 7) >> 3;
-    uint32_t dstpitch = (dstxsize * dstbytes);
+    uint32_t dstpitch = dstxsize * dstbytes;
     uint32_t dstxskip = dstbytes;
     uint32_t dstyskip = dstpitch;
     uint32_t rawxskip = dstxskip;
@@ -1542,13 +1479,13 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t ysize = 0;
     uint32_t depth = 0;
     uint32_t bytesperpixel = 0;
-    uint32_t colortype = 0;
-    uint32_t compression = 0;
-    uint32_t filter = 0;
-    uint32_t interlace = 0;
     uint32_t gamma = 0;
     uint32_t palnum = 0;
     uint32_t idatlen = 0;
+    uint8_t colortype = 0;
+    uint8_t compression = 0;
+    uint8_t filter = 0;
+    uint8_t interlace = 0;
     uint8_t colorkey[3] = {};
 
     // A valid PNG image must contain an IHDR chunk, one or more IDAT chunks, and an
