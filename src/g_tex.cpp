@@ -100,8 +100,6 @@ ExpandNbitsToIndex8(uint8_t* pdst, uint32_t dstskip, uint8_t sample, uint8_t cou
 //
 //  Portable Network Graphics
 //
-//  PNG decoder\encoder with adaptive filtering and interlacing
-//
 //-----------------------------------------------------------------------------
 
 
@@ -915,18 +913,12 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
         odatrem = MIN(32768, oabsrem);
         bytesencoded = deflator.total_out;
 
-        if (status == Z_STREAM_END)
-        {
-            fprintf(stdout, "PNG, Deflate: completed successfully\n");
-            break;
-        }
-
         if (odatrem == 0)
         {
             fprintf(stderr, "PNG, Deflate: out of output data\n");
             break;
         }
-    } while (1);
+    } while (status == Z_OK);
 
     deflateEnd(&deflator);
 
@@ -945,6 +937,8 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     }
     else
     {
+        fprintf(stdout, "PNG, Deflate: completed successfully\n");
+
         // data
         oabsrem = bytesencoded;          // remaining bytes
 
@@ -1960,18 +1954,12 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         odatrem = MIN(32768, oabsrem);
         bytesencoded = inflator.total_out;
 
-        if (status == Z_STREAM_END)
-        {
-            fprintf(stdout, "PNG, Inflate: completed successfully\n");
-            break;
-        }
-
         if (odatrem == 0)
         {
             fprintf(stderr, "PNG, Inflate: out of output data\n");
             break;
         }
-    } while (1);
+    } while (status == Z_OK);
 
     inflateEnd(&inflator);
 
@@ -1989,6 +1977,10 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         odatptr = NULL;
 
         return false;
+    }
+    else
+    {
+        fprintf(stdout, "PNG, Inflate: completed successfully\n");
     }
 
     // pixels
@@ -2141,8 +2133,6 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 //-----------------------------------------------------------------------------
 //
 //  Truevision TGA File Format
-//
-//  8, 16, 24 and 32-bit color mapped and rle parsing
 //
 //-----------------------------------------------------------------------------
 
@@ -2861,7 +2851,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
     if (psrc == NULL)
     {
         fprintf(stderr, "BMP, Invalid src data.\n");
-        return false;
+        //return false;
     }
 
     if (srcdepth !=  1 && srcdepth !=  4 && srcdepth != 8 && srcdepth != 24 &&
@@ -3291,6 +3281,14 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
             }
         }
     }
+    else
+    {
+        // end of bitmap 
+        *dstbuf++ = 0x00;
+        *dstbuf++ = 0x01;
+        bytesencoded++;
+        bytesencoded++;
+    }
 
     datasize = s_bmp_file_size + s_bmp_v3_info_size + dstpalettesize + bytesencoded;
 
@@ -3702,8 +3700,6 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 //
 //  ZSoft PCX File Format
 //
-//  1, 2, 4, 8-bit paletted and 24-bit saving and loading
-//
 //-----------------------------------------------------------------------------
 
 
@@ -4088,10 +4084,9 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         return false;
     }
 
-    uint32_t srclen = psrcsize;
     uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
-    uint8_t* srcend = psrc + srclen;
+    uint8_t* srcend = psrc + psrcsize;
 
     pcx_v5_info_t pcx = {};
 
