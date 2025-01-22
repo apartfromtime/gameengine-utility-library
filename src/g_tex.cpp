@@ -1988,7 +1988,6 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t* pixels = (uint8_t*)malloc(pixlen);
     uint8_t* rawptr = pixels;
     uint8_t* rawbuf = pixels;
-    uint32_t pitch = xsize * bytesperpixel;
 
     if (pixels == NULL)
     {
@@ -2056,42 +2055,55 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     free(odatptr);
     odatptr = NULL;
 
-    bytesdecoded = 0;
-
     // deinterlace and filter
     ExpandPNG(rawbuf, xsize, ysize, depth * bytesperpixel, interlace, datbuf);
 
     free(datptr);
     datptr = NULL;
 
-    uint8_t scale = 0x01;
-
-    switch (depth)
+    if (depth < 8)
     {
-        case 1:
+        uint32_t runcount = 0;
+        uint32_t x = 0;
+        uint32_t y = 0;
+        uint32_t pitch = (xsize / PIXELS_PER_BYTE(depth));
+        uint8_t* bufptr = pixels;
+        uint8_t* buffer = pixels;
+        pixels = (uint8_t*)malloc(ysize * pitch);
+        uint8_t* pixptr = pixels;
+        uint8_t* pixbuf = pixels;
+        uint8_t ppb = PIXELS_PER_BYTE(depth);
+        uint8_t bit = 8 - depth;
+
+        memset(pixels, 0, ysize * pitch);
+
+        while (y < ysize)
         {
-            scale = 0xFF;
-        } break;
-        case 2:
-        {
-            scale = 0x55;
-        } break;
-        case 4:
-        {
-            scale = 0x11;
-        } break;
+            pixbuf = pixptr;
+            runcount = ppb;
+            x = xsize;
+
+            while (x > 0)
+            {
+                if (x < runcount) { runcount = x; }
+                ShrinkIndex8ToNbits(pixbuf, buffer, 1, runcount, bit);
+                buffer += runcount;
+                pixbuf++;
+                x -= runcount;
+            }
+            y++;
+
+            if (y != ysize)
+            {
+                pixptr += pitch;
+            }
+        }
+
+        free(bufptr);
+        *ppdst = pixels;
     }
 
     uint8_t* ppix = pixels;
-
-    // grayscale
-    if (colortype == 0 && (depth == 1 || depth == 2 || depth == 4))
-    {
-        for (unsigned int i = 0; i < xsize * ysize; ++i)
-        {
-            *ppix++ *= scale;
-        }
-    }
 
     if (gamma != 0)
     {
@@ -8783,11 +8795,6 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
                 colorkey = pngcolorkey;
             }
 
-            if (depth < 8)          // load expands to 1-byte per pixel
-            {
-                depth = 8;
-            }
-
             format = FILEFORMAT_PNG;
         }
         else if ((result = LoadFromMemoryBMP(&srcimage.data, &srcpalette, psrc,
@@ -8825,7 +8832,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         }
 
         // expand packed type
-        if ((format == FILEFORMAT_BMP || format == FILEFORMAT_PCX) && depth < 8)
+        if ((format == FILEFORMAT_BMP || format == FILEFORMAT_PCX || format == FILEFORMAT_PNG) && depth < 8)
         {
             uint32_t runcount = 0;
             uint32_t x = 0;
@@ -8858,6 +8865,18 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
                 if (y != srcimage.ysize)
                 {
                     pixptr += srcimage.xsize;
+                }
+            }
+
+            uint8_t scale[8] = { 0, 0xFF, 0x55, 0, 0x11, 0, 0, 0x01 };
+            pixptr = pixels;
+            pixbuf = pixels;
+
+            if (srcimage.pixeltype == PIXELTYPE_LUMINANCE)
+            {
+                for (unsigned int i = 0; i < srcimage.xsize * srcimage.ysize; ++i)
+                {
+                    *pixbuf++ *= scale[depth];
                 }
             }
 
