@@ -231,7 +231,6 @@ Crc(unsigned char* buf, int len)
 
 //------------------------------------------------------------------------------
 // ShrinkPNG
-// TODO: interlaced packed types
 //------------------------------------------------------------------------------
 static void
 ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
@@ -913,11 +912,6 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
         odatrem = MIN(32768, oabsrem);
         bytesencoded = deflator.total_out;
 
-        if (odatrem == 0)
-        {
-            fprintf(stderr, "PNG, Deflate: out of output data\n");
-            break;
-        }
     } while (status == Z_OK);
 
     deflateEnd(&deflator);
@@ -1287,22 +1281,19 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
 
 //------------------------------------------------------------------------------
 // ExpandPNG
-// TODO: de-interlaced packed types
 //------------------------------------------------------------------------------
 static void
-ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth,
+ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth,
     uint8_t interlaced, uint8_t* psrc)
 {
-    uint8_t* rawbuf = NULL;
-    uint8_t* dstbuf = pdst;
     uint8_t* srcbuf = psrc;
     uint32_t srcofs = 0;
     uint32_t dstbytes = (dstdepth + 7) >> 3;
     uint32_t dstpitch = dstxsize * dstbytes;
     uint32_t dstxskip = dstbytes;
     uint32_t dstyskip = dstpitch;
-    uint32_t rawxskip = dstxskip;
-    uint32_t xsize = dstxsize;
+    uint32_t rawxskip = dstdepth >= 8 ? dstxskip : dstxskip * PIXELS_PER_BYTE(dstdepth);
+    uint32_t xsize = dstdepth >= 8 ? dstxsize : ((dstxsize * dstdepth) + 7) >> 3;
     uint32_t ysize = dstysize;
     uint32_t x = 0;
     uint32_t y = 0;
@@ -1319,6 +1310,13 @@ ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth
     uint16_t pc = 0;
     uint8_t filter = 0;
 
+    uint32_t pixlen = dstxsize * dstysize * dstbytes;
+    uint8_t* pixels = (uint8_t*)malloc(pixlen);
+    uint8_t* rawptr = pixels;
+    uint8_t* rawbuf = pixels;
+
+    memset(pixels, 0, xsize * ysize * dstbytes);
+
     for (uint32_t pass = 0; pass < passes; ++pass)
     {
         if (interlaced)
@@ -1330,18 +1328,13 @@ ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth
 
             xsize = (dstxsize - i_xorigin[pass] + i_xextent[pass] - 1) / i_xextent[pass];
             ysize = (dstysize - i_yorigin[pass] + i_yextent[pass] - 1) / i_yextent[pass];
-            dstbuf = pdst + (i_yorigin[pass] * dstpitch) + (i_xorigin[pass] * dstbytes);
+            xsize = dstdepth >= 8 ? xsize : ((xsize * dstdepth) + 7) >> 3;
+            rawptr = pixels + (i_yorigin[pass] * dstpitch) + (i_xorigin[pass] * dstbytes);
             dstxskip = i_xextent[pass] * dstbytes;
             dstyskip = i_yextent[pass] * dstpitch;
-            rawxskip = dstxskip;
+            rawxskip = dstdepth >= 8 ? dstxskip : dstxskip * PIXELS_PER_BYTE(dstdepth);
 
             srcbuf = psrc + srcofs;
-        }
-
-        if (dstdepth < 8)
-        {
-            xsize = ((xsize * dstdepth) + 7) >> 3;         // width in bytes
-            rawxskip = dstxskip * PIXELS_PER_BYTE(dstdepth);
         }
         
         y = 0;
@@ -1349,7 +1342,7 @@ ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth
         while (y < ysize)
         {
             filter = *srcbuf++; srcofs++;
-            rawbuf = dstbuf;
+            rawbuf = rawptr;
             x = 0;
 
             while (x < xsize)
@@ -1434,9 +1427,11 @@ ExpandPNG(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdepth
             }
             y++;
 
-            if (y < ysize) { dstbuf += dstyskip; }
+            if (y < ysize) { rawptr += dstyskip; }
         }
     }
+
+    if (ppdst != NULL) { *ppdst = pixels; }
 }
 
 //-----------------------------------------------------------------------------
@@ -1954,11 +1949,6 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         odatrem = MIN(32768, oabsrem);
         bytesencoded = inflator.total_out;
 
-        if (odatrem == 0)
-        {
-            fprintf(stderr, "PNG, Inflate: out of output data\n");
-            break;
-        }
     } while (status == Z_OK);
 
     inflateEnd(&inflator);
@@ -1983,65 +1973,12 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         fprintf(stdout, "PNG, Inflate: completed successfully\n");
     }
 
-    // pixels
-    uint32_t pixlen = xsize * ysize * bytesperpixel;
-    uint8_t* pixels = (uint8_t*)malloc(pixlen);
-    uint8_t* rawptr = pixels;
-    uint8_t* rawbuf = pixels;
-
-    if (pixels == NULL)
-    {
-        fprintf(stderr, "PNG, Out of memory\n");
-
-        free(odatptr);
-        odatptr = NULL;
-
-        return false;
-    }
-
-    memset(pixels, 0, pixlen);
-
-    *ppdst = pixels;
-    if (srcxsize != NULL) { *srcxsize = xsize; }
-    if (srcysize != NULL) { *srcysize = ysize; }
-    if (srcdepth != NULL)
-    {
-        // color-type interpretation of the image and number of
-        // bytes-per-pixel
-        switch (colortype)
-        {
-            case 0:         // grayscale
-            {
-                *srcdepth = depth;
-            } break;
-            case 2:         // rgb
-            {
-                *srcdepth = 24;
-            } break;
-            case 3:         // palette
-            {
-                *srcdepth = depth;
-            } break;
-            case 4:         // grayscale + alpha
-            {
-                *srcdepth = 16;
-            } break;
-            case 6:         // rgba
-            {
-                *srcdepth = 32;
-            } break;
-        }
-    }
-
     uint32_t datlen = (ysize * (dstpitch + 1)) + ((interlace > 0) ? ysize : 0);
     uint8_t* datptr = (uint8_t*)malloc(((datlen + 1) & ~1));
 
     if (datptr == NULL)
     {
         fprintf(stderr, "PNG, Out of memory\n");
-
-        free(pixels);
-        pixels = NULL;
 
         free(odatptr);
         odatptr = NULL;
@@ -2056,7 +1993,9 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     odatptr = NULL;
 
     // deinterlace and filter
-    ExpandPNG(rawbuf, xsize, ysize, depth * bytesperpixel, interlace, datbuf);
+    uint8_t* pixels = NULL;
+
+    ExpandPNG(&pixels, xsize, ysize, depth * bytesperpixel, interlace, datbuf);
 
     free(datptr);
     datptr = NULL;
@@ -2129,6 +2068,38 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 ppix[2] = powf((ppix[2] / 255.0f), fgamma) * 255.0f;
                 ppix += bytesperpixel;
             }
+        }
+    }
+
+    *ppdst = pixels;
+    if (srcxsize != NULL) { *srcxsize = xsize; }
+    if (srcysize != NULL) { *srcysize = ysize; }
+    if (srcdepth != NULL)
+    {
+        // color-type interpretation of the image and number of
+        // bytes-per-pixel
+        switch (colortype)
+        {
+        case 0:         // grayscale
+        {
+            *srcdepth = depth;
+        } break;
+        case 2:         // rgb
+        {
+            *srcdepth = 24;
+        } break;
+        case 3:         // palette
+        {
+            *srcdepth = depth;
+        } break;
+        case 4:         // grayscale + alpha
+        {
+            *srcdepth = 16;
+        } break;
+        case 6:         // rgba
+        {
+            *srcdepth = 32;
+        } break;
         }
     }
 
