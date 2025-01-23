@@ -1335,43 +1335,39 @@ inline plane_t FromPointsPlane(const vector3_t v0, const vector3_t v1,
 //-----------------------------------------------------------------------------
 // finds the intersection between a plane and a line.
 //-----------------------------------------------------------------------------
-inline vector3_t LineIntersectPlane(const plane_t plane, vector3_t p0,
+inline bool
+LineIntersectPlane(vector3_t& out, const plane_t plane, vector3_t p0,
     const vector3_t p1)
 {
-    vector3_t v0 = p0;
-    vector3_t v1 = p1;
-    vector3_t v2 = Vector3();
-    vector3_t v3 = Vector3();
-    float d0 = LengthVector3(v0);
-    float d1 = LengthVector3(v1);
-    float d2 = 0.0f;
+    vector3_t v = SubtractVector3(p1, p0);
+    float d = LengthVector3(v);
+    vector3_t pn = Vector3(plane.a, plane.b, plane.c);
+    vector3_t r0 = p0;
+    vector3_t rd = Vector3(v.x / d, v.y / d, v.z / d);
+    float vd = DotVector3(pn, rd);
 
-    if (d1 < d0)
+    if (vd == 0)
     {
-        d2 = d0;
-        d0 = d1;
-        d1 = d2;
-        
-        v0 = p1;
-        v1 = p0;
+        return false;
+    }
+    
+    if (vd > 0)
+    {
+        pn = Vector3(-pn.x, -pn.y, -pn.z);
+        vd = DotVector3(pn, rd);
     }
 
-    if (plane.d > d0 && plane.d < d1)
-    {
-        v2 = Vector3(plane.a, plane.b, plane.c);
-        v3 = SubtractVector3(v1, v0);
-        d0 = DotVector3(v2, v0) + plane.d;
-        d1 = LengthVector3(v3);
-        d2 = d0 / d1;
+    float v0 = -DotVector3(pn, r0) + plane.d;
+    float t = v0 / vd;
 
-        v3 = AddVector3(v0, ScaleVector3(v3, d2));
-    }
-    else
+    if (t < 0)
     {
-        v3 = (plane.d - d0) <= (plane.d - d1) ? v0 : v1;
+        return false;
     }
+    
+    out = AddVector3(r0, ScaleVector3(rd, t));
 
-    return v3;
+    return true;
 }
 
 //-----------------------------------------------------------------------------
