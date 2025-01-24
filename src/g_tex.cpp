@@ -1289,15 +1289,23 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
     uint8_t* srcbuf = psrc;
     uint32_t srcofs = 0;
     uint32_t dstbytes = (dstdepth + 7) >> 3;
-    uint32_t dstpitch = dstxsize * dstbytes;
-    uint32_t dstxskip = dstbytes;
-    uint32_t dstyskip = dstpitch;
-    uint32_t rawxskip = dstdepth >= 8 ? dstxskip : dstxskip * PIXELS_PER_BYTE(dstdepth);
-    uint32_t xsize = dstdepth >= 8 ? dstxsize : ((dstxsize * dstdepth) + 7) >> 3;
+    float dstpixelsperbyte = PIXELS_PER_BYTE(dstdepth);
+    uint32_t dstpitch = (uint32_t)(ceilf((float)(dstxsize) / dstpixelsperbyte));
+    uint32_t dstxskip = 1;
+    uint32_t dstyskip = 1;
+    uint32_t dstxorig = 0;
+    uint32_t dstyorig = 0;
+    uint32_t xsize = dstxsize;
     uint32_t ysize = dstysize;
     uint32_t x = 0;
     uint32_t y = 0;
     uint32_t passes = interlaced != 1 ? 1 : 7;
+    uint8_t mask[4] = { 0x01, 0x03, 0, 0x0F };
+    uint32_t pixlen = dstxsize * dstysize * dstbytes;
+    uint8_t* pixels = (uint8_t*)malloc(pixlen);
+    uint8_t* pixbuf = pixels;
+    uint8_t* pixptr = pixels;
+    uint8_t* pixel = NULL;
     uint16_t sample = 0;
     uint16_t pae0 = 0;
     uint16_t raw0 = 0;
@@ -1309,11 +1317,12 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
     uint16_t pb = 0;
     uint16_t pc = 0;
     uint8_t filter = 0;
+    uint8_t bit = 0;
 
-    uint32_t pixlen = dstxsize * dstysize * dstbytes;
-    uint8_t* pixels = (uint8_t*)malloc(pixlen);
-    uint8_t* rawptr = pixels;
-    uint8_t* rawbuf = pixels;
+    if (pixels == NULL)
+    {
+        return;
+    }
 
     memset(pixels, 0, xsize * ysize * dstbytes);
 
@@ -1328,12 +1337,10 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
 
             xsize = (dstxsize - i_xorigin[pass] + i_xextent[pass] - 1) / i_xextent[pass];
             ysize = (dstysize - i_yorigin[pass] + i_yextent[pass] - 1) / i_yextent[pass];
-            xsize = dstdepth >= 8 ? xsize : ((xsize * dstdepth) + 7) >> 3;
-            rawptr = pixels + (i_yorigin[pass] * dstpitch) + (i_xorigin[pass] * dstbytes);
-            dstxskip = i_xextent[pass] * dstbytes;
-            dstyskip = i_yextent[pass] * dstpitch;
-            rawxskip = dstdepth >= 8 ? dstxskip : dstxskip * PIXELS_PER_BYTE(dstdepth);
-
+            dstxskip = i_xextent[pass];
+            dstyskip = i_yextent[pass];
+            dstxorig = i_xorigin[pass];
+            dstyorig = i_yorigin[pass];
             srcbuf = psrc + srcofs;
         }
         
@@ -1342,34 +1349,78 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
         while (y < ysize)
         {
             filter = *srcbuf++; srcofs++;
-            rawbuf = rawptr;
             x = 0;
 
             while (x < xsize)
             {
-                pri1 = 0;
-                raw1 = 0;
-                pri0 = 0;
+                int32_t x0 = (((x - 0) * dstxskip) + dstxorig);
+                int32_t x1 = (((x - 1) * dstxskip) + dstxorig);
+                int32_t y0 = (((y - 0) * dstyskip) + dstyorig);
+                int32_t y1 = (((y - 1) * dstyskip) + dstyorig);
+                uint8_t pix = dstpixelsperbyte - 1;
+                uint8_t cur = (x & pix);
                 bpp = 0;
 
                 while (bpp < dstbytes)
                 {
-                    if (y != 0 && x != 0)
+                    pri0 = 0;
+                    pri1 = 0;
+                    raw1 = 0;
+
+                    if (dstdepth > 8 || (dstdepth < 8 && cur == 0))
                     {
-                        pri1 = (rawbuf - dstyskip - dstxskip)[bpp];
+                        raw0 = sample = *srcbuf++; srcofs++;
                     }
 
-                    if (y != 0)
+                    if (dstdepth < 8)
                     {
-                        pri0 = (rawbuf - dstyskip)[bpp];
-                    }
+                        if ((x1 >= 0) && (y1 >= 0))
+                        {                     
+                            bit = (x1 - ((uint32_t)(x1 / dstpixelsperbyte) *
+                                dstpixelsperbyte)) * dstdepth;
+                            pixel = (pixbuf + bpp) + (y1 * dstpitch) +
+                                (uint32_t)(x1 / dstpixelsperbyte);
+                            pri1 = (*pixel>>((8-dstdepth)-bit))&mask[dstdepth-1];
+                        }
 
-                    if (x != 0)
+                        if ((x1 >= 0))
+                        {
+                            bit = (x1 - ((uint32_t)(x1 / dstpixelsperbyte) *
+                                dstpixelsperbyte)) * dstdepth;
+                            pixel = (pixbuf + bpp) + (y0 * dstpitch) +
+                                (uint32_t)(x1 / dstpixelsperbyte);
+                            raw1 = (*pixel>>((8-dstdepth)-bit))&mask[dstdepth-1];
+                        }
+
+                        if ((y1 >= 0))
+                        {
+                            bit = (x0 - ((uint32_t)(x0 / dstpixelsperbyte) *
+                                dstpixelsperbyte)) * dstdepth;
+                            pixel = (pixbuf + bpp) + (y1 * dstpitch) +
+                                (uint32_t)(x0 / dstpixelsperbyte);
+                            pri0 = (*pixel>>((8-dstdepth)-bit))&mask[dstdepth-1];
+                        }
+                    }
+                    else
                     {
-                        raw1 = (rawbuf - dstxskip)[bpp];
-                    }
+                        if ((x1 >= 0) && (y1 >= 0))
+                        {
+                            pri1 = *((pixbuf + bpp) + (y1 * dstpitch) +
+                                (x1 * dstbytes));
+                        }
 
-                    raw0 = sample = *srcbuf++; srcofs++;
+                        if ((x1 >= 0))
+                        {
+                            raw1 = *((pixbuf + bpp) + (y0 * dstpitch) +
+                                (x1 * dstbytes));
+                        }
+
+                        if ((y1 >= 0))
+                        {
+                            pri0 = *((pixbuf + bpp) + (y1 * dstpitch) +
+                                (x0 * dstbytes));
+                        }
+                    }
 
                     switch (filter)
                     {
@@ -1411,23 +1462,23 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
 
                     if (dstdepth < 8)
                     {
-                        ExpandNbitsToIndex8(rawbuf, dstxskip, (sample & 0xFF),
-                            PIXELS_PER_BYTE(dstdepth), 8 - dstdepth);
+                        bit = (x0 - ((uint32_t)(x0 / dstpixelsperbyte) *
+                            dstpixelsperbyte)) * dstdepth;
+                        (pixbuf + (((y * dstyskip) + dstyorig) * dstpitch) +
+                            (uint32_t)(x0 / dstpixelsperbyte))[bpp] |=
+                                (((sample >> ((pix - cur) * dstdepth)) &
+                                    mask[dstdepth - 1]) & mask[dstdepth - 1]) <<
+                                        ((8 - dstdepth) - bit);
                     }
                     else
                     {
-                        rawbuf[bpp] = (sample & 0xFF);
+                        (pixbuf + (y0 * dstpitch) + (x0 * dstbytes))[bpp] = (sample & 0xFF);
                     }
-
                     bpp++;
                 }
-
-                rawbuf += rawxskip;
                 x++;
             }
             y++;
-
-            if (y < ysize) { rawptr += dstyskip; }
         }
     }
 
@@ -1999,48 +2050,6 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
     free(datptr);
     datptr = NULL;
-
-    if (depth < 8)
-    {
-        uint32_t runcount = 0;
-        uint32_t x = 0;
-        uint32_t y = 0;
-        uint32_t pitch = (xsize / PIXELS_PER_BYTE(depth));
-        uint8_t* bufptr = pixels;
-        uint8_t* buffer = pixels;
-        pixels = (uint8_t*)malloc(ysize * pitch);
-        uint8_t* pixptr = pixels;
-        uint8_t* pixbuf = pixels;
-        uint8_t ppb = PIXELS_PER_BYTE(depth);
-        uint8_t bit = 8 - depth;
-
-        memset(pixels, 0, ysize * pitch);
-
-        while (y < ysize)
-        {
-            pixbuf = pixptr;
-            runcount = ppb;
-            x = xsize;
-
-            while (x > 0)
-            {
-                if (x < runcount) { runcount = x; }
-                ShrinkIndex8ToNbits(pixbuf, buffer, 1, runcount, bit);
-                buffer += runcount;
-                pixbuf++;
-                x -= runcount;
-            }
-            y++;
-
-            if (y != ysize)
-            {
-                pixptr += pitch;
-            }
-        }
-
-        free(bufptr);
-        *ppdst = pixels;
-    }
 
     uint8_t* ppix = pixels;
 
