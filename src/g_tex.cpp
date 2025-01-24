@@ -1472,7 +1472,8 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
                     }
                     else
                     {
-                        (pixbuf + (y0 * dstpitch) + (x0 * dstbytes))[bpp] = (sample & 0xFF);
+                        (pixbuf + (y0 * dstpitch) + (x0 * dstbytes))[bpp] =
+                            (sample & 0xFF);
                     }
                     bpp++;
                 }
@@ -1955,7 +1956,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     }
 
     // inflate data, bytes per line, per component, plus filter per row
-    uint32_t odatlen = (ysize * (dstpitch + 1)) + ((interlace > 0) ? ysize : 0);
+    uint32_t odatlen = ((ysize + 1) * (dstpitch + 1)) + ((interlace > 0) ? ysize + 1 : 0);
     uint8_t* odatptr = (uint8_t*)malloc(((odatlen + 1) & ~1));
     uint8_t* odatbuf = odatptr;
 
