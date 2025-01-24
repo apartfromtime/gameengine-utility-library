@@ -1317,7 +1317,8 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
     uint16_t pb = 0;
     uint16_t pc = 0;
     uint8_t filter = 0;
-    uint8_t bit = 0;
+    uint8_t bit0 = 0;
+    uint8_t bit1 = 0;
 
     if (pixels == NULL)
     {
@@ -1349,6 +1350,8 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
         while (y < ysize)
         {
             filter = *srcbuf++; srcofs++;
+            bit0 = 0;
+            bit1 = 0;
             x = 0;
 
             while (x < xsize)
@@ -1357,6 +1360,8 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
                 int32_t x1 = (((x - 1) * dstxskip) + dstxorig);
                 int32_t y0 = (((y - 0) * dstyskip) + dstyorig);
                 int32_t y1 = (((y - 1) * dstyskip) + dstyorig);
+                int32_t xx = (uint32_t)(x0 / dstpixelsperbyte);
+                int32_t yy = y0 * dstpitch;
                 uint8_t pix = dstpixelsperbyte - 1;
                 uint8_t cur = (x & pix);
                 bpp = 0;
@@ -1374,51 +1379,47 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
 
                     if (dstdepth < 8)
                     {
+                        bit0 = (8 - dstdepth) - (x0 - ((uint32_t)(x0 / dstpixelsperbyte) *
+                            dstpixelsperbyte)) * dstdepth;
+                        bit1 = (8 - dstdepth) - (x1 - ((uint32_t)(x1 / dstpixelsperbyte) *
+                            dstpixelsperbyte)) * dstdepth;
+
                         if ((x1 >= 0) && (y1 >= 0))
                         {                     
-                            bit = (x1 - ((uint32_t)(x1 / dstpixelsperbyte) *
-                                dstpixelsperbyte)) * dstdepth;
-                            pixel = (pixbuf + bpp) + (y1 * dstpitch) +
-                                (uint32_t)(x1 / dstpixelsperbyte);
-                            pri1 = (*pixel>>((8-dstdepth)-bit))&mask[dstdepth-1];
+                            pixel = (pixbuf + (y1 * dstpitch) +
+                                (uint32_t)(x1 / dstpixelsperbyte));
+                            pri1 = (*pixel>>bit1)&mask[dstdepth-1];
                         }
 
                         if ((x1 >= 0))
                         {
-                            bit = (x1 - ((uint32_t)(x1 / dstpixelsperbyte) *
-                                dstpixelsperbyte)) * dstdepth;
-                            pixel = (pixbuf + bpp) + (y0 * dstpitch) +
-                                (uint32_t)(x1 / dstpixelsperbyte);
-                            raw1 = (*pixel>>((8-dstdepth)-bit))&mask[dstdepth-1];
+                            pixel = (pixbuf + (y0 * dstpitch) +
+                                (uint32_t)(x1 / dstpixelsperbyte));
+                            raw1 = (*pixel>>bit1)&mask[dstdepth-1];
                         }
 
                         if ((y1 >= 0))
                         {
-                            bit = (x0 - ((uint32_t)(x0 / dstpixelsperbyte) *
-                                dstpixelsperbyte)) * dstdepth;
-                            pixel = (pixbuf + bpp) + (y1 * dstpitch) +
-                                (uint32_t)(x0 / dstpixelsperbyte);
-                            pri0 = (*pixel>>((8-dstdepth)-bit))&mask[dstdepth-1];
+                            pixel = (pixbuf + (y1 * dstpitch) +
+                                (uint32_t)(x0 / dstpixelsperbyte));
+                            pri0 = (*pixel>>bit0)&mask[dstdepth-1];
                         }
                     }
                     else
                     {
                         if ((x1 >= 0) && (y1 >= 0))
                         {
-                            pri1 = *((pixbuf + bpp) + (y1 * dstpitch) +
-                                (x1 * dstbytes));
+                            pri1 = (pixbuf + (y1 * dstpitch) + (x1 * dstbytes))[bpp];
                         }
 
                         if ((x1 >= 0))
                         {
-                            raw1 = *((pixbuf + bpp) + (y0 * dstpitch) +
-                                (x1 * dstbytes));
+                            raw1 = (pixbuf + (y0 * dstpitch) + (x1 * dstbytes))[bpp];
                         }
 
                         if ((y1 >= 0))
                         {
-                            pri0 = *((pixbuf + bpp) + (y1 * dstpitch) +
-                                (x0 * dstbytes));
+                            pri0 = (pixbuf + (y1 * dstpitch) + (x0 * dstbytes))[bpp];
                         }
                     }
 
@@ -1462,18 +1463,12 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
 
                     if (dstdepth < 8)
                     {
-                        bit = (x0 - ((uint32_t)(x0 / dstpixelsperbyte) *
-                            dstpixelsperbyte)) * dstdepth;
-                        (pixbuf + (((y * dstyskip) + dstyorig) * dstpitch) +
-                            (uint32_t)(x0 / dstpixelsperbyte))[bpp] |=
-                                (((sample >> ((pix - cur) * dstdepth)) &
-                                    mask[dstdepth - 1]) & mask[dstdepth - 1]) <<
-                                        ((8 - dstdepth) - bit);
+                        (pixbuf + yy + xx)[0] |= ((sample >> ((pix - cur) * dstdepth)) &
+                            mask[dstdepth - 1]) << bit0;
                     }
                     else
                     {
-                        (pixbuf + (y0 * dstpitch) + (x0 * dstbytes))[bpp] =
-                            (sample & 0xFF);
+                        (pixbuf + yy + xx)[bpp] = (sample & 0xFF);
                     }
                     bpp++;
                 }
