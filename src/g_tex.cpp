@@ -1317,6 +1317,7 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
     uint16_t pb = 0;
     uint16_t pc = 0;
     uint8_t filter = 0;
+    uint8_t bitX = 0;
     uint8_t bit0 = 0;
     uint8_t bit1 = 0;
 
@@ -1350,8 +1351,6 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
         while (y < ysize)
         {
             filter = *srcbuf++; srcofs++;
-            bit0 = 0;
-            bit1 = 0;
             x = 0;
 
             while (x < xsize)
@@ -1362,8 +1361,10 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
                 int32_t y1 = (((y - 1) * dstyskip) + dstyorig);
                 int32_t xx = (uint32_t)(x0 / dstpixelsperbyte);
                 int32_t yy = y0 * dstpitch;
-                uint8_t pix = dstpixelsperbyte - 1;
-                uint8_t cur = (x & pix);
+                uint8_t mod = dstpixelsperbyte - 1;
+                uint8_t curX = ( x & mod);
+                uint8_t cur0 = (x0 & mod);
+                uint8_t cur1 = (x1 & mod);
                 bpp = 0;
 
                 while (bpp < dstbytes)
@@ -1372,17 +1373,16 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
                     pri1 = 0;
                     raw1 = 0;
 
-                    if (dstdepth > 8 || (dstdepth < 8 && cur == 0))
+                    if (dstdepth >= 8 || (dstdepth <= 4 && curX == 0))
                     {
                         raw0 = sample = *srcbuf++; srcofs++;
                     }
 
-                    if (dstdepth < 8)
+                    if (dstdepth <= 4)
                     {
-                        bit0 = (8 - dstdepth) - (x0 - ((uint32_t)(x0 / dstpixelsperbyte) *
-                            dstpixelsperbyte)) * dstdepth;
-                        bit1 = (8 - dstdepth) - (x1 - ((uint32_t)(x1 / dstpixelsperbyte) *
-                            dstpixelsperbyte)) * dstdepth;
+                        bitX = (mod - curX) * dstdepth;
+                        bit0 = (mod - cur0) * dstdepth;
+                        bit1 = (mod - cur1) * dstdepth;
 
                         if ((x1 >= 0) && (y1 >= 0))
                         {                     
@@ -1461,10 +1461,9 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
                     } break;
                     }
 
-                    if (dstdepth < 8)
+                    if (dstdepth <= 4)
                     {
-                        (pixbuf + yy + xx)[0] |= ((sample >> ((pix - cur) * dstdepth)) &
-                            mask[dstdepth - 1]) << bit0;
+                        (pixbuf + yy + xx)[0] |= ((sample >> bitX) & mask[dstdepth-1]) << bit0;
                     }
                     else
                     {
