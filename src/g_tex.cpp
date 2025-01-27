@@ -28,40 +28,8 @@
 #pragma warning (disable : 4244)            // conversion from <type> to <type>
 #pragma warning (disable : 4996)            // deprecation warning
 
-static const uint32_t s_rgba_size = 4;
-
-//-----------------------------------------------------------------------------
-// Sampling
-//-----------------------------------------------------------------------------
-
-static unsigned char s_bitmask[8] = { 0, 0, 0, 0, 0x0F, 0, 0x03, 0x01 };
-
-//-----------------------------------------------------------------------------
-// Expand N-pixels per byte to 8-bits per index
-//-----------------------------------------------------------------------------
-static void
-ExpandNbitsToIndex8(uint8_t* pdst, uint8_t sample, uint8_t count, uint8_t bitstart)
-{
-    uint8_t dstofs = 0;
-    uint8_t srcofs = bitstart;
-    uint8_t srcdec = 8-bitstart;
-    uint8_t srcbit = s_bitmask[bitstart];
-
-    switch (count)
-    {
-    case 8: *(pdst) = (sample >> srcofs) & srcbit; srcofs -= srcdec; dstofs++;
-    case 7: *(pdst + dstofs) = (sample >> srcofs) & srcbit; srcofs -= srcdec; dstofs++;
-    case 6: *(pdst + dstofs) = (sample >> srcofs) & srcbit; srcofs -= srcdec; dstofs++;
-    case 5: *(pdst + dstofs) = (sample >> srcofs) & srcbit; srcofs -= srcdec; dstofs++;
-    case 4: *(pdst + dstofs) = (sample >> srcofs) & srcbit; srcofs -= srcdec; dstofs++;
-    case 3: *(pdst + dstofs) = (sample >> srcofs) & srcbit; srcofs -= srcdec; dstofs++;
-    case 2: *(pdst + dstofs) = (sample >> srcofs) & srcbit; srcofs -= srcdec; dstofs++;
-    case 1: *(pdst + dstofs) = (sample >> srcofs) & srcbit;
-    break;
-    }
-}
-
 #define PIXELS_PER_BYTE(depth) ((8.0f / (float)(depth)))
+static const uint32_t s_rgba_size = 4;
 
 #ifndef _PNG_H
 #define _PNG_H
@@ -2918,34 +2886,28 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec,
                 x = 0;
                 y = 0;
                 uint8_t* pixels = (uint8_t*)malloc(srcxsize * srcysize);
-                uint8_t* pixptr = pixels;
                 uint8_t* pixbuf = pixels;
                 uint8_t* srcbuf = rawbuf;
-                uint8_t ppb = PIXELS_PER_BYTE(srcdepth);
-                uint8_t bit = 8 - srcdepth;
+                uint8_t sample = 0;
 
                 memset(pixels, 0, srcxsize * srcysize);
 
                 while (y < srcysize)
                 {
-                    pixbuf = pixptr;
-                    runcount = ppb;
-                    x = srcxsize;
-
-                    while (x > 0)
+                    x = 0;
+                    while (x < srcxsize)
                     {
-                        if (x < runcount) { runcount = x; }
-                        ExpandNbitsToIndex8(pixbuf, *srcbuf, runcount, bit);
-                        pixbuf += runcount;
-                        srcbuf++;
-                        x -= runcount;
+                        if ((x & 1) == 0)
+                        {
+                            sample = *srcbuf++; *pixbuf++ = sample >> 4;
+                        }
+                        if ((x & 1) == 1)
+                        {
+                            *pixbuf++ = sample & 0xF;
+                        }
+                        x++;
                     }
                     y++;
-
-                    if (y != srcysize)
-                    {
-                        pixptr += srcxsize;
-                    }
                 }
 
                 srcpitch = xextent;
@@ -8727,43 +8689,54 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         }
 
         // expand packed type
-        if ((format == FILEFORMAT_BMP || format == FILEFORMAT_PCX || format == FILEFORMAT_PNG) && depth < 8)
+        if ((format == FILEFORMAT_BMP || format == FILEFORMAT_PCX || format == FILEFORMAT_PNG) && depth <= 4)
         {
-            uint32_t runcount = 0;
+            uint32_t count = 0;
             uint32_t x = 0;
             uint32_t y = 0;
             uint8_t* pixels = (uint8_t*)malloc(srcimage.xsize * srcimage.ysize);
             uint8_t* pixptr = pixels;
             uint8_t* pixbuf = pixels;
             uint8_t* srcbuf = srcimage.data;
-            uint8_t ppb = PIXELS_PER_BYTE(depth);
-            uint8_t bit = 8 - depth;
+            uint8_t pixelsperbyte = PIXELS_PER_BYTE(depth);
+            uint8_t mask[4] = { 0x01, 0x03, 0, 0x0F };
+            uint8_t maskbits = mask[depth-1];
+            uint8_t startbit = 8 - depth;
+            uint8_t shiftbit = 0;
 
             memset(pixels, 0, srcimage.xsize * srcimage.ysize);
 
             while (y < srcimage.ysize)
             {
-                pixbuf = pixptr;
-                runcount = ppb;
+                count = pixelsperbyte;
                 x = srcimage.xsize;
 
                 while (x > 0)
                 {
-                    if (x < runcount) { runcount = x; }
-                    ExpandNbitsToIndex8(pixbuf, *srcbuf, runcount, bit);
-                    pixbuf += runcount;
+                    if (x < count) { count = x; }
+
+                    shiftbit = startbit;
+
+                    switch (count)
+                    {
+                    case 8: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
+                    case 7: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
+                    case 6: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
+                    case 5: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
+                    case 4: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
+                    case 3: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
+                    case 2: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
+                    case 1: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits;
+                        break;
+                    }
+
                     srcbuf++;
-                    x -= runcount;
+                    x -= count;
                 }
                 y++;
-
-                if (y != srcimage.ysize)
-                {
-                    pixptr += srcimage.xsize;
-                }
             }
 
-            uint8_t scale[8] = { 0, 0xFF, 0x55, 0, 0x11, 0, 0, 0x01 };
+            uint8_t scale[4] = { 0xFF, 0x55, 0, 0x11 };
             pixptr = pixels;
             pixbuf = pixels;
 
@@ -8771,7 +8744,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             {
                 for (unsigned int i = 0; i < srcimage.xsize * srcimage.ysize; ++i)
                 {
-                    *pixbuf++ *= scale[depth];
+                    *pixbuf++ *= scale[depth-1];
                 }
             }
 
