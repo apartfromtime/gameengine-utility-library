@@ -130,7 +130,7 @@ typedef struct _image_info
 //                        surface.
 // [in    ] ppdstsize   - Size of the file in memory, in bytes.
 // [in    ] dstformat   - Member of the file_format_t enumerated type
-//                        describing the requested file format for the image
+//                        describing the requested file format for the image.
 // [in    ] dstcodec    - Member of the encode_t enumerated type decribing
 //                        the requested encoding for the image.
 // [in    ] psrcimage   - Pointer to a image_t structure containing the image
@@ -153,7 +153,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t dstformat,
 //
 // [in    ] pdstfile    - Pointer to a string that specifies the filename.
 // [in    ] dstformat   - Member of the file_format_t enumerated type
-//                        describing the requested file format for the image
+//                        describing the requested file format for the image.
 // [in    ] dstcodec    - Member of the encode_t enumerated type decribing
 //                        the requested encoding for the image.
 // [in    ] psrcimage   - Pointer to a image_t structure containing the image
