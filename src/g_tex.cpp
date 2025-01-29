@@ -1192,7 +1192,6 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
     uint8_t* pixels = (uint8_t*)malloc(pixlen);
     uint8_t* pixbuf = pixels;
     uint8_t* pixptr = pixels;
-    uint8_t* pixel = NULL;
     uint16_t sample = 0;
     uint16_t pae0 = 0;
     uint16_t raw0 = 0;
@@ -1273,23 +1272,23 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
 
                         if ((x1 >= 0) && (y1 >= 0))
                         {                     
-                            pixel = (pixbuf + (y1 * dstpitch) +
-                                (uint32_t)(x1 / dstpixelsperbyte));
-                            pri1 = (*pixel>>bit1)&mask[dstdepth-1];
+                            pri1 = (*(pixbuf + (y1 * dstpitch) +
+                                (uint32_t)(x1 / dstpixelsperbyte))>>bit1)&
+                                mask[dstdepth-1];
                         }
 
                         if ((x1 >= 0))
                         {
-                            pixel = (pixbuf + (y0 * dstpitch) +
-                                (uint32_t)(x1 / dstpixelsperbyte));
-                            raw1 = (*pixel>>bit1)&mask[dstdepth-1];
+                            raw1 = (*(pixbuf + (y0 * dstpitch) +
+                                (uint32_t)(x1 / dstpixelsperbyte))>>bit1)&
+                                mask[dstdepth-1];
                         }
 
                         if ((y1 >= 0))
                         {
-                            pixel = (pixbuf + (y1 * dstpitch) +
-                                (uint32_t)(x0 / dstpixelsperbyte));
-                            pri0 = (*pixel>>bit0)&mask[dstdepth-1];
+                            pri0 = (*(pixbuf + (y1 * dstpitch) +
+                                (uint32_t)(x0 / dstpixelsperbyte))>>bit0)&
+                                mask[dstdepth-1];
                         }
                     }
                     else
@@ -8691,60 +8690,61 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         // expand packed type
         if ((format == FILEFORMAT_BMP || format == FILEFORMAT_PCX || format == FILEFORMAT_PNG) && depth <= 4)
         {
-            uint32_t count = 0;
             uint32_t x = 0;
             uint32_t y = 0;
             uint8_t* pixels = (uint8_t*)malloc(srcimage.xsize * srcimage.ysize);
-            uint8_t* pixptr = pixels;
             uint8_t* pixbuf = pixels;
             uint8_t* srcbuf = srcimage.data;
             uint8_t pixelsperbyte = PIXELS_PER_BYTE(depth);
-            uint8_t mask[4] = { 0x01, 0x03, 0, 0x0F };
-            uint8_t maskbits = mask[depth-1];
-            uint8_t startbit = 8 - depth;
-            uint8_t shiftbit = 0;
+            uint8_t maskbits[4] = { 0x01, 0x03, 0, 0x0F };
+            uint8_t scalebit[4] = { 0xFF, 0x55, 0, 0x11 };
+            uint8_t mask = maskbits[depth-1];
+            uint8_t resetbit = 8 - depth;
+            uint8_t bit = resetbit;
 
             memset(pixels, 0, srcimage.xsize * srcimage.ysize);
 
             while (y < srcimage.ysize)
             {
-                count = pixelsperbyte;
-                x = srcimage.xsize;
+                x = (srcimage.xsize / pixelsperbyte);
 
-                while (x > 0)
+                do
                 {
-                    if (x < count) { count = x; }
-
-                    shiftbit = startbit;
-
-                    switch (count)
+                    switch (pixelsperbyte)
                     {
-                    case 8: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
-                    case 7: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
-                    case 6: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
-                    case 5: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
-                    case 4: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
-                    case 3: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
-                    case 2: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits; shiftbit -= depth;
-                    case 1: *pixbuf++ = (*srcbuf >> shiftbit) & maskbits;
-                        break;
+                    case 8: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                    case 7: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                    case 6: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                    case 5: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                    case 4: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                    case 3: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                    case 2: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                    case 1: *pixbuf++ = (*srcbuf >> bit) & mask; bit = resetbit;
+                        srcbuf++;
                     }
+                } while (--x > 0);
 
+                switch (srcimage.xsize & (pixelsperbyte - 1))
+                {
+                case 7: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                case 6: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                case 5: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                case 4: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                case 3: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                case 2: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                case 1: *pixbuf++ = (*srcbuf >> bit) & mask; bit = resetbit;
                     srcbuf++;
-                    x -= count;
                 }
                 y++;
             }
 
-            uint8_t scale[4] = { 0xFF, 0x55, 0, 0x11 };
-            pixptr = pixels;
             pixbuf = pixels;
 
             if (srcimage.pixeltype == PIXELTYPE_LUMINANCE)
             {
                 for (unsigned int i = 0; i < srcimage.xsize * srcimage.ysize; ++i)
                 {
-                    *pixbuf++ *= scale[depth-1];
+                    *pixbuf++ *= scalebit[depth-1];
                 }
             }
 
