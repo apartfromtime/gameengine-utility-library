@@ -4123,14 +4123,14 @@ Point_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
     while (y < dstysize)
     {
-        y0 = lroundf(py);
+        y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + (y0 * srcpitch);
+        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
         x = 0;
 
         while (x < dstxsize)
         {
-            x0 = lroundf(px);
+            x0 = ROUND(px);
 
             bufdst[x*4+0] = bufsrc[x0*4+0];
             bufdst[x*4+1] = bufsrc[x0*4+1];
@@ -4176,14 +4176,14 @@ Point_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
     while (y < dstysize)
     {
-        y0 = lroundf(py);
+        y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + (y0 * srcpitch);
+        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
         x = 0;
 
         while (x < dstxsize)
         {
-            x0 = lroundf(px);
+            x0 = ROUND(px);
 
             bufdst[x*3+0] = bufsrc[x0*3+0];
             bufdst[x*3+1] = bufsrc[x0*3+1];
@@ -4228,14 +4228,14 @@ Point_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
     while (y < dstysize)
     {
-        y0 = lroundf(py);
+        y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + (y0 * srcpitch);
+        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
         x = 0;
 
         while (x < dstxsize)
         {
-            x0 = lroundf(px);
+            x0 = ROUND(px);
 
             bufdst[x*2+0] = bufsrc[x0*2+0];
             bufdst[x*2+1] = bufsrc[x0*2+1];
@@ -4277,14 +4277,14 @@ Point_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
     while (y < dstysize)
     {
-        y0 = lroundf(py);
+        y0 = ROUND(py);
         bufdst = rawdst;
         bufsrc = rawsrc + (y0 * srcxsize);
         x = 0;
 
         while (x < dstxsize)
         {
-            x0 = lroundf(px);
+            x0 = ROUND(px);
 
             bufdst[x] = bufsrc[x0];
             
@@ -4403,14 +4403,15 @@ Point_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
     while (y < dstysize)
     {
-        y0 = lroundf(py);
+        y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + (y0 * srcpitch);
+        bufsrc = rawsrc + ((y0%srcysize) * srcpitch);
+        px = 0;
         x = 0;
 
         while (x < dstxsize)
         {
-            x0 = lroundf(px);
+            x0 = ROUND(px);
 
             uint32_t pixel = (bufsrc[(x0%srcxsize)*4+0] << 24)
                 | (bufsrc[(x0%srcxsize)*4+1] << 16)
@@ -4577,14 +4578,14 @@ Point_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
     while (y < dstysize)
     {
-        y0 = lroundf(py);
+        y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + (y0 * srcpitch);
+        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
         x = 0;
 
         while (x < dstxsize)
         {
-            x0 = lroundf(px);
+            x0 = ROUND(px);
 
             uint32_t pixel = (bufsrc[(x0%srcxsize)*3+0] << 16)
                 | (bufsrc[(x0%srcxsize)*3+1] <<  8)
@@ -4768,14 +4769,14 @@ Point_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
     while (y < dstysize)
     {
-        y0 = lroundf(py);
+        y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + (y0 * srcpitch);
+        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
         x = 0;
 
         while (x < dstxsize)
         {
-            x0 = lroundf(px);
+            x0 = ROUND(px);
 
             uint16_t pixel = (bufsrc[(x0%srcxsize)*2+0] << 8)
                 | (bufsrc[(x0%srcxsize)*2+1] << 0);
@@ -4906,14 +4907,14 @@ Point_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
     while (y < dstysize)
     {
-        y0 = lroundf(py);
+        y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + (y0 * srcpitch);
+        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
         x = 0;
 
         while (x < dstxsize)
         {
-            x0 = lroundf(px);
+            x0 = ROUND(px);
 
             v = bufsrc[x0*1+0];
             b = v;
@@ -5044,14 +5045,14 @@ Point_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
     while (y < dstysize)
     {
-        y0 = lroundf(py);
+        y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + (y0 * srcpitch);
+        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
         x = 0;
 
         while (x < dstxsize)
         {
-            x0 = lroundf(px);
+            x0 = ROUND(px);
 
             v = bufsrc[x0*1+0];
             b = ppalette->data[v].b;
