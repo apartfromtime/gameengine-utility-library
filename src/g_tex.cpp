@@ -3528,7 +3528,6 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
             pixbuf = pixptr;
             memcpy(pixbuf, srcbuf, ABS(pitch));
             srcbuf += ABS(pitch) + padbytes;
-            pixptr += pitch;
 
             if (y != 0)
             {
@@ -7657,14 +7656,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
     uint32_t dstyorigin = dstrect.min[1] < 0 ? 0 : dstrect.min[1];
     uint32_t dstxextent = ABS(dstrect.max[0]) - dstxorigin;
     uint32_t dstyextent = ABS(dstrect.max[1]) - dstyorigin;
-
-    if (dstxextent > pdstimage->xsize || dstyextent > pdstimage->ysize)
-    {
-        fprintf(stderr, "ResampleImage, dst rectangle exceeds image bounds.\n");
-        return false;
-    }
-
-    int32_t dstbytesperpixel = 0;
+    uint32_t dstbytesperpixel = 0;
 
     switch (pdstimage->pixeltype)
     {
@@ -7696,7 +7688,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
         memset(pdstimage->data, 0, dstxextent * dstyextent * dstbytesperpixel);
     }
 
-    int32_t dstpitch = dstxextent * dstbytesperpixel;
+    uint32_t dstpitch = dstxextent * dstbytesperpixel;
     uint8_t* dstbuf = pdstimage->data + (dstyorigin * dstpitch) +
         (dstxorigin * dstbytesperpixel);            // start of current row
 
@@ -7726,7 +7718,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
         return false;
     }
 
-    int32_t srcbytesperpixel = 0;
+    uint32_t srcbytesperpixel = 0;
     
     switch (psrcimage->pixeltype)
     {
@@ -7752,7 +7744,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
     }
     }
 
-    int32_t srcpitch = psrcimage->xsize * srcbytesperpixel;          // bytes per src span
+    uint32_t srcpitch = psrcimage->xsize * srcbytesperpixel;          // bytes per src span
     uint8_t* srcbuf = psrcimage->data + (srcyorigin * srcpitch) +
         (srcxorigin * srcbytesperpixel);            // start of current row
 
@@ -7968,6 +7960,9 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
         } break;
         }
     }
+
+    pdstimage->xsize = dstxextent;
+    pdstimage->ysize = dstyextent;
 
     return result;
 }
