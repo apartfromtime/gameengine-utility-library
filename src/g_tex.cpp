@@ -171,7 +171,7 @@ Crc(unsigned char* buf, int len)
 //------------------------------------------------------------------------------
 // ShrinkPNG
 //------------------------------------------------------------------------------
-void
+static void
 ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
     uint32_t srcysize, uint32_t srcdepth, uint8_t interlaced, uint8_t filtertype,
     uint8_t* psrc)
@@ -4121,11 +4121,14 @@ Point_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint32_t x = 0;
     uint32_t y = 0;
 
+    py = -dy;
+
     while (y < dstysize)
     {
         y0 = ROUND(py);
         bufdst = rawdst;
         bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
+        px = -dx;
         x = 0;
 
         while (x < dstxsize)
@@ -4174,11 +4177,14 @@ Point_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint32_t x = 0;
     uint32_t y = 0;
 
+    py = -dy;
+
     while (y < dstysize)
     {
         y0 = ROUND(py);
         bufdst = rawdst;
         bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
+        px = -dx;
         x = 0;
 
         while (x < dstxsize)
@@ -4226,11 +4232,14 @@ Point_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint32_t x = 0;
     uint32_t y = 0;
 
+    py = -dy;
+
     while (y < dstysize)
     {
         y0 = ROUND(py);
         bufdst = rawdst;
         bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
+        px = -dx;
         x = 0;
 
         while (x < dstxsize)
@@ -4275,11 +4284,14 @@ Point_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint32_t x = 0;
     uint32_t y = 0;
 
+    py = -dy;
+
     while (y < dstysize)
     {
         y0 = ROUND(py);
         bufdst = rawdst;
         bufsrc = rawsrc + (y0 * srcxsize);
+        px = -dx;
         x = 0;
 
         while (x < dstxsize)
@@ -4401,12 +4413,14 @@ Point_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     } break;
     }
 
+    py = -dy;
+
     while (y < dstysize)
     {
         y0 = ROUND(py);
         bufdst = rawdst;
         bufsrc = rawsrc + ((y0%srcysize) * srcpitch);
-        px = 0;
+        px = -dx;
         x = 0;
 
         while (x < dstxsize)
@@ -4576,11 +4590,14 @@ Point_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     } break;
     }
 
+    py = -dy;
+
     while (y < dstysize)
     {
         y0 = ROUND(py);
         bufdst = rawdst;
         bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
+        px = -dx;
         x = 0;
 
         while (x < dstxsize)
@@ -4767,11 +4784,14 @@ Point_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     } break;
     }
 
+    py = -dy;
+
     while (y < dstysize)
     {
         y0 = ROUND(py);
         bufdst = rawdst;
         bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
+        px = -dx;
         x = 0;
 
         while (x < dstxsize)
@@ -4905,11 +4925,14 @@ Point_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     } break;
     }
 
+    py = -dy;
+
     while (y < dstysize)
     {
         y0 = ROUND(py);
         bufdst = rawdst;
         bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
+        px = -dx;
         x = 0;
 
         while (x < dstxsize)
@@ -5043,11 +5066,14 @@ Point_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     } break;
     }
 
+    py = -dy;
+
     while (y < dstysize)
     {
         y0 = ROUND(py);
         bufdst = rawdst;
         bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
+        px = -dx;
         x = 0;
 
         while (x < dstxsize)
