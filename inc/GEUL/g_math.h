@@ -54,7 +54,7 @@
 #endif
 
 #define FLOOR(a)            ((a)>0?(int32_t)(a):-(int32_t)(-a))
-#define ROUND(a)            (fabs(ceil(a)-a) > 0.5 ? ceil(a) : floor(a))
+#define ROUND(a)            (fabs(ceil(a)-a) <= 0.5 ? ceil(a) : floor(a))
 #define CLAMP(x, min, max)  (x < min ? min : x > max ? max : x)
 #define ABS(a)              (((a) < 0) ? -(a) : (a))
 #define SIGN(x)             (x >= 0 ? 1 : -1)

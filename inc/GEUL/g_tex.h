@@ -143,8 +143,7 @@ typedef struct _image_info
 //-----------------------------------------------------------------------------
 GEUL_DECLSPEC bool
 SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t dstformat,
-    encode_t dstcodec, image_t* psrcimage, palette_t* psrcpalette,
-    rect_t* psrcrect);
+    encode_t dstcodec, image_t* psrcimage, palette_t* psrcpalette, rect_t* psrcrect);
 
 //-----------------------------------------------------------------------------
 // SaveImageToFile
@@ -222,10 +221,9 @@ GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile);
 //                        null.
 //-----------------------------------------------------------------------------
 GEUL_DECLSPEC bool
-LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
-    rect_t *pdstrect, uint8_t* psrc, uint32_t srcsize, pixel_t format,
-    rect_t *psrcrect, uint32_t filter, rgba_t colorkey,
-    image_info_t* psrcinfo);
+LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t *pdstrect,
+    uint8_t* psrc, uint32_t srcsize, pixel_t format, rect_t *psrcrect,
+    uint32_t filter, rgba_t colorkey, image_info_t* psrcinfo);
 
 //-----------------------------------------------------------------------------
 // LoadImageFromFile
@@ -254,9 +252,8 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette,
 //                        null.
 //-----------------------------------------------------------------------------
 GEUL_DECLSPEC bool
-LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette,
-    rect_t* pdstrect, const char* psrcfile, pixel_t format,
-    rect_t* psrcrect, uint32_t filter, rgba_t colorkey,
-    image_info_t* psrcinfo);
+LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
+    const char* psrcfile, pixel_t format, rect_t* psrcrect, uint32_t filter,
+    rgba_t colorkey, image_info_t* psrcinfo);
 
 #endif // #ifndef _G_TEX_H_
