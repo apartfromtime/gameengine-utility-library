@@ -5177,8 +5177,10 @@ Linear_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* bufsrc1 = psrc;
     float dx = (float)srcxsize / (float)dstxsize;
     float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
+    float px0 = 0.0f;
+    float py0 = 0.0f;
+    float px1 = 0.0f;
+    float py1 = 0.0f;
     uint32_t dstpitch = dstxsize * 4;
     uint32_t srcpitch = srcxsize * 4;
     uint32_t x0 = 0, x1 = 0;
@@ -5186,46 +5188,47 @@ Linear_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint32_t x = 0;
     uint32_t y = 0;
 
+    py0 = -dy;
+    py1 = 0.0f;
+
     while (y < dstysize)
     {
         bufdst = rawdst;
-        y0 = FLOOR(py);
-        y1 = y0 + 1;
+        y0 = ROUND(py0);
+        y1 = ROUND(py1);
+        y0 = y0 < 0 ? 0 : y0;
+        y1 = y1 > (int32_t)(srcysize - 1) ? (srcysize - 1) : y1;
 
         bufsrc0 = rawsrc + (y0 * srcpitch);
         bufsrc1 = rawsrc + (y1 * srcpitch);
 
-        float y1_py = y1 - py;
-        float py_y0 = py - y0;
-        
-        float x1_px = 0.0f;
-        float px_x0 = 0.0f;
-
-        px = 0.0f;
+        px0 = -dx;
+        px1 = 0.0f;
         x = 0;
-        
+
         while (x < dstxsize)
         {
-            x0 = FLOOR(px);
-            x1 = x0 + 1;
+            x0 = ROUND(px0);
+            x1 = ROUND(px1);
+            x0 = x0 < 0 ? 0 : x0;
+            x1 = x1 > (int32_t)(srcxsize - 1) ? (srcxsize - 1) : x1;
 
-            x1_px = x1 - px;
-            px_x0 = px - x0;
+            bufdst[x*4+0] = (0.5f * ((0.5f * bufsrc0[x0*4+0]) + (0.5f * bufsrc0[x1*4+0]))) +
+                (0.5f * ((0.5f * bufsrc1[x0*4+0]) + (0.5f * bufsrc1[x1*4+0])));
+            bufdst[x*4+1] = (0.5f * ((0.5f * bufsrc0[x0*4+1]) + (0.5f * bufsrc0[x1*4+1]))) +
+                (0.5f * ((0.5f * bufsrc1[x0*4+1]) + (0.5f * bufsrc1[x1*4+1])));
+            bufdst[x*4+2] = (0.5f * ((0.5f * bufsrc0[x0*4+2]) + (0.5f * bufsrc0[x1*4+2]))) +
+                (0.5f * ((0.5f * bufsrc1[x0*4+2]) + (0.5f * bufsrc1[x1*4+2])));
+            bufdst[x*4+3] = (0.5f * ((0.5f * bufsrc0[x0*4+3]) + (0.5f * bufsrc0[x1*4+3]))) +
+                (0.5f * ((0.5f * bufsrc1[x0*4+3]) + (0.5f * bufsrc1[x1*4+3])));
 
-            bufdst[x*4+0] = (y1_py * ((x1_px * bufsrc0[x0*4+0]) + (px_x0 * bufsrc0[x1*4+0]))) +
-                (py_y0 * ((x1_px * bufsrc1[x0*4+0]) + (px_x0 * bufsrc1[x1*4+0])));
-            bufdst[x*4+1] = (y1_py * ((x1_px * bufsrc0[x0*4+1]) + (px_x0 * bufsrc0[x1*4+1]))) +
-                (py_y0 * ((x1_px * bufsrc1[x0*4+1]) + (px_x0 * bufsrc1[x1*4+1])));
-            bufdst[x*4+2] = (y1_py * ((x1_px * bufsrc0[x0*4+2]) + (px_x0 * bufsrc0[x1*4+2]))) +
-                (py_y0 * ((x1_px * bufsrc1[x0*4+2]) + (px_x0 * bufsrc1[x1*4+2])));
-            bufdst[x*4+3] = (y1_py * ((x1_px * bufsrc0[x0*4+3]) + (px_x0 * bufsrc0[x1*4+3]))) +
-                (py_y0 * ((x1_px * bufsrc1[x0*4+3]) + (px_x0 * bufsrc1[x1*4+3])));
-
-            px += dx;
+            px0 += dx;
+            px1 += dx;
             x++;
         }
 
-        py += dy;
+        py0 += dy;
+        py1 += dy;
         y++;
 
         if (y != dstysize)
@@ -5251,8 +5254,10 @@ Linear_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* bufsrc1 = psrc;
     float dx = (float)srcxsize / (float)dstxsize;
     float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
+    float px0 = 0.0f;
+    float py0 = 0.0f;
+    float px1 = 0.0f;
+    float py1 = 0.0f;
     uint32_t dstpitch = dstxsize * 3;
     uint32_t srcpitch = srcxsize * 3;
     uint32_t x0 = 0, x1 = 0;
@@ -5260,44 +5265,45 @@ Linear_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint32_t x = 0;
     uint32_t y = 0;
 
+    py0 = -dy;
+    py1 = 0.0f;
+
     while (y < dstysize)
     {
         bufdst = rawdst;
-        y0 = FLOOR(py);
-        y1 = y0 + 1;
+        y0 = ROUND(py0);
+        y1 = ROUND(py1);
+        y0 = y0 < 0 ? 0 : y0;
+        y1 = y1 > (int32_t)(srcysize - 1) ? (srcysize - 1) : y1;
 
         bufsrc0 = rawsrc + (y0 * srcpitch);
         bufsrc1 = rawsrc + (y1 * srcpitch);
 
-        float y1_py = y1 - py;
-        float py_y0 = py - y0;
-        
-        float x1_px = 0.0f;
-        float px_x0 = 0.0f;
-
-        px = 0.0f;
+        px0 = -dx;
+        px1 = 0.0f;
         x = 0;
         
         while (x < dstxsize)
         {
-            x0 = FLOOR(px);
-            x1 = x0 + 1;
+            x0 = ROUND(px0);
+            x1 = ROUND(px1);
+            x0 = x0 < 0 ? 0 : x0;
+            x1 = x1 > (int32_t)(srcxsize - 1) ? (srcxsize - 1) : x1;
 
-            x1_px = x1 - px;
-            px_x0 = px - x0;
+            bufdst[x*3+0] = (0.5f * ((0.5f * bufsrc0[x0*3+0]) + (0.5f * bufsrc0[x1*3+0]))) +
+                (0.5f * ((0.5f * bufsrc1[x0*3+0]) + (0.5f * bufsrc1[x1*3+0])));
+            bufdst[x*3+1] = (0.5f * ((0.5f * bufsrc0[x0*3+1]) + (0.5f * bufsrc0[x1*3+1]))) +
+                (0.5f * ((0.5f * bufsrc1[x0*3+1]) + (0.5f * bufsrc1[x1*3+1])));
+            bufdst[x*3+2] = (0.5f * ((0.5f * bufsrc0[x0*3+2]) + (0.5f * bufsrc0[x1*3+2]))) +
+                (0.5f * ((0.5f * bufsrc1[x0*3+2]) + (0.5f * bufsrc1[x1*3+2])));
 
-            bufdst[x*3+0] = (y1_py * ((x1_px * bufsrc0[x0*3+0]) + (px_x0 * bufsrc0[x1*3+0]))) +
-                (py_y0 * ((x1_px * bufsrc1[x0*3+0]) + (px_x0 * bufsrc1[x1*3+0])));
-            bufdst[x*3+1] = (y1_py * ((x1_px * bufsrc0[x0*3+1]) + (px_x0 * bufsrc0[x1*3+1]))) +
-                (py_y0 * ((x1_px * bufsrc1[x0*3+1]) + (px_x0 * bufsrc1[x1*3+1])));
-            bufdst[x*3+2] = (y1_py * ((x1_px * bufsrc0[x0*3+2]) + (px_x0 * bufsrc0[x1*3+2]))) +
-                (py_y0 * ((x1_px * bufsrc1[x0*3+2]) + (px_x0 * bufsrc1[x1*3+2])));
-
-            px += dx;
+            px0 += dx;
+            px1 += dx;
             x++;
         }
 
-        py += dy;
+        py0 += dy;
+        py1 += dy;
         y++;
 
         if (y != dstysize)
@@ -5321,8 +5327,10 @@ Linear_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     float amod = 0.0f;
     float dx = (float)srcxsize / (float)dstxsize;
     float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
+    float px0 = 0.0f;
+    float py0 = 0.0f;
+    float px1 = 0.0f;
+    float py1 = 0.0f;
     float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
     float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
     uint8_t* rawdst = pdst;
@@ -5378,28 +5386,30 @@ Linear_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     } break;
     }
 
+    py0 = -dy;
+    py1 = 0.0f;
+
     while (y < dstysize)
     {
         bufdst = rawdst;
-        y0 = FLOOR(py);
-        y1 = y0 + 1;
+        y0 = ROUND(py0);
+        y1 = ROUND(py1);
+        y0 = y0 < 0 ? 0 : y0;
+        y1 = y1 > (int32_t)(srcysize - 1) ? (srcysize - 1) : y1;
 
         bufsrc0 = rawsrc + (y0 * srcpitch);
         bufsrc1 = rawsrc + (y1 * srcpitch);
 
-        float y1_py = y1 - py;
-        float py_y0 = py - y0;
-        
-        float x1_px = 0.0f;
-        float px_x0 = 0.0f;
-
-        px = 0.0f;
+        px0 = -dx;
+        px1 = 0.0f;
         x = 0;
         
         while (x < dstxsize)
         {
-            x0 = FLOOR(px);
-            x1 = x0 + 1;
+            x0 = ROUND(px0);
+            x1 = ROUND(px1);
+            x0 = x0 < 0 ? 0 : x0;
+            x1 = x1 > (int32_t)(srcxsize - 1) ? (srcxsize - 1) : x1;
 
             uint32_t pixel0 = (bufsrc0[(x0%srcxsize)*3+0] << 8)
                 | (bufsrc0[(x0%srcxsize)*3+1] << 0);
@@ -5429,27 +5439,24 @@ Linear_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             gx1y1 = (pixel3 & gmask) * gmod;
             bx1y1 = (pixel3 & bmask) * bmod;
             ax1y1 = (pixel3 & amask) * amod;
-
-            x1_px = x1 - px;
-            px_x0 = px - x0;
             
-            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
-            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
-            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
-            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
+            b0 = (0.5f * bx0y0) + (0.5f * bx1y0);
+            g0 = (0.5f * gx0y0) + (0.5f * gx1y0);
+            r0 = (0.5f * rx0y0) + (0.5f * rx1y0);
+            a0 = (0.5f * ax0y0) + (0.5f * ax1y0);
 
-            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
-            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
-            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
-            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
+            b1 = (0.5f * bx0y1) + (0.5f * bx1y1);
+            g1 = (0.5f * gx0y1) + (0.5f * gx1y1);
+            r1 = (0.5f * rx0y1) + (0.5f * rx1y1);
+            a1 = (0.5f * ax0y1) + (0.5f * ax1y1);
 
             switch (dstformat)
             {
             case PIXELTYPE_XBGR1555:
             {
-                r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
-                g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
-                b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
+                r = ((0.5f * r0) + (0.5f * r1) * 0x1F) / 0xFF;
+                g = ((0.5f * g0) + (0.5f * g1) * 0x1F) / 0xFF;
+                b = ((0.5f * b0) + (0.5f * b1) * 0x1F) / 0xFF;
 
                 rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
 
@@ -5458,20 +5465,22 @@ Linear_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
-                r = (y1_py * r0) + (py_y0 * r1);
-                g = (y1_py * g0) + (py_y0 * g1);
-                b = (y1_py * b0) + (py_y0 * b1);
+                r = (0.5f * r0) + (0.5f * r1);
+                g = (0.5f * g0) + (0.5f * g1);
+                b = (0.5f * b0) + (0.5f * b1);
                 
                 bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
-                bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*2+1] = (0.5f * a0) + (0.5f * a1);
             } break;
             }
 
-            px += dx;
+            px0 += dx;
+            px1 += dx;
             x++;
         }
 
-        py += dy;
+        py0 += dy;
+        py1 += dy;
         y++;
 
         if (y != dstysize)
@@ -5497,47 +5506,50 @@ Linear_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* bufsrc1 = psrc;
     float dx = (float)srcxsize / (float)dstxsize;
     float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
+    float px0 = 0.0f;
+    float py0 = 0.0f;
+    float px1 = 0.0f;
+    float py1 = 0.0f;
     uint32_t x0 = 0, x1 = 0;
     uint32_t y0 = 0, y1 = 0;
     uint32_t x = 0;
     uint32_t y = 0;
 
+    py0 = -dy;
+    py1 = 0.0f;
+
     while (y < dstysize)
     {
         bufdst = rawdst;
-        y0 = FLOOR(py);
-        y1 = y0 + 1;
+        y0 = ROUND(py0);
+        y1 = ROUND(py1);
+        y0 = y0 < 0 ? 0 : y0;
+        y1 = y1 > (int32_t)(srcysize - 1) ? (srcysize - 1) : y1;
 
         bufsrc0 = rawsrc + (y0 * srcxsize);
         bufsrc1 = rawsrc + (y1 * srcxsize);
 
-        float y1_py = y1 - py;
-        float py_y0 = py - y0;
-        
-        float x1_px = 0.0f;
-        float px_x0 = 0.0f;
-
-        px = 0.0f;
+        px0 = -dy;
+        px1 = 0.0f;
         x = 0;
         
         while (x < dstxsize)
         {
-            x0 = FLOOR(px);
-            x1 = x0 + 1;
+            x0 = ROUND(px0);
+            x1 = ROUND(px1);
+            x0 = x0 < 0 ? 0 : x0;
+            x1 = x1 > (int32_t)(srcxsize - 1) ? (srcxsize - 1) : x1;
 
-            x1_px = x1 - px;
-            px_x0 = px - x0;
+            bufdst[x] = (0.5f * ((0.5f * bufsrc0[x0]) + (0.5f * bufsrc0[x1]))) +
+                (0.5f * ((0.5f * bufsrc1[x0]) + (0.5f * bufsrc1[x1])));
 
-            bufdst[x] = (y1_py * ((x1_px * bufsrc0[x0]) + (px_x0 * bufsrc0[x1]))) +
-                (py_y0 * ((x1_px * bufsrc1[x0]) + (px_x0 * bufsrc1[x1])));
-
-            px += dx;
+            px0 += dx;
+            px1 += dx;
             x++;
         }
 
-        py += dy;
+        py0 += dy;
+        py1 += dy;
         y++;
 
         if (y != dstysize)
@@ -5559,6 +5571,10 @@ Linear_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     float dy = (float)srcysize / (float)dstysize;
     float px = 0.0f;
     float py = 0.0f;
+    float px0 = 0.0f;
+    float py0 = 0.0f;
+    float px1 = 0.0f;
+    float py1 = 0.0f;
     float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
     float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
     uint8_t* rawdst = pdst;
@@ -5577,8 +5593,8 @@ Linear_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint32_t gmask = 0;
     uint32_t bmask = 0;
     uint32_t amask = 0;
-    uint32_t x0 = 0, x1 = 0;
-    uint32_t y0 = 0, y1 = 0;
+    int32_t x0 = 0, x1 = 0;
+    int32_t y0 = 0, y1 = 0;
     uint32_t x = 0;
     uint32_t y = 0;
     uint16_t rgb16 = 0;
@@ -5654,28 +5670,30 @@ Linear_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     } break;
     }
 
+    py0 = -dy;
+    py1 = 0;
+
     while (y < dstysize)
     {
         bufdst = rawdst;
-        y0 = FLOOR(py);
-        y1 = y0 + 1;
+        y0 = ROUND(py0);
+        y1 = ROUND(py1);
+        y0 = y0 < 0 ? 0 : y0;
+        y1 = y1 > (int32_t)(srcysize - 1) ? (srcysize - 1) : y1;
 
         bufsrc0 = rawsrc + (y0 * srcpitch);
         bufsrc1 = rawsrc + (y1 * srcpitch);
 
-        float y1_py = y1 - py;
-        float py_y0 = py - y0;
-        
-        float x1_px = 0.0f;
-        float px_x0 = 0.0f;
-
-        px = 0.0f;
+        px0 = -dx;
+        px1 = 0;
         x = 0;
         
         while (x < dstxsize)
         {
-            x0 = FLOOR(px);
-            x1 = x0 + 1;
+            x0 = ROUND(px0);
+            x1 = ROUND(px1);
+            x0 = x0 < 0 ? 0 : x0;
+            x1 = x1 > (int32_t)(srcxsize - 1) ? (srcxsize - 1) : x1;
 
             uint32_t pixel0 = (bufsrc0[(x0%srcxsize)*4+0] << 24)
                 | (bufsrc0[(x0%srcxsize)*4+1] << 16)
@@ -5713,60 +5731,57 @@ Linear_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             gx1y1 = ((pixel3 & gmask) >> gshift);
             bx1y1 = ((pixel3 & bmask) >> bshift);
             ax1y1 = ((pixel3 & amask) >> ashift);
-
-            x1_px = x1 - px;
-            px_x0 = px - x0;
             
-            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
-            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
-            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
-            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
+            b0 = (0.5f * bx0y0) + (0.5f * bx1y0);
+            g0 = (0.5f * gx0y0) + (0.5f * gx1y0);
+            r0 = (0.5f * rx0y0) + (0.5f * rx1y0);
+            a0 = (0.5f * ax0y0) + (0.5f * ax1y0);
 
-            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
-            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
-            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
-            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
+            b1 = (0.5f * bx0y1) + (0.5f * bx1y1);
+            g1 = (0.5f * gx0y1) + (0.5f * gx1y1);
+            r1 = (0.5f * rx0y1) + (0.5f * rx1y1);
+            a1 = (0.5f * ax0y1) + (0.5f * ax1y1);
 
             switch (dstformat)
             {
             case PIXELTYPE_RGBA:
             {
-                bufdst[x*4+0] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+2] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+0] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*4+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+2] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+3] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_ABGR:
             {
-                bufdst[x*4+0] = (y1_py * a0) + (py_y0 * a1);
-                bufdst[x*4+1] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+2] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+3] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+0] = (0.5f * a0) + (0.5f * a1);
+                bufdst[x*4+1] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+2] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+3] = (0.5f * r0) + (0.5f * r1);
             } break;
             case PIXELTYPE_BGRA:
             {
-                bufdst[x*4+0] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+2] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+0] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+2] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*4+3] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_RGB:
             {
-                bufdst[x*3+0] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*3+2] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*3+0] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*3+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*3+2] = (0.5f * b0) + (0.5f * b1);
             } break;
             case PIXELTYPE_BGR:
             {
-                bufdst[x*3+0] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*3+2] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*3+0] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*3+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*3+2] = (0.5f * r0) + (0.5f * r1);
             } break;
             case PIXELTYPE_XBGR1555:
             {
-                r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
-                g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
-                b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
+                r = ((0.5f * r0) + (0.5f * r1) * 0x1F) / 0xFF;
+                g = ((0.5f * g0) + (0.5f * g1) * 0x1F) / 0xFF;
+                b = ((0.5f * b0) + (0.5f * b1) * 0x1F) / 0xFF;
 
                 rgb16 = 0;
                 rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
@@ -5776,28 +5791,30 @@ Linear_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
-                r = (y1_py * r0) + (py_y0 * r1);
-                g = (y1_py * g0) + (py_y0 * g1);
-                b = (y1_py * b0) + (py_y0 * b1);
+                r = (0.5f * r0) + (0.5f * r1);
+                g = (0.5f * g0) + (0.5f * g1);
+                b = (0.5f * b0) + (0.5f * b1);
                 
                 bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
-                bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*2+1] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_LUMINANCE:
             {
-                r = (y1_py * r0) + (py_y0 * r1);
-                g = (y1_py * g0) + (py_y0 * g1);
-                b = (y1_py * b0) + (py_y0 * b1);
+                r = (0.5f * r0) + (0.5f * r1);
+                g = (0.5f * g0) + (0.5f * g1);
+                b = (0.5f * b0) + (0.5f * b1);
                 
                 bufdst[x*1+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
             } break;
             }
 
-            px += dx;
+            px0 += dx;
+            px1 += dx;
             x++;
         }
 
-        py += dy;
+        py0 += dy;
+        py1 += dy;
         y++;
 
         if (y != dstysize)
@@ -5817,8 +5834,10 @@ Linear_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 {
     float dx = (float)srcxsize / (float)dstxsize;
     float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
+    float px0 = 0.0f;
+    float py0 = 0.0f;
+    float px1 = 0.0f;
+    float py1 = 0.0f;
     float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
     float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
     uint8_t* rawdst = pdst;
@@ -5898,28 +5917,30 @@ Linear_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     } break;
     }
 
+    py0 = -dy;
+    py1 = 0.0f;
+
     while (y < dstysize)
     {
         bufdst = rawdst;
-        y0 = FLOOR(py);
-        y1 = y0 + 1;
+        y0 = ROUND(py0);
+        y1 = ROUND(py1);
+        y0 = y0 < 0 ? 0 : y0;
+        y1 = y1 > (int32_t)(srcysize - 1) ? (srcysize - 1) : y1;
 
         bufsrc0 = rawsrc + (y0 * srcpitch);
         bufsrc1 = rawsrc + (y1 * srcpitch);
 
-        float y1_py = y1 - py;
-        float py_y0 = py - y0;
-        
-        float x1_px = 0.0f;
-        float px_x0 = 0.0f;
-
-        px = 0.0f;
+        px0 = -dx;
+        px1 = 0.0f;
         x = 0;
         
         while (x < dstxsize)
         {
-            x0 = FLOOR(px);
-            x1 = x0 + 1;
+            x0 = ROUND(px0);
+            x1 = ROUND(px1);
+            x0 = x0 < 0 ? 0 : x0;
+            x1 = x1 > (int32_t)(srcxsize - 1) ? (srcxsize - 1) : x1;
 
             uint32_t pixel0 = (bufsrc0[(x0%srcxsize)*3+0] << 16)
                 | (bufsrc0[(x0%srcxsize)*3+1] <<  8)
@@ -5953,60 +5974,57 @@ Linear_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             gx1y1 = ((pixel3 & gmask) >> gshift);
             bx1y1 = ((pixel3 & bmask) >> bshift);
             ax1y1 = 255;
-
-            x1_px = x1 - px;
-            px_x0 = px - x0;
             
-            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
-            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
-            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
-            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
+            b0 = (0.5f * bx0y0) + (0.5f * bx1y0);
+            g0 = (0.5f * gx0y0) + (0.5f * gx1y0);
+            r0 = (0.5f * rx0y0) + (0.5f * rx1y0);
+            a0 = (0.5f * ax0y0) + (0.5f * ax1y0);
 
-            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
-            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
-            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
-            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
+            b1 = (0.5f * bx0y1) + (0.5f * bx1y1);
+            g1 = (0.5f * gx0y1) + (0.5f * gx1y1);
+            r1 = (0.5f * rx0y1) + (0.5f * rx1y1);
+            a1 = (0.5f * ax0y1) + (0.5f * ax1y1);
 
             switch (dstformat)
             {
             case PIXELTYPE_RGBA:
             {
-                bufdst[x*4+0] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+2] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+0] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*4+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+2] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+3] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_ABGR:
             {
-                bufdst[x*4+0] = (y1_py * a0) + (py_y0 * a1);
-                bufdst[x*4+1] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+2] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+3] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+0] = (0.5f * a0) + (0.5f * a1);
+                bufdst[x*4+1] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+2] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+3] = (0.5f * r0) + (0.5f * r1);
             } break;
             case PIXELTYPE_BGRA:
             {
-                bufdst[x*4+0] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+2] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+0] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+2] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*4+3] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_RGB:
             {
-                bufdst[x*3+0] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*3+2] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*3+0] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*3+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*3+2] = (0.5f * b0) + (0.5f * b1);
             } break;
             case PIXELTYPE_BGR:
             {
-                bufdst[x*3+0] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*3+2] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*3+0] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*3+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*3+2] = (0.5f * r0) + (0.5f * r1);
             } break;
             case PIXELTYPE_XBGR1555:
             {
-                r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
-                g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
-                b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
+                r = ((0.5f * r0) + (0.5f * r1) * 0x1F) / 0xFF;
+                g = ((0.5f * g0) + (0.5f * g1) * 0x1F) / 0xFF;
+                b = ((0.5f * b0) + (0.5f * b1) * 0x1F) / 0xFF;
 
                 rgb16 = 0;
                 rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
@@ -6016,28 +6034,30 @@ Linear_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
-                r = (y1_py * r0) + (py_y0 * r1);
-                g = (y1_py * g0) + (py_y0 * g1);
-                b = (y1_py * b0) + (py_y0 * b1);
+                r = (0.5f * r0) + (0.5f * r1);
+                g = (0.5f * g0) + (0.5f * g1);
+                b = (0.5f * b0) + (0.5f * b1);
                 
                 bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
-                bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*2+1] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_LUMINANCE:
             {
-                r = (y1_py * r0) + (py_y0 * r1);
-                g = (y1_py * g0) + (py_y0 * g1);
-                b = (y1_py * b0) + (py_y0 * b1);
+                r = (0.5f * r0) + (0.5f * r1);
+                g = (0.5f * g0) + (0.5f * g1);
+                b = (0.5f * b0) + (0.5f * b1);
                 
                 bufdst[x*1+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
             } break;
             }
 
-            px += dx;
+            px0 += dx;
+            px1 += dx;
             x++;
         }
 
-        py += dy;
+        py0 += dy;
+        py1 += dy;
         y++;
 
         if (y != dstysize)
@@ -6061,8 +6081,10 @@ Linear_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     float amod = 0.0f;
     float dx = (float)srcxsize / (float)dstxsize;
     float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
+    float px0 = 0.0f;
+    float py0 = 0.0f;
+    float px1 = 0.0f;
+    float py1 = 0.0f;
     float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
     float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
     uint8_t* rawdst = pdst;
@@ -6156,28 +6178,30 @@ Linear_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     } break;
     }
 
+    py0 = -dy;
+    py1 = 0.0f;
+
     while (y < dstysize)
     {
         bufdst = rawdst;
-        y0 = FLOOR(py);
-        y1 = y0 + 1;
+        y0 = ROUND(py0);
+        y1 = ROUND(py1);
+        y0 = y0 < 0 ? 0 : y0;
+        y1 = y1 > (int32_t)(srcysize - 1) ? (srcysize - 1) : y1;
 
         bufsrc0 = rawsrc + (y0 * srcpitch);
         bufsrc1 = rawsrc + (y1 * srcpitch);
 
-        float y1_py = y1 - py;
-        float py_y0 = py - y0;
-        
-        float x1_px = 0.0f;
-        float px_x0 = 0.0f;
-
-        px = 0.0f;
+        px0 = -dx;
+        px1 = 0;
         x = 0;
         
         while (x < dstxsize)
         {
-            x0 = FLOOR(px);
-            x1 = x0 + 1;
+            x0 = ROUND(px0);
+            x1 = ROUND(px1);
+            x0 = x0 < 0 ? 0 : x0;
+            x1 = x1 > (int32_t)(srcxsize - 1) ? (srcxsize - 1) : x1;
 
             uint32_t pixel0 = (bufsrc0[(x0%srcxsize)*3+0] << 8)
                 | (bufsrc0[(x0%srcxsize)*3+1] << 0);
@@ -6207,60 +6231,57 @@ Linear_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             gx1y1 = ((pixel3 & gmask) >> gshift) * gmod;
             bx1y1 = ((pixel3 & bmask) >> bshift) * bmod;
             ax1y1 = ((pixel3 & amask) >> ashift) * amod;
-
-            x1_px = x1 - px;
-            px_x0 = px - x0;
             
-            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
-            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
-            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
-            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
+            b0 = (0.5f * bx0y0) + (0.5f * bx1y0);
+            g0 = (0.5f * gx0y0) + (0.5f * gx1y0);
+            r0 = (0.5f * rx0y0) + (0.5f * rx1y0);
+            a0 = (0.5f * ax0y0) + (0.5f * ax1y0);
 
-            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
-            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
-            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
-            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
+            b1 = (0.5f * bx0y1) + (0.5f * bx1y1);
+            g1 = (0.5f * gx0y1) + (0.5f * gx1y1);
+            r1 = (0.5f * rx0y1) + (0.5f * rx1y1);
+            a1 = (0.5f * ax0y1) + (0.5f * ax1y1);
 
             switch (dstformat)
             {
             case PIXELTYPE_RGBA:
             {
-                bufdst[x*4+0] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+2] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+0] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*4+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+2] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+3] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_ABGR:
             {
-                bufdst[x*4+0] = (y1_py * a0) + (py_y0 * a1);
-                bufdst[x*4+1] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+2] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+3] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+0] = (0.5f * a0) + (0.5f * a1);
+                bufdst[x*4+1] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+2] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+3] = (0.5f * r0) + (0.5f * r1);
             } break;
             case PIXELTYPE_BGRA:
             {
-                bufdst[x*4+0] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+2] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+0] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+2] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*4+3] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_RGB:
             {
-                bufdst[x*3+0] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*3+2] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*3+0] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*3+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*3+2] = (0.5f * b0) + (0.5f * b1);
             } break;
             case PIXELTYPE_BGR:
             {
-                bufdst[x*3+0] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*3+2] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*3+0] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*3+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*3+2] = (0.5f * r0) + (0.5f * r1);
             } break;
             case PIXELTYPE_XBGR1555:
             {
-                r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
-                g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
-                b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
+                r = ((0.5f * r0) + (0.5f * r1) * 0x1F) / 0xFF;
+                g = ((0.5f * g0) + (0.5f * g1) * 0x1F) / 0xFF;
+                b = ((0.5f * b0) + (0.5f * b1) * 0x1F) / 0xFF;
 
                 rgb16 = 0;
                 rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
@@ -6270,28 +6291,30 @@ Linear_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
-                r = (y1_py * r0) + (py_y0 * r1);
-                g = (y1_py * g0) + (py_y0 * g1);
-                b = (y1_py * b0) + (py_y0 * b1);
+                r = (0.5f * r0) + (0.5f * r1);
+                g = (0.5f * g0) + (0.5f * g1);
+                b = (0.5f * b0) + (0.5f * b1);
                 
                 bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
-                bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*2+1] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_LUMINANCE:
             {
-                r = (y1_py * r0) + (py_y0 * r1);
-                g = (y1_py * g0) + (py_y0 * g1);
-                b = (y1_py * b0) + (py_y0 * b1);
+                r = (0.5f * r0) + (0.5f * r1);
+                g = (0.5f * g0) + (0.5f * g1);
+                b = (0.5f * b0) + (0.5f * b1);
                 
                 bufdst[x*1+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
             } break;
             }
 
-            px += dx;
+            px0 += dx;
+            px1 += dx;
             x++;
         }
 
-        py += dy;
+        py0 += dy;
+        py1 += dy;
         y++;
 
         if (y != dstysize)
@@ -6311,8 +6334,10 @@ Linear_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 {
     float dx = (float)srcxsize / (float)dstxsize;
     float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
+    float px0 = 0.0f;
+    float py0 = 0.0f;
+    float px1 = 0.0f;
+    float py1 = 0.0f;
     float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
     float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
     uint8_t* rawdst = pdst;
@@ -6327,8 +6352,8 @@ Linear_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint32_t gmask = 0;
     uint32_t bmask = 0;
     uint32_t amask = 0;
-    uint32_t x0 = 0, x1 = 0;
-    uint32_t y0 = 0, y1 = 0;
+    int32_t x0 = 0, x1 = 0;
+    int32_t y0 = 0, y1 = 0;
     uint32_t x = 0;
     uint32_t y = 0;
     uint16_t rgb16 = 0;
@@ -6363,28 +6388,30 @@ Linear_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     } break;
     }
 
+    py0 = -dy;
+    py1 = 0;
+
     while (y < dstysize)
     {
         bufdst = rawdst;
-        y0 = FLOOR(py);
-        y1 = y0 + 1;
+        y0 = ROUND(py0);
+        y1 = ROUND(py1);
+        y0 = y0 < 0 ? 0 : y0;
+        y1 = y1 > (int32_t)(srcysize - 1) ? (srcysize - 1) : y1;
 
         bufsrc0 = rawsrc + (y0 * srcpitch);
         bufsrc1 = rawsrc + (y1 * srcpitch);
 
-        float y1_py = y1 - py;
-        float py_y0 = py - y0;
-        
-        float x1_px = 0.0f;
-        float px_x0 = 0.0f;
-
-        px = 0.0f;
+        px0 = -dx;
+        px1 = 0;
         x = 0;
         
         while (x < dstxsize)
         {
-            x0 = FLOOR(px);
-            x1 = x0 + 1;
+            x0 = ROUND(px0);
+            x1 = ROUND(px1);
+            x0 = x0 < 0 ? 0 : x0;
+            x1 = x1 > (int32_t)(srcxsize - 1) ? (srcxsize - 1) : x1;
 
             vx0y0 = bufsrc0[x0];
             vx1y0 = bufsrc0[x1];
@@ -6406,60 +6433,57 @@ Linear_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             bx1y1 = vx1y1;
             gx1y1 = vx1y1;
             rx1y1 = vx1y1;
-
-            x1_px = x1 - px;
-            px_x0 = px - x0;
             
-            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
-            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
-            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
-            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
+            b0 = (0.5f * bx0y0) + (0.5f * bx1y0);
+            g0 = (0.5f * gx0y0) + (0.5f * gx1y0);
+            r0 = (0.5f * rx0y0) + (0.5f * rx1y0);
+            a0 = (0.5f * ax0y0) + (0.5f * ax1y0);
 
-            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
-            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
-            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
-            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
+            b1 = (0.5f * bx0y1) + (0.5f * bx1y1);
+            g1 = (0.5f * gx0y1) + (0.5f * gx1y1);
+            r1 = (0.5f * rx0y1) + (0.5f * rx1y1);
+            a1 = (0.5f * ax0y1) + (0.5f * ax1y1);
 
             switch (dstformat)
             {
             case PIXELTYPE_RGBA:
             {
-                bufdst[x*4+0] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+2] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+0] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*4+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+2] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+3] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_ABGR:
             {
-                bufdst[x*4+0] = (y1_py * a0) + (py_y0 * a1);
-                bufdst[x*4+1] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+2] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+3] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+0] = (0.5f * a0) + (0.5f * a1);
+                bufdst[x*4+1] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+2] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+3] = (0.5f * r0) + (0.5f * r1);
             } break;
             case PIXELTYPE_BGRA:
             {
-                bufdst[x*4+0] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+2] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+0] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+2] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*4+3] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_RGB:
             {
-                bufdst[x*3+0] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*3+2] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*3+0] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*3+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*3+2] = (0.5f * b0) + (0.5f * b1);
             } break;
             case PIXELTYPE_BGR:
             {
-                bufdst[x*3+0] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*3+2] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*3+0] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*3+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*3+2] = (0.5f * r0) + (0.5f * r1);
             } break;
             case PIXELTYPE_XBGR1555:
             {
-                r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
-                g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
-                b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
+                r = ((0.5f * r0) + (0.5f * r1) * 0x1F) / 0xFF;
+                g = ((0.5f * g0) + (0.5f * g1) * 0x1F) / 0xFF;
+                b = ((0.5f * b0) + (0.5f * b1) * 0x1F) / 0xFF;
 
                 rgb16 = 0;
                 rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
@@ -6469,28 +6493,30 @@ Linear_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
-                r = (y1_py * r0) + (py_y0 * r1);
-                g = (y1_py * g0) + (py_y0 * g1);
-                b = (y1_py * b0) + (py_y0 * b1);
+                r = (0.5f * r0) + (0.5f * r1);
+                g = (0.5f * g0) + (0.5f * g1);
+                b = (0.5f * b0) + (0.5f * b1);
                 
                 bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
-                bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*2+1] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_LUMINANCE:
             {
-                r = (y1_py * r0) + (py_y0 * r1);
-                g = (y1_py * g0) + (py_y0 * g1);
-                b = (y1_py * b0) + (py_y0 * b1);
+                r = (0.5f * r0) + (0.5f * r1);
+                g = (0.5f * g0) + (0.5f * g1);
+                b = (0.5f * b0) + (0.5f * b1);
                 
                 bufdst[x] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
             } break;
             }
 
-            px += dx;
+            px0 += dx;
+            px1 += dx;
             x++;
         }
 
-        py += dy;
+        py0 += dy;
+        py1 += dy;
         y++;
 
         if (y != dstysize)
@@ -6510,8 +6536,10 @@ Linear_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 {
     float dx = (float)srcxsize / (float)dstxsize;
     float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
+    float px0 = 0.0f;
+    float py0 = 0.0f;
+    float px1 = 0.0f;
+    float py1 = 0.0f;
     float r0 = 0.0f, g0 = 0.0f, b0 = 0.0f, a0 = 0.0f;
     float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f, a1 = 0.0f;
     uint8_t* rawdst = pdst;
@@ -6566,28 +6594,30 @@ Linear_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     } break;
     }
 
+    py0 = -dy;
+    py1 = 0.0f;
+
     while (y < dstysize)
     {
         bufdst = rawdst;
-        y0 = FLOOR(py);
-        y1 = y0 + 1;
+        y0 = ROUND(py0);
+        y1 = ROUND(py1);
+        y0 = y0 < 0 ? 0 : y0;
+        y1 = y1 > (int32_t)(srcysize - 1) ? (srcysize - 1) : y1;
 
         bufsrc0 = rawsrc + (y0 * srcpitch);
         bufsrc1 = rawsrc + (y1 * srcpitch);
 
-        float y1_py = y1 - py;
-        float py_y0 = py - y0;
-        
-        float x1_px = 0.0f;
-        float px_x0 = 0.0f;
-
-        px = 0.0f;
+        px0 = -dx;
+        px1 = 0.0f;
         x = 0;
         
         while (x < dstxsize)
         {
-            x0 = FLOOR(px);
-            x1 = x0 + 1;
+            x0 = ROUND(px0);
+            x1 = ROUND(px1);
+            x0 = x0 < 0 ? 0 : x0;
+            x1 = x1 > (int32_t)(srcxsize - 1) ? (srcxsize - 1) : x1;
 
             vx0y0 = bufsrc0[x0];
             vx1y0 = bufsrc0[x1];
@@ -6613,60 +6643,57 @@ Linear_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             gx1y1 = ppalette->data[vx1y1].g;
             rx1y1 = ppalette->data[vx1y1].r;
             ax1y1 = ppalette->data[vx1y1].a;
-
-            x1_px = x1 - px;
-            px_x0 = px - x0;
             
-            b0 = (x1_px * bx0y0) + (px_x0 * bx1y0);
-            g0 = (x1_px * gx0y0) + (px_x0 * gx1y0);
-            r0 = (x1_px * rx0y0) + (px_x0 * rx1y0);
-            a0 = (x1_px * ax0y0) + (px_x0 * ax1y0);
+            b0 = (0.5f * bx0y0) + (0.5f * bx1y0);
+            g0 = (0.5f * gx0y0) + (0.5f * gx1y0);
+            r0 = (0.5f * rx0y0) + (0.5f * rx1y0);
+            a0 = (0.5f * ax0y0) + (0.5f * ax1y0);
 
-            b1 = (x1_px * bx0y1) + (px_x0 * bx1y1);
-            g1 = (x1_px * gx0y1) + (px_x0 * gx1y1);
-            r1 = (x1_px * rx0y1) + (px_x0 * rx1y1);
-            a1 = (x1_px * ax0y1) + (px_x0 * ax1y1);
+            b1 = (0.5f * bx0y1) + (0.5f * bx1y1);
+            g1 = (0.5f * gx0y1) + (0.5f * gx1y1);
+            r1 = (0.5f * rx0y1) + (0.5f * rx1y1);
+            a1 = (0.5f * ax0y1) + (0.5f * ax1y1);
 
             switch (dstformat)
             {
             case PIXELTYPE_RGBA:
             {
-                bufdst[x*4+0] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+2] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+0] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*4+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+2] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+3] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_ABGR:
             {
-                bufdst[x*4+0] = (y1_py * a0) + (py_y0 * a1);
-                bufdst[x*4+1] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+2] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+3] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*4+0] = (0.5f * a0) + (0.5f * a1);
+                bufdst[x*4+1] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+2] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+3] = (0.5f * r0) + (0.5f * r1);
             } break;
             case PIXELTYPE_BGRA:
             {
-                bufdst[x*4+0] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*4+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*4+2] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*4+3] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*4+0] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*4+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*4+2] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*4+3] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_RGB:
             {
-                bufdst[x*3+0] = (y1_py * r0) + (py_y0 * r1);
-                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*3+2] = (y1_py * b0) + (py_y0 * b1);
+                bufdst[x*3+0] = (0.5f * r0) + (0.5f * r1);
+                bufdst[x*3+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*3+2] = (0.5f * b0) + (0.5f * b1);
             } break;
             case PIXELTYPE_BGR:
             {
-                bufdst[x*3+0] = (y1_py * b0) + (py_y0 * b1);
-                bufdst[x*3+1] = (y1_py * g0) + (py_y0 * g1);
-                bufdst[x*3+2] = (y1_py * r0) + (py_y0 * r1);
+                bufdst[x*3+0] = (0.5f * b0) + (0.5f * b1);
+                bufdst[x*3+1] = (0.5f * g0) + (0.5f * g1);
+                bufdst[x*3+2] = (0.5f * r0) + (0.5f * r1);
             } break;
             case PIXELTYPE_XBGR1555:
             {
-                r = ((y1_py * r0) + (py_y0 * r1) * 0x1F) / 0xFF;
-                g = ((y1_py * g0) + (py_y0 * g1) * 0x1F) / 0xFF;
-                b = ((y1_py * b0) + (py_y0 * b1) * 0x1F) / 0xFF;
+                r = ((0.5f * r0) + (0.5f * r1) * 0x1F) / 0xFF;
+                g = ((0.5f * g0) + (0.5f * g1) * 0x1F) / 0xFF;
+                b = ((0.5f * b0) + (0.5f * b1) * 0x1F) / 0xFF;
 
                 rgb16 = 0;
                 rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
@@ -6676,28 +6703,30 @@ Linear_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
-                r = (y1_py * r0) + (py_y0 * r1);
-                g = (y1_py * g0) + (py_y0 * g1);
-                b = (y1_py * b0) + (py_y0 * b1);
+                r = (0.5f * r0) + (0.5f * r1);
+                g = (0.5f * g0) + (0.5f * g1);
+                b = (0.5f * b0) + (0.5f * b1);
                 
                 bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
-                bufdst[x*2+1] = (y1_py * a0) + (py_y0 * a1);
+                bufdst[x*2+1] = (0.5f * a0) + (0.5f * a1);
             } break;
             case PIXELTYPE_LUMINANCE:
             {
-                r = (y1_py * r0) + (py_y0 * r1);
-                g = (y1_py * g0) + (py_y0 * g1);
-                b = (y1_py * b0) + (py_y0 * b1);
+                r = (0.5f * r0) + (0.5f * r1);
+                g = (0.5f * g0) + (0.5f * g1);
+                b = (0.5f * b0) + (0.5f * b1);
                 
                 bufdst[x] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
             } break;
             }
 
-            px += dx;
+            px0 += dx;
+            px1 += dx;
             x++;
         }
 
-        py += dy;
+        py0 += dy;
+        py1 += dy;
         y++;
 
         if (y != dstysize)
