@@ -6728,170 +6728,6 @@ Linear_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 }
 
 //-----------------------------------------------------------------------------
-// Blit_32bit_32bit
-//-----------------------------------------------------------------------------
-static void
-Blit_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    uint32_t dstpitch = dstxsize * 4;
-    uint32_t srcpitch = srcxsize * 4;
-    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
-    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
-    uint32_t x = 0;
-    uint32_t y = 0;
-
-    while (y < ysize)
-    {
-        bufdst = rawdst;
-        bufsrc = rawsrc + ((y%srcysize)*srcpitch);
-        x = 0;
-
-        while (x < xsize)
-        {
-            bufdst[x*4+0] = bufsrc[(x%srcxsize)*4+0];
-            bufdst[x*4+1] = bufsrc[(x%srcxsize)*4+1];
-            bufdst[x*4+2] = bufsrc[(x%srcxsize)*4+2];
-            bufdst[x*4+3] = bufsrc[(x%srcxsize)*4+3];
-            x++;
-        }
-
-        y++;
-
-        if (y != ysize)
-        {
-            rawdst += dstpitch;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Blit_24bit_24bit
-//-----------------------------------------------------------------------------
-static void
-Blit_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    uint32_t dstpitch = dstxsize * 3;
-    uint32_t srcpitch = srcxsize * 3;
-    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
-    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
-    uint32_t x = 0;
-    uint32_t y = 0;
-
-    while (y < ysize)
-    {
-        bufdst = rawdst;
-        bufsrc = rawsrc + ((y%srcysize)*srcpitch);
-        x = 0;
-
-        while (x < xsize)
-        {
-            bufdst[x*3+0] = bufsrc[(x%srcxsize)*3+0];
-            bufdst[x*3+1] = bufsrc[(x%srcxsize)*3+1];
-            bufdst[x*3+2] = bufsrc[(x%srcxsize)*3+2];
-            x++;
-        }
-
-        y++;
-
-        if (y != ysize)
-        {
-            rawdst += dstpitch;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Blit_16bit_16bit
-//-----------------------------------------------------------------------------
-static void
-Blit_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    uint32_t dstpitch = dstxsize * 2;
-    uint32_t srcpitch = srcxsize * 2;
-    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
-    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
-    uint32_t x = 0;
-    uint32_t y = 0;
-
-    while (y < ysize)
-    {
-        bufdst = rawdst;
-        bufsrc = rawsrc + ((y%srcysize)*srcpitch);
-        x = 0;
-
-        while (x < xsize)
-        {
-            bufdst[x*2+0] = bufsrc[(x%srcxsize)*2+0];
-            bufdst[x*2+1] = bufsrc[(x%srcxsize)*2+1];
-            x++;
-        }
-
-        y++;
-
-        if (y != ysize)
-        {
-            rawdst += dstpitch;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Blit_8bit_8bit
-//-----------------------------------------------------------------------------
-static void
-Blit_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
-    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
-    uint32_t x = 0;
-    uint32_t y = 0;
-
-    while (y < ysize)
-    {
-        bufdst = rawdst;
-        bufsrc = rawsrc + ((y%srcysize)*srcxsize);
-        x = 0;
-
-        while (x < xsize)
-        {
-            bufdst[x] = bufsrc[(x%srcxsize)];
-            x++;
-        }
-
-        y++;
-
-        if (y != ysize)
-        {
-            rawdst += dstxsize;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
 // Blit_32bit_Nbit
 //-----------------------------------------------------------------------------
 static void
@@ -7737,7 +7573,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
 
     uint32_t dstpitch = dstxextent * dstbytesperpixel;
     uint8_t* dstbuf = pdstimage->data + (dstyorigin * dstpitch) +
-        (dstxorigin * dstbytesperpixel);            // start of current row
+        (dstxorigin * dstbytesperpixel);
 
     rect_t srcrect = {};
 
@@ -7791,9 +7627,9 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
     }
     }
 
-    uint32_t srcpitch = psrcimage->xsize * srcbytesperpixel;          // bytes per src span
+    uint32_t srcpitch = psrcimage->xsize * srcbytesperpixel;
     uint8_t* srcbuf = psrcimage->data + (srcyorigin * srcpitch) +
-        (srcxorigin * srcbytesperpixel);            // start of current row
+        (srcxorigin * srcbytesperpixel);
 
     bool result = true;
 
@@ -7943,29 +7779,34 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
         {
             if (pdstimage->pixeltype == psrcimage->pixeltype)
             {
-                if (srcbytesperpixel == 4)
+                uint8_t* rawdst = dstbuf;
+                uint8_t* rawsrc = srcbuf;
+                uint8_t* bufdst = dstbuf;
+                uint8_t* bufsrc = srcbuf;
+                uint32_t xsize = (srcxextent < dstxextent) ? dstxextent : srcxextent;
+                uint32_t ysize = (srcyextent < dstyextent) ? dstyextent : srcyextent;
+                uint32_t x = 0;
+                uint32_t y = 0;
+
+                while (y < ysize)
                 {
-                    Blit_32bit_32bit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else if (srcbytesperpixel == 3)
-                {
-                    Blit_24bit_24bit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else if (srcbytesperpixel == 2)
-                {
-                    Blit_16bit_16bit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else
-                {
-                    Blit_8bit_8bit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
+                    bufdst = rawdst;
+                    bufsrc = rawsrc + ((y % srcyextent) * srcpitch);
+                    x = 0;
+
+                    while (x < xsize)
+                    {
+                        memcpy(bufdst + (x * dstbytesperpixel),
+                            bufsrc + (x % srcxextent) * srcbytesperpixel,
+                            srcbytesperpixel);
+                        x++;
+                    }
+                    y++;
+
+                    if (y != ysize)
+                    {
+                        rawdst += dstpitch;
+                    }
                 }
             }
             else
