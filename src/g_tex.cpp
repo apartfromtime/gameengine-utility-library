@@ -5172,7 +5172,6 @@ Linear_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
     uint8_t* bufsrc0 = psrc;
     uint8_t* bufsrc1 = psrc;
     float dx = (float)srcxsize / (float)dstxsize;
@@ -5249,7 +5248,6 @@ Linear_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
     uint8_t* bufsrc0 = psrc;
     uint8_t* bufsrc1 = psrc;
     float dx = (float)srcxsize / (float)dstxsize;
@@ -5336,7 +5334,6 @@ Linear_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
     uint8_t* bufsrc0 = psrc;
     uint8_t* bufsrc1 = psrc;
     uint32_t dstpitch = srcxsize * 2;
@@ -5501,7 +5498,6 @@ Linear_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
     uint8_t* bufsrc0 = psrc;
     uint8_t* bufsrc1 = psrc;
     float dx = (float)srcxsize / (float)dstxsize;
@@ -5580,7 +5576,6 @@ Linear_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
     uint8_t* bufsrc0 = psrc;
     uint8_t* bufsrc1 = psrc;
     uint32_t dstpitch = 0;
@@ -5843,7 +5838,6 @@ Linear_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
     uint8_t* bufsrc0 = psrc;
     uint8_t* bufsrc1 = psrc;
     uint32_t dstpitch = 0;
@@ -6090,7 +6084,6 @@ Linear_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
     uint8_t* bufsrc0 = psrc;
     uint8_t* bufsrc1 = psrc;
     uint32_t dstpitch = 0;
@@ -6343,7 +6336,6 @@ Linear_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
     uint8_t* bufsrc0 = psrc;
     uint8_t* bufsrc1 = psrc;
     uint32_t dstpitch = 0;
@@ -6545,7 +6537,6 @@ Linear_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
     uint8_t* bufsrc0 = psrc;
     uint8_t* bufsrc1 = psrc;
     uint32_t dstpitch = 0;
