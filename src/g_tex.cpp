@@ -4099,222 +4099,6 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
 
 //-----------------------------------------------------------------------------
-// Point_32bit_32bit
-//-----------------------------------------------------------------------------
-static void
-Point_32bit_32bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    float dx = (float)srcxsize / (float)dstxsize;
-    float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
-    uint32_t dstpitch = dstxsize * 4;
-    uint32_t srcpitch = srcxsize * 4;
-    uint32_t x0 = 0;
-    uint32_t y0 = 0;
-    uint32_t x = 0;
-    uint32_t y = 0;
-
-    py = -dy;
-
-    while (y < dstysize)
-    {
-        y0 = ROUND(py);
-        bufdst = rawdst;
-        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
-        px = -dx;
-        x = 0;
-
-        while (x < dstxsize)
-        {
-            x0 = ROUND(px);
-
-            bufdst[x*4+0] = bufsrc[x0*4+0];
-            bufdst[x*4+1] = bufsrc[x0*4+1];
-            bufdst[x*4+2] = bufsrc[x0*4+2];
-            bufdst[x*4+3] = bufsrc[x0*4+3];
-            
-            px += dx;
-            x++;
-        }
-
-        py += dy;
-        y++;
-
-        if (y != dstysize)
-        {
-            rawdst += dstpitch;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Point_24bit_24bit
-//-----------------------------------------------------------------------------
-static void
-Point_24bit_24bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    float dx = (float)srcxsize / (float)dstxsize;
-    float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
-    uint32_t dstpitch = dstxsize * 3;
-    uint32_t srcpitch = srcxsize * 3;
-    uint32_t x0 = 0;
-    uint32_t y0 = 0;
-    uint32_t x = 0;
-    uint32_t y = 0;
-
-    py = -dy;
-
-    while (y < dstysize)
-    {
-        y0 = ROUND(py);
-        bufdst = rawdst;
-        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
-        px = -dx;
-        x = 0;
-
-        while (x < dstxsize)
-        {
-            x0 = ROUND(px);
-
-            bufdst[x*3+0] = bufsrc[x0*3+0];
-            bufdst[x*3+1] = bufsrc[x0*3+1];
-            bufdst[x*3+2] = bufsrc[x0*3+2];
-            
-            px += dx;
-            x++;
-        }
-
-        py += dy;
-        y++;
-
-        if (y != dstysize)
-        {
-            rawdst += dstpitch;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Point_16bit_16bit
-//-----------------------------------------------------------------------------
-static void
-Point_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    float dx = (float)srcxsize / (float)dstxsize;
-    float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
-    uint32_t dstpitch = dstxsize * 2;
-    uint32_t srcpitch = srcxsize * 2;
-    uint32_t x0 = 0;
-    uint32_t y0 = 0;
-    uint32_t x = 0;
-    uint32_t y = 0;
-
-    py = -dy;
-
-    while (y < dstysize)
-    {
-        y0 = ROUND(py);
-        bufdst = rawdst;
-        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
-        px = -dx;
-        x = 0;
-
-        while (x < dstxsize)
-        {
-            x0 = ROUND(px);
-
-            bufdst[x*2+0] = bufsrc[x0*2+0];
-            bufdst[x*2+1] = bufsrc[x0*2+1];
-            
-            px += dx;
-            x++;
-        }
-
-        py += dy;
-        y++;
-
-        if (y != dstysize)
-        {
-            rawdst += dstpitch;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Point_8bit_8bit
-//-----------------------------------------------------------------------------
-static void
-Point_8bit_8bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    float dx = (float)srcxsize / (float)dstxsize;
-    float dy = (float)srcysize / (float)dstysize;
-    float px = 0.0f;
-    float py = 0.0f;
-    uint32_t x0 = 0;
-    uint32_t y0 = 0;
-    uint32_t x = 0;
-    uint32_t y = 0;
-
-    py = -dy;
-
-    while (y < dstysize)
-    {
-        y0 = ROUND(py);
-        bufdst = rawdst;
-        bufsrc = rawsrc + (y0 * srcxsize);
-        px = -dx;
-        x = 0;
-
-        while (x < dstxsize)
-        {
-            x0 = ROUND(px);
-
-            bufdst[x] = bufsrc[x0];
-            
-            px += dx;
-            x++;
-        }
-
-        py += dy;
-        y++;
-
-        if (y != dstysize)
-        {
-            rawdst += dstxsize;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
 // Point_32bit_Nbit
 //-----------------------------------------------------------------------------
 static void
@@ -4419,7 +4203,7 @@ Point_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     {
         y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + ((y0%srcysize) * srcpitch);
+        bufsrc = rawsrc + (y0 * srcpitch);
         px = -dx;
         x = 0;
 
@@ -4427,10 +4211,8 @@ Point_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
         {
             x0 = ROUND(px);
 
-            uint32_t pixel = (bufsrc[(x0%srcxsize)*4+0] << 24)
-                | (bufsrc[(x0%srcxsize)*4+1] << 16)
-                | (bufsrc[(x0%srcxsize)*4+2] <<  8)
-                | (bufsrc[(x0%srcxsize)*4+3] <<  0);
+            uint32_t pixel = (bufsrc[x0*4+0] << 24) | (bufsrc[x0*4+1] << 16)
+                | (bufsrc[x0*4+2] <<  8) | (bufsrc[x0*4+3] <<  0);
 
             switch (dstformat)
             {
@@ -4596,7 +4378,7 @@ Point_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     {
         y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
+        bufsrc = rawsrc + (y0 * srcpitch);
         px = -dx;
         x = 0;
 
@@ -4604,9 +4386,8 @@ Point_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
         {
             x0 = ROUND(px);
 
-            uint32_t pixel = (bufsrc[(x0%srcxsize)*3+0] << 16)
-                | (bufsrc[(x0%srcxsize)*3+1] <<  8)
-                | (bufsrc[(x0%srcxsize)*3+2] <<  0);
+            uint32_t pixel = (bufsrc[x0*3+0] << 16) | (bufsrc[x0*3+1] <<  8)
+                | (bufsrc[x0*3+2] <<  0);
 
             switch (dstformat)
             {
@@ -4790,7 +4571,7 @@ Point_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     {
         y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
+        bufsrc = rawsrc + (y0 * srcpitch);
         px = -dx;
         x = 0;
 
@@ -4798,8 +4579,7 @@ Point_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
         {
             x0 = ROUND(px);
 
-            uint16_t pixel = (bufsrc[(x0%srcxsize)*2+0] << 8)
-                | (bufsrc[(x0%srcxsize)*2+1] << 0);
+            uint16_t pixel = (bufsrc[x0*2+0] << 8) | (bufsrc[x0*2+1] << 0);
 
             switch (dstformat)
             {
@@ -4931,7 +4711,7 @@ Point_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     {
         y0 = ROUND(py);
         bufdst = rawdst;
-        bufsrc = rawsrc + ((y0 % srcysize) * srcpitch);
+        bufsrc = rawsrc + (y0 * srcpitch);
         px = -dx;
         x = 0;
 
@@ -4939,7 +4719,7 @@ Point_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
         {
             x0 = ROUND(px);
 
-            v = bufsrc[x0*1+0];
+            v = bufsrc[x0];
             b = v;
             g = v;
             r = v;
@@ -4992,9 +4772,7 @@ Point_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             } break;
             case PIXELTYPE_LUMINANCE_ALPHA:
             {
-                bufdst[x*2+0] = (uint8_t)(r * 0.2990f +
-                    g * 0.5870f +
-                    b * 0.1140f);
+                bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
                 bufdst[x*2+1] = a;
             } break;
             }
@@ -5408,14 +5186,10 @@ Linear_16bit_16bit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             x0 = x0 < 0 ? 0 : x0;
             x1 = x1 > (int32_t)(srcxsize - 1) ? (srcxsize - 1) : x1;
 
-            uint32_t pixel0 = (bufsrc0[(x0%srcxsize)*3+0] << 8)
-                | (bufsrc0[(x0%srcxsize)*3+1] << 0);
-            uint32_t pixel1 = (bufsrc0[(x1%srcxsize)*3+0] << 8)
-                | (bufsrc0[(x1%srcxsize)*3+1] << 0);
-            uint32_t pixel2 = (bufsrc1[(x0%srcxsize)*3+0] << 8)
-                | (bufsrc1[(x0%srcxsize)*3+1] << 0);
-            uint32_t pixel3 = (bufsrc1[(x1%srcxsize)*3+0] << 8)
-                | (bufsrc1[(x1%srcxsize)*3+1] << 0);
+            uint32_t pixel0 = (bufsrc0[x0*3+0] << 8) | (bufsrc0[x0*3+1] << 0);
+            uint32_t pixel1 = (bufsrc0[x1*3+0] << 8) | (bufsrc0[x1*3+1] << 0);
+            uint32_t pixel2 = (bufsrc1[x0*3+0] << 8) | (bufsrc1[x0*3+1] << 0);
+            uint32_t pixel3 = (bufsrc1[x1*3+0] << 8) | (bufsrc1[x1*3+1] << 0);
 
             rx0y0 = (pixel0 & rmask) * rmod;
             gx0y0 = (pixel0 & gmask) * gmod;
@@ -7647,29 +7421,47 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
         {
             if (pdstimage->pixeltype == psrcimage->pixeltype)
             {
-                if (srcbytesperpixel == 4)
+                uint8_t* rawdst = dstbuf;
+                uint8_t* rawsrc = srcbuf;
+                uint8_t* bufdst = dstbuf;
+                uint8_t* bufsrc = srcbuf;
+                float dx = (float)srcxextent / (float)dstxextent;
+                float dy = (float)srcyextent / (float)dstyextent;
+                float px = 0.0f;
+                float py = 0.0f;
+                uint32_t x0 = 0;
+                uint32_t y0 = 0;
+                uint32_t x = 0;
+                uint32_t y = 0;
+
+                py = -dy;
+
+                while (y < dstyextent)
                 {
-                    Point_32bit_32bit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else if (srcbytesperpixel == 3)
-                {
-                    Point_24bit_24bit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else if (srcbytesperpixel == 2)
-                {
-                    Point_16bit_16bit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else
-                {
-                    Point_8bit_8bit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
+                    y0 = ROUND(py);
+                    bufdst = rawdst;
+                    bufsrc = rawsrc + (y0 * srcpitch);
+                    px = -dx;
+                    x = 0;
+
+                    while (x < dstxextent)
+                    {
+                        x0 = ROUND(px);
+
+                        memcpy(bufdst + (x * dstbytesperpixel),
+                            bufsrc + (x0 * srcbytesperpixel), srcbytesperpixel);
+
+                        px += dx;
+                        x++;
+                    }
+
+                    py += dy;
+                    y++;
+
+                    if (y != dstyextent)
+                    {
+                        rawdst += dstpitch;
+                    }
                 }
             }
             else
@@ -7797,7 +7589,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
                     while (x < xsize)
                     {
                         memcpy(bufdst + (x * dstbytesperpixel),
-                            bufsrc + (x % srcxextent) * srcbytesperpixel,
+                            bufsrc + ((x % srcxextent) * srcbytesperpixel),
                             srcbytesperpixel);
                         x++;
                     }
