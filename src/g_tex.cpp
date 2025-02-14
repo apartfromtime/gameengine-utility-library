@@ -4157,39 +4157,39 @@ Blit_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     {
     case PIXELTYPE_RGBA:
     {
-        rmask = 0xFF000000;
-        gmask = 0x00FF0000;
-        bmask = 0x0000FF00;
-        amask = 0x000000FF;
-
-        rshift = 24;
-        gshift = 16;
-        bshift =  8;
-        ashift =  0;
-    } break;
-    case PIXELTYPE_ABGR:
-    {
-        amask = 0xFF000000;
-        bmask = 0x00FF0000;
-        gmask = 0x0000FF00;
         rmask = 0x000000FF;
+        gmask = 0x0000FF00;
+        bmask = 0x00FF0000;
+        amask = 0xFF000000;
 
         rshift =  0;
         gshift =  8;
         bshift = 16;
         ashift = 24;
     } break;
+    case PIXELTYPE_ABGR:
+    {
+        amask = 0x000000FF;
+        bmask = 0x0000FF00;
+        gmask = 0x00FF0000;
+        rmask = 0xFF000000;
+
+        rshift = 24;
+        gshift = 16;
+        bshift =  8;
+        ashift =  0;
+    } break;
     case PIXELTYPE_BGRA:
     {
-        bmask = 0xFF000000;
-        gmask = 0x00FF0000;
-        rmask = 0x0000FF00;
-        amask = 0x000000FF;
+        bmask = 0x000000FF;
+        gmask = 0x0000FF00;
+        rmask = 0x00FF0000;
+        amask = 0xFF000000;
 
-        rshift =  8;
-        gshift = 16;
-        bshift = 24;
-        ashift =  0;
+        rshift = 16;
+        gshift =  8;
+        bshift =  0;
+        ashift = 24;
     } break;
     }
 
@@ -4201,10 +4201,10 @@ Blit_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
         while (x < xsize)
         {
-            uint32_t pixel = (bufsrc[(x%srcxsize)*4+0] << 24)
-                | (bufsrc[(x%srcxsize)*4+1] << 16)
-                | (bufsrc[(x%srcxsize)*4+2] <<  8)
-                | (bufsrc[(x%srcxsize)*4+3] <<  0);
+            uint32_t pixel = (bufsrc[(x%srcxsize)*4+0] << 0)
+                | (bufsrc[(x%srcxsize)*4+1] <<  8)
+                | (bufsrc[(x%srcxsize)*4+2] << 16)
+                | (bufsrc[(x%srcxsize)*4+3] << 24);
 
             switch (dstformat)
             {
@@ -4336,23 +4336,23 @@ Blit_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     {
     case PIXELTYPE_RGB:
     {
-        rmask = 0x00FF0000;
-        gmask = 0x0000FF00;
-        bmask = 0x000000FF;
-        
-        rshift = 16;
-        gshift =  8;
-        bshift =  0;
-    } break;
-    case PIXELTYPE_BGR:
-    {
-        bmask = 0x00FF0000;
-        gmask = 0x0000FF00;
         rmask = 0x000000FF;
-
+        gmask = 0x0000FF00;
+        bmask = 0x00FF0000;
+        
         rshift =  0;
         gshift =  8;
         bshift = 16;
+    } break;
+    case PIXELTYPE_BGR:
+    {
+        bmask = 0x000000FF;
+        gmask = 0x0000FF00;
+        rmask = 0x00FF0000;
+
+        rshift = 16;
+        gshift =  8;
+        bshift =  0;
     } break;
     }
 
@@ -4364,9 +4364,9 @@ Blit_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
         while (x < xsize)
         {
-            uint32_t pixel = (bufsrc[(x%srcxsize)*3+0] << 16)
+            uint32_t pixel = (bufsrc[(x%srcxsize)*3+0] << 0)
                 | (bufsrc[(x%srcxsize)*3+1] <<  8)
-                | (bufsrc[(x%srcxsize)*3+2] <<  0);
+                | (bufsrc[(x%srcxsize)*3+2] << 16);
 
             switch (dstformat)
             {
@@ -4428,10 +4428,8 @@ Blit_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
                     ((pixel & bmask) >> bshift) * 0.1140f);
             } break;
             }
-
             x++;
         }
-
         y++;
 
         if (y != ysize)
@@ -4609,10 +4607,8 @@ Blit_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
                     (((pixel & bmask) >> bshift) * bmod) * 0.1140f);
             } break;
             }
-
             x++;
         }
-
         y++;
 
         if (y != ysize)
@@ -4735,10 +4731,8 @@ Blit_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
                 bufdst[x] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
             } break;
             }
-
             x++;
         }
-
         y++;
 
         if (y != ysize)
@@ -4866,10 +4860,8 @@ Blit_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
                 bufdst[x] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
             } break;
             }
-
             x++;
         }
-
         y++;
 
         if (y != ysize)
@@ -5025,8 +5017,8 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
             uint8_t* sbuf = sptr;
             uint32_t spitch = srcxextent * sbytesperpixel;
 
-            memset(dptr, 0, dstxextent* dstyextent* dbytesperpixel);
-            memset(sptr, 0, srcxextent* srcyextent* sbytesperpixel);
+            memset(dptr, 0, dstxextent * dstyextent * dbytesperpixel);
+            memset(sptr, 0, srcxextent * srcyextent * sbytesperpixel);
 
             if (srcbytesperpixel == 4)
             {
@@ -5470,6 +5462,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
     };
     uint32_t depth = 0;
     pixel_t dstformat = PIXELTYPE_UNKNOWN;
+    uint8_t bytesperpixel = 0;
 
     if (psrcimage != NULL)
     {
@@ -5606,21 +5599,25 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         case PIXELTYPE_BGRA:
         {
             depth = 32;
+            bytesperpixel = 4;
         } break;
         case PIXELTYPE_RGB:
         case PIXELTYPE_BGR:
         {
             depth = 24;
+            bytesperpixel = 3;
         } break;
         case PIXELTYPE_XBGR1555:
         case PIXELTYPE_LUMINANCE_ALPHA:
         {
             depth = 16;
+            bytesperpixel = 2;
         } break;
         case PIXELTYPE_LUMINANCE:
         case PIXELTYPE_COLOUR_INDEX:
         {
             depth = 8;
+            bytesperpixel = 1;
         } break;
         }
 
@@ -5628,9 +5625,48 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         dstimage.ysize = psrcimage->ysize;
         dstimage.pixeltype = dstformat;
 
-        // convert to dst format
-        result = ResampleImage(&dstimage, psrcrect, psrcimage, psrcpalette,
-            psrcrect, FILTER_NONE);
+        dstimage.data = (uint8_t*)malloc(dstimage.xsize * dstimage.ysize * bytesperpixel);
+
+        if (dstimage.data == NULL)
+        {
+            result = false;
+            fprintf(stderr, "SaveImage: Out of memory\n");
+        }
+        else
+        {
+            memset(dstimage.data, 0, dstimage.xsize * dstimage.ysize * bytesperpixel);
+
+            // convert to dst format
+            if (bytesperpixel == 4)
+            {
+                Blit_32bit_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
+                    psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype);
+            }
+            else if (bytesperpixel == 3)
+            {
+                Blit_24bit_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
+                    psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype);
+            }
+            else if (bytesperpixel == 2)
+            {
+                Blit_16bit_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
+                    psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype);
+            }
+            else
+            {
+                if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE)
+                {
+                    Blit_8bit_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
+                        psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype);
+                }
+                else
+                {
+                    Blit_PAL_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
+                        psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype,
+                        psrcpalette);
+                }
+            }
+        }
 
         if (dstimage.pixeltype != PIXELTYPE_COLOUR_INDEX)
         {
