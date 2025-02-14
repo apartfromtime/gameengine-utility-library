@@ -5004,7 +5004,78 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
     }
     else
     {
-        if (filter == FILTER_POINT || filter == FILTER_LINEAR)
+        if (filter == FILTER_NONE)
+        {
+            if (pdstimage->pixeltype == psrcimage->pixeltype)
+            {
+                uint8_t* rawdst = dstbuf;
+                uint8_t* rawsrc = srcbuf;
+                uint8_t* bufdst = dstbuf;
+                uint8_t* bufsrc = srcbuf;
+                uint32_t xsize = (srcxextent < dstxextent) ? dstxextent : srcxextent;
+                uint32_t ysize = (srcyextent < dstyextent) ? dstyextent : srcyextent;
+                uint32_t x = 0;
+                uint32_t y = 0;
+
+                while (y < ysize)
+                {
+                    bufdst = rawdst;
+                    bufsrc = rawsrc + ((y % srcyextent) * srcpitch);
+                    x = 0;
+
+                    while (x < xsize)
+                    {
+                        memcpy(bufdst + (x * dstbytesperpixel),
+                            bufsrc + ((x % srcxextent) * srcbytesperpixel),
+                            srcbytesperpixel);
+                        x++;
+                    }
+                    y++;
+
+                    if (y != ysize)
+                    {
+                        rawdst += dstpitch;
+                    }
+                }
+            }
+            else
+            {
+                if (srcbytesperpixel == 4)
+                {
+                    Blit_32bit_Nbit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 3)
+                {
+                    Blit_24bit_Nbit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else if (srcbytesperpixel == 2)
+                {
+                    Blit_16bit_Nbit(dstbuf, dstxextent, dstyextent,
+                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                        psrcimage->pixeltype);
+                }
+                else
+                {
+                    if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE)
+                    {
+                        Blit_8bit_Nbit(dstbuf, dstxextent, dstyextent,
+                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                            psrcimage->pixeltype);
+                    }
+                    else
+                    {
+                        Blit_PAL_Nbit(dstbuf, dstxextent, dstyextent,
+                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
+                            psrcimage->pixeltype, ppalette);
+                    }
+                }
+            }
+        }
+        else
         {
             // convert to internal PIXELTYPE_RGBA
             uint32_t dbytesperpixel = 4;
@@ -5186,77 +5257,6 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
             {
                 free(sptr);
                 sptr = NULL;
-            }
-        }
-        else
-        {
-            if (pdstimage->pixeltype == psrcimage->pixeltype)
-            {
-                uint8_t* rawdst = dstbuf;
-                uint8_t* rawsrc = srcbuf;
-                uint8_t* bufdst = dstbuf;
-                uint8_t* bufsrc = srcbuf;
-                uint32_t xsize = (srcxextent < dstxextent) ? dstxextent : srcxextent;
-                uint32_t ysize = (srcyextent < dstyextent) ? dstyextent : srcyextent;
-                uint32_t x = 0;
-                uint32_t y = 0;
-
-                while (y < ysize)
-                {
-                    bufdst = rawdst;
-                    bufsrc = rawsrc + ((y % srcyextent) * srcpitch);
-                    x = 0;
-
-                    while (x < xsize)
-                    {
-                        memcpy(bufdst + (x * dstbytesperpixel),
-                            bufsrc + ((x % srcxextent) * srcbytesperpixel),
-                            srcbytesperpixel);
-                        x++;
-                    }
-                    y++;
-
-                    if (y != ysize)
-                    {
-                        rawdst += dstpitch;
-                    }
-                }
-            }
-            else
-            {
-                if (srcbytesperpixel == 4)
-                {
-                    Blit_32bit_Nbit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else if (srcbytesperpixel == 3)
-                {
-                    Blit_24bit_Nbit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else if (srcbytesperpixel == 2)
-                {
-                    Blit_16bit_Nbit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else
-                {
-                    if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
-                    {
-                        Blit_PAL_Nbit(dstbuf, dstxextent, dstyextent,
-                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                            psrcimage->pixeltype, ppalette);
-                    }
-                    else
-                    {
-                        Blit_8bit_Nbit(dstbuf, dstxextent, dstyextent,
-                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                            psrcimage->pixeltype);
-                    }
-                }
             }
         }
     }
@@ -6048,30 +6048,31 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         {
             pdstimage->xsize = srcimage.xsize;
             pdstimage->ysize = srcimage.ysize;
-            pdstimage->pixeltype = dstformat == PIXELTYPE_UNKNOWN ? PIXELTYPE_RGBA : dstformat;
+            pdstimage->pixeltype = (dstformat == PIXELTYPE_UNKNOWN) ? PIXELTYPE_RGBA :
+                dstformat;
 
             result = ResampleImage(pdstimage, pdstrect, &srcimage, &srcpalette,
                 psrcrect, filter);
+        }
 
-            if (result == true)
+        if (result == true)
+        {
+            if (colorkey.b != 0 || colorkey.g != 0 || colorkey.r != 0 ||
+                colorkey.a != 0)
             {
-                if (colorkey.b != 0 || colorkey.g != 0 || colorkey.r != 0 ||
-                    colorkey.a != 0)
+                const rgba_t transparent_black = { 0, 0, 0, 0 };
+                ReplaceColor(pdstimage, &srcpalette, transparent_black, colorkey);
+            }
+
+            if (pdstpalette != NULL)
+            {
+                for (uint32_t i = 0; i < srcpalette.size; ++i)
                 {
-                    const rgba_t transparent_black = { 0, 0, 0, 0 };
-                    ReplaceColor(pdstimage, &srcpalette, transparent_black, colorkey);
+                    pdstpalette->data[i] = srcpalette.data[i];
                 }
 
-                if (pdstpalette != NULL)
-                {
-                    for (uint32_t i = 0; i < srcpalette.size; ++i)
-                    {
-                        pdstpalette->data[i] = srcpalette.data[i];
-                    }
-
-                    pdstpalette->size = srcpalette.size;
-                    pdstpalette->bits = srcpalette.bits;
-                }
+                pdstpalette->size = srcpalette.size;
+                pdstpalette->bits = srcpalette.bits;
             }
         }
 
