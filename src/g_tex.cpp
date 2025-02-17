@@ -5420,23 +5420,15 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolor, rgba_t srccol
         while (x < xsize)
         {
             sample = 0;
-
-            for (size_t i = 0; i < bytesperpixel; i++)
-            {
-                sample |= *(bufdst + ((x * bytesperpixel) + i)) << (8 * i);
-            }
+            memcpy(&sample, bufdst, bytesperpixel);
 
             if (sample == srcC)
             {
-                for (size_t i = 0; i < bytesperpixel; i++)
-                {
-                    *bufdst++ = (dstC >> (8 * i)) & 0xFF;
-                }
+                memcpy(bufdst, &dstC, bytesperpixel);
             }
-
+            bufdst += bytesperpixel;
             x++;
         }
-
         y++;
 
         if (y != ysize)
