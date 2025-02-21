@@ -4871,12 +4871,53 @@ Blit_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     }
 }
 
+typedef struct _filter_info
+{
+    float pixelN;         // number
+    float pixelW;         // weight
+} filter_info_t;
+
+typedef struct _filter_list
+{
+    filter_info_t*  info;          // info of weights
+    int32_t         size;          // size of info
+} filter_list_t;
+
+static const float FILTER_SUPPORT = 1.0f;
+
+static float
+FilterNone(float t)
+{
+    if (t < 0.0f) t = -t;
+    if (t < 1.0f) return ((2.0f * t - 3.0f) * t * t + 1.0f);
+    return 0.0f;
+}
+
+static const float BOX_SUPPORT = 0.5f;
+
+static float 
+BoxFilter(float t)
+{
+    if ((t > -0.5f) && (t <= 0.5f)) return (1.0f);
+    return 0.0f;
+}
+
+static const float TRIANGLE_SUPPORT = 1.0f;
+
+static float
+TriangleFilter(float t)
+{
+    if (t < 0.0f) t = -t;
+    if (t < 1.0f) return (1.0f - t);
+    return 0.0f;
+}
+
 //-----------------------------------------------------------------------------
 // ResampleImage
 //-----------------------------------------------------------------------------
 static bool
 ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
-    palette_t* ppalette, rect_t* psrcrect, uint32_t filter)
+    palette_t* ppalette, rect_t* psrcrect, uint32_t filtertype)
 {
     if (pdstimage == NULL || psrcimage == NULL)
     {
@@ -5004,7 +5045,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
     }
     else
     {
-        if (filter == FILTER_NONE)
+        if (filtertype == FILTER_NONE)
         {
             if (pdstimage->pixeltype == psrcimage->pixeltype)
             {
@@ -5122,126 +5163,320 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
             }
 
             // do filtering
-            switch (filter)
+            typedef float (*filter_f)(float);
+            filter_f filter_func = FilterNone;
+            float filterwidth = FILTER_SUPPORT;
+
+            switch (filtertype)
             {
             case FILTER_POINT:
             {
-                uint8_t* rawdst = dbuf;
-                uint8_t* rawsrc = sbuf;
-                uint8_t* bufdst = dbuf;
-                uint8_t* bufsrc = sbuf;
-                float dx = (float)srcxextent / (float)dstxextent;
-                float dy = (float)srcyextent / (float)dstyextent;
-                float px = 0.0f;
-                float py = 0.0f;
-                uint32_t x0 = 0;
-                uint32_t y0 = 0;
-                uint32_t x = 0;
-                uint32_t y = 0;
-
-                py = -dy;
-
-                while (y < dstyextent)
-                {
-                    y0 = ROUND(py);
-                    bufdst = rawdst;
-                    bufsrc = rawsrc + (y0 * spitch);
-                    px = -dx;
-                    x = 0;
-
-                    while (x < dstxextent)
-                    {
-                        x0 = ROUND(px);
-
-                        memcpy(bufdst + (x * dbytesperpixel),
-                            bufsrc + (x0 * sbytesperpixel), sbytesperpixel);
-
-                        px += dx;
-                        x++;
-                    }
-
-                    py += dy;
-                    y++;
-
-                    if (y != dstyextent)
-                    {
-                        rawdst += dpitch;
-                    }
-                }
+                filter_func = BoxFilter;
+                filterwidth = BOX_SUPPORT;
             } break;
             case FILTER_LINEAR:
             {
-                uint8_t* rawdst = dbuf;
-                uint8_t* rawsrc = sbuf;
-                uint8_t* bufdst = dbuf;
-                uint8_t* bufsrc0 = sbuf;
-                uint8_t* bufsrc1 = sbuf;
-                float dx = (float)srcxextent / (float)dstxextent;
-                float dy = (float)srcyextent / (float)dstyextent;
-                float px0 = 0.0f;
-                float py0 = 0.0f;
-                float px1 = 0.0f;
-                float py1 = 0.0f;
-                dpitch = dstxextent * dbytesperpixel;
-                spitch = srcxextent * sbytesperpixel;
-                uint32_t x0 = 0, x1 = 0;
-                uint32_t y0 = 0, y1 = 0;
-                uint32_t x = 0;
-                uint32_t y = 0;
-
-                py0 = -dy;
-                py1 = 0.0f;
-
-                while (y < dstyextent)
-                {
-                    bufdst = rawdst;
-                    y0 = ROUND(py0);
-                    y1 = ROUND(py1);
-                    y0 = y0 < 0 ? 0 : y0;
-                    y1 = y1 > (int32_t)(srcyextent - 1) ? (srcyextent - 1) : y1;
-
-                    bufsrc0 = rawsrc + (y0 * spitch);
-                    bufsrc1 = rawsrc + (y1 * spitch);
-
-                    px0 = -dx;
-                    px1 = 0.0f;
-                    x = 0;
-
-                    while (x < dstxextent)
-                    {
-                        x0 = ROUND(px0);
-                        x1 = ROUND(px1);
-                        x0 = x0 < 0 ? 0 : x0;
-                        x1 = x1 > (int32_t)(srcxextent - 1) ? (srcxextent - 1) : x1;
-
-                        for (size_t i = 0; i < sbytesperpixel; i++)
-                        {
-                            uint32_t pixel0 = bufsrc0[x0 * sbytesperpixel + i];
-                            uint32_t pixel1 = bufsrc0[x1 * sbytesperpixel + i];
-                            uint32_t pixel2 = bufsrc1[x0 * sbytesperpixel + i];
-                            uint32_t pixel3 = bufsrc1[x1 * sbytesperpixel + i];
-
-                            bufdst[x * dbytesperpixel + i] =
-                                (0.5f * ((0.5f * pixel0) + (0.5f * pixel1))) +
-                                (0.5f * ((0.5f * pixel2) + (0.5f * pixel3)));
-                        }
-
-                        px0 += dx;
-                        px1 += dx;
-                        x++;
-                    }
-
-                    py0 += dy;
-                    py1 += dy;
-                    y++;
-
-                    if (y != dstyextent)
-                    {
-                        rawdst += dpitch;
-                    }
-                }
+                filter_func = TriangleFilter;
+                filterwidth = TRIANGLE_SUPPORT;
             } break;
             }
+
+            uint8_t* tmpptr = NULL;
+            uint8_t* tmpbuf = NULL;
+            uint8_t* raster = NULL;         // a row or column of pixels
+            float xscale, yscale;           // scale factors
+            float pixelN, pixelW;           // pixel number and weight
+            float fwidth, fscale;           // filter calculation variables
+            float mid, min, max;            // filter calculation variables
+
+            // create intermediate image to hold horizontal zoom
+            tmpptr = (uint8_t*)malloc(dstxextent * dstyextent * dbytesperpixel);
+            tmpbuf = tmpptr;
+
+            xscale = (float)dstxextent / (float)srcxextent;
+            yscale = (float)dstyextent / (float)srcyextent;
+
+            // pre-calculate filter contributions for a row
+            filter_list_t* filter = (filter_list_t*)malloc((dstxextent + 4) *
+                sizeof(filter_list_t));
+
+            if (filter == NULL)
+            {
+                free(tmpptr);
+
+                fprintf(stderr, "ResampleImage: Out of memory\n");
+
+                return false;
+            }
+
+            memset(filter, 0, (dstxextent + dbytesperpixel) * sizeof(filter_list_t));
+
+            fwidth = filterwidth;
+            fscale = 1.0f;
+
+            if (xscale < 1.0f)
+            {
+                fwidth /= xscale;
+                fscale /= xscale;
+            }
+
+            for (int i = 0; i < (int)dstxextent; ++i)
+            {
+                filter[i].size = 0;
+                filter[i].info = (filter_info_t*)malloc((int)((fwidth * 2) + 1) *
+                    sizeof(filter_info_t));
+
+                if (filter[i].info == NULL)
+                {
+                    for (int j = 0; j < (int)dstxextent - i; ++j)
+                    {
+                        free(filter[j].info);
+                    }
+
+                    free(filter);
+                    free(tmpptr);
+
+                    fprintf(stderr, "ResampleImage: Out of memory\n");
+
+                    return false;
+                }
+
+                memset(filter[i].info, 0, (int)((fwidth * 2) + 1) * sizeof(filter_info_t));
+
+                mid = (float)i / xscale;
+                min =  ceil(mid - fwidth);
+                max = floor(mid + fwidth);
+
+                for (int j = (int)min; j <= (int)max; ++j)
+                {
+                    pixelN = 0;
+                    pixelW = mid - (float)j;
+                    pixelW = filter_func(pixelW / fscale) / fscale;
+
+                    if (j < 0)
+                    {
+                        pixelN = -j;
+                    }
+                    else if (j >= (int)srcxextent)
+                    {
+                        pixelN = (srcxextent - j) + (srcxextent - 1);
+                    }
+                    else
+                    {
+                        pixelN = j;
+                    }
+
+                    if (filter[i].size < ((fwidth * 2) + 1))
+                    {
+                        filter[i].info[filter[i].size].pixelN = pixelN;
+                        filter[i].info[filter[i].size].pixelW = pixelW;
+                        filter[i].size++;
+                    }
+                }
+            }
+
+            // apply filter to zoom horizontally from src to tmp
+            raster = (uint8_t*)malloc((srcxextent + sbytesperpixel) * sbytesperpixel);
+
+            if (raster == NULL)
+            {
+                for (int i = 0; i < (int)dstxextent; ++i)
+                {
+                    free(filter[i].info);
+                }
+
+                free(filter);
+                free(tmpptr);
+
+                fprintf(stderr, "ResampleImage: Out of memory\n");
+
+                return false;
+            }
+
+            memset(raster, 0, (srcxextent + sbytesperpixel) * sbytesperpixel);
+
+            for (int k = 0; k < (int)dstyextent; ++k)
+            {
+                // get pixel row
+                memset(raster, 0, (srcxextent + sbytesperpixel) * sbytesperpixel);
+
+                if (k < (int)srcyextent)
+                {
+                    memcpy(raster, (sbuf + (k * spitch)), spitch);
+                }
+                else
+                {
+                    memcpy(raster, (sbuf + ((k - srcyextent) * spitch)), spitch);
+                }
+
+                for (int i = 0; i < (int)dstxextent; ++i)
+                {
+                    for (size_t bpp = 0; bpp < sbytesperpixel; bpp++)
+                    {
+                        pixelW = 0.0f;
+
+                        for (int j = 0; j < filter[i].size; ++j)
+                        {
+                            pixelW += raster[((int)(filter[i].info[j].pixelN) *
+                                sbytesperpixel) + bpp] * filter[i].info[j].pixelW;
+                        }
+
+                        tmpptr[(k * dpitch) + (i * sbytesperpixel) + bpp] =
+                            CLAMP(pixelW, 0, 255);
+                    }
+                }
+            }
+
+            // free the memory allocated for horizontal filter weights
+            for (int i = 0; i < (int)dstxextent; ++i)
+            {
+                free(filter[i].info);
+            }
+
+            free(filter);
+            free(raster);
+
+            // pre-calculate filter contributions for a column
+            filter = (filter_list_t*)malloc((dstyextent + dbytesperpixel) *
+                sizeof(filter_list_t));
+
+            if (filter == NULL)
+            {
+                free(tmpptr);
+
+                fprintf(stderr, "ResampleImage: Out of memory\n");
+
+                return false;
+            }
+
+            memset(filter, 0, (dstyextent + dbytesperpixel) *
+                sizeof(filter_list_t));
+
+            fwidth = filterwidth;
+            fscale = 1.0f;
+
+            if (yscale < 1.0f)
+            {
+                fwidth /= yscale;
+                fscale /= yscale;
+            }
+
+            for (int i = 0; i < (int)dstyextent; ++i)
+            {
+                filter[i].size = 0;
+                filter[i].info = (filter_info_t*)malloc((int)((fwidth * 2) + 1) *
+                    sizeof(filter_info_t));
+
+                if (filter[i].info == NULL)
+                {
+                    for (int j = 0; j < (int)dstyextent - i; ++j)
+                    {
+                        free(filter[j].info);
+                    }
+
+                    free(filter);
+                    free(tmpptr);
+
+                    fprintf(stderr, "ResampleImage: Out of memory\n");
+
+                    return false;
+                }
+
+                memset(filter[i].info, 0, (int)((fwidth * 2) + 1) *
+                    sizeof(filter_info_t));
+
+                mid = (float)i / yscale;
+                min =  ceil(mid - fwidth);
+                max = floor(mid + fwidth);
+
+                for (int j = (int)min; j <= (int)max; ++j)
+                {
+                    pixelN = 0;
+                    pixelW = mid - (float)j;
+                    pixelW = filter_func(pixelW / fscale) / fscale;
+
+                    if (j < 0)
+                    {
+                        pixelN = -j;
+                    }
+                    else if (j >= (int)dstyextent)
+                    {
+                        pixelN = (dstyextent - j) + (dstyextent - 1);
+                    }
+                    else
+                    {
+                        pixelN = j;
+                    }
+
+                    if (filter[i].size < ((fwidth * 2) + 1))
+                    {
+                        filter[i].info[filter[i].size].pixelN = pixelN;
+                        filter[i].info[filter[i].size].pixelW = pixelW;
+                        filter[i].size++;
+                    }
+                }
+            }
+
+            // apply filter to zoom vertically from tmp to dst
+            raster = (uint8_t*)malloc((dstyextent + dbytesperpixel) *
+                dbytesperpixel);
+
+            if (raster == NULL)
+            {
+                for (int i = 0; i < (int)dstyextent; ++i)
+                {
+                    free(filter[i].info);
+                }
+
+                free(filter);
+                free(tmpptr);
+
+                fprintf(stderr, "ResampleImage: Out of memory\n");
+
+                return false;
+            }
+
+            memset(raster, 0, (dstyextent + dbytesperpixel) * dbytesperpixel);
+
+            for (int k = 0; k < (int)dstxextent; ++k)
+            {
+                uint8_t* pbuf = tmpbuf + (k * dbytesperpixel);
+                uint8_t* rbuf = raster;
+
+                for (int y = dstyextent; y > 0; y--)
+                {
+                    memcpy(rbuf, pbuf, dbytesperpixel);
+                    rbuf += dbytesperpixel;
+                    pbuf += dpitch;
+                }
+
+                for (int i = 0; i < (int)dstyextent; ++i)
+                {
+                    for (size_t bpp = 0; bpp < dbytesperpixel; bpp++)
+                    {
+                        pixelW = 0.0f;
+
+                        for (int j = 0; j < filter[i].size; ++j)
+                        {
+                            pixelW += raster[((int)filter[i].info[j].pixelN *
+                                dbytesperpixel) + bpp] * filter[i].info[j].pixelW;
+                        }
+
+                        dbuf[(i * dpitch) + (k * dbytesperpixel) + bpp] =
+                            CLAMP(pixelW, 0, 255);
+                    }
+                }
+            }
+
+            // free the memory allocated for vertical filter weights
+            for (int i = 0; i < (int)dstyextent; ++i)
+            {
+                free(filter[i].info);
+            }
+
+            free(filter);
+            free(raster);
+            free(tmpptr);
 
             // convert to destination pixeltype
             Blit_32bit_Nbit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
@@ -5697,6 +5932,8 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
                             psrcpalette);
                     }
                 }
+
+                result = true;
             }
         }
 
