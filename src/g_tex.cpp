@@ -5284,19 +5284,31 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
 
             memset(raster, 0, (srcxextent + sbytesperpixel) * sbytesperpixel);
 
+            int bit = 0;
+
             for (int k = 0; k < (int)dstyextent; ++k)
             {
                 // get pixel row
                 memset(raster, 0, (srcxextent + sbytesperpixel) * sbytesperpixel);
 
-                if (k < (int)srcyextent)
+                if ((k % srcyextent) == 0)
                 {
-                    memcpy(raster, (sbuf + (k * spitch)), spitch);
+                    bit ^= 1;
+                }
+
+                int m = (k / srcyextent);
+                int n = 0;
+
+                if (bit == 0)
+                {
+                    n = ((m * srcxextent) - k) + (srcxextent - 1);
                 }
                 else
                 {
-                    memcpy(raster, (sbuf + ((k - srcyextent) * spitch)), spitch);
+                    n = (k - (m * srcxextent));
                 }
+
+                memcpy(raster, (sbuf + (n * spitch)), spitch);
 
                 for (int i = 0; i < (int)dstxextent; ++i)
                 {
