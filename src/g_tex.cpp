@@ -4883,16 +4883,6 @@ typedef struct _filter_list
     int32_t         size;          // size of info
 } filter_list_t;
 
-static const float FILTER_SUPPORT = 1.0f;
-
-static float
-FilterNone(float t)
-{
-    if (t < 0.0f) t = -t;
-    if (t < 1.0f) return ((2.0f * t - 3.0f) * t * t + 1.0f);
-    return 0.0f;
-}
-
 static const float BOX_SUPPORT = 0.5f;
 
 static float 
@@ -5163,8 +5153,8 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
 
             // do filtering
             typedef float (*filter_f)(float);
-            filter_f filter_func = FilterNone;
-            float filterwidth = FILTER_SUPPORT;
+            filter_f filter_func = NULL;
+            float filterwidth = 0.0f;
 
             switch (filtertype)
             {
