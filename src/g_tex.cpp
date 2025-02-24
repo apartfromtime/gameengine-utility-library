@@ -4112,8 +4112,8 @@ Blit_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* bufsrc = psrc;
     uint32_t dstpitch = 0;
     uint32_t srcpitch = srcxsize * 4;
-    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
-    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
+    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
     uint32_t x = 0;
     uint32_t y = 0;
     uint32_t rshift = 0;
@@ -4196,15 +4196,15 @@ Blit_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     while (y < ysize)
     {
         bufdst = rawdst;
-        bufsrc = rawsrc + ((y%srcysize) * srcpitch);
+        bufsrc = rawsrc + (y * srcpitch);
         x = 0;
 
         while (x < xsize)
         {
-            uint32_t pixel = (bufsrc[(x%srcxsize)*4+0] << 0)
-                | (bufsrc[(x%srcxsize)*4+1] <<  8)
-                | (bufsrc[(x%srcxsize)*4+2] << 16)
-                | (bufsrc[(x%srcxsize)*4+3] << 24);
+            uint32_t pixel = (bufsrc[x*4+0] << 0)
+                | (bufsrc[x*4+1] <<  8)
+                | (bufsrc[x*4+2] << 16)
+                | (bufsrc[x*4+3] << 24);
 
             switch (dstformat)
             {
@@ -4293,8 +4293,8 @@ Blit_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* bufsrc = psrc;
     uint32_t dstpitch = 0;
     uint32_t srcpitch = srcxsize * 3;
-    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
-    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
+    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
     uint32_t x = 0;
     uint32_t y = 0;
     uint32_t rshift = 0;
@@ -4359,14 +4359,14 @@ Blit_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     while (y < ysize)
     {
         bufdst = rawdst;
-        bufsrc = rawsrc + ((y%srcysize) * srcpitch);
+        bufsrc = rawsrc + (y * srcpitch);
         x = 0;
 
         while (x < xsize)
         {
-            uint32_t pixel = (bufsrc[(x%srcxsize)*3+0] << 0)
-                | (bufsrc[(x%srcxsize)*3+1] <<  8)
-                | (bufsrc[(x%srcxsize)*3+2] << 16);
+            uint32_t pixel = (bufsrc[x*3+0] << 0)
+                | (bufsrc[x*3+1] <<  8)
+                | (bufsrc[x*3+2] << 16);
 
             switch (dstformat)
             {
@@ -4457,8 +4457,8 @@ Blit_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* bufsrc = psrc;
     uint32_t dstpitch = 0;
     uint32_t srcpitch = srcxsize * 2;
-    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
-    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
+    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
     uint32_t x = 0;
     uint32_t y = 0;
     uint32_t rshift = 0;
@@ -4539,13 +4539,13 @@ Blit_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     while (y < ysize)
     {
         bufdst = rawdst;
-        bufsrc = rawsrc + ((y%srcysize) * srcpitch);
+        bufsrc = rawsrc + (y * srcpitch);
         x = 0;
 
         while (x < xsize)
         {
-            uint16_t pixel = (bufsrc[(x%srcxsize)*2+0] << 0)
-                | (bufsrc[(x%srcxsize)*2+1] << 8);
+            uint16_t pixel = (bufsrc[x*2+0] << 0)
+                | (bufsrc[x*2+1] << 8);
 
             switch (dstformat)
             {
@@ -4632,8 +4632,8 @@ Blit_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* bufsrc = psrc;
     uint32_t dstpitch = 0;
     uint32_t srcpitch = srcxsize;
-    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
-    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
+    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
     uint32_t x = 0;
     uint32_t y = 0;
     uint16_t rgb16 = 0;
@@ -4665,12 +4665,12 @@ Blit_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     while (y < ysize)
     {
         bufdst = rawdst;
-        bufsrc = rawsrc + ((y%srcysize) * srcpitch);
+        bufsrc = rawsrc + (y * srcpitch);
         x = 0;
 
         while (x < xsize)
         {
-            v = bufsrc[(x%srcxsize)*1+0];
+            v = bufsrc[x*1+0];
             b = v;
             g = v;
             r = v;
@@ -4756,8 +4756,8 @@ Blit_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t* bufsrc = psrc;
     uint32_t dstpitch = 0;
     uint32_t srcpitch = srcxsize;
-    uint32_t xsize = (srcxsize < dstxsize) ? dstxsize : srcxsize;
-    uint32_t ysize = (srcysize < dstysize) ? dstysize : srcysize;
+    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
+    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
     uint32_t x = 0;
     uint32_t y = 0;
     uint16_t rgb16 = 0;
@@ -4793,12 +4793,12 @@ Blit_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     while (y < ysize)
     {
         bufdst = rawdst;
-        bufsrc = rawsrc + ((y%srcysize) * srcpitch);
+        bufsrc = rawsrc + (y * srcpitch);
         x = 0;
 
         while (x < xsize)
         {
-            v = bufsrc[(x%srcxsize)*1+0];
+            v = bufsrc[x*1+0];
             b = ppalette->data[v].b;
             g = ppalette->data[v].g;
             r = ppalette->data[v].r;
@@ -5061,14 +5061,13 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
                 while (y < ysize)
                 {
                     bufdst = rawdst;
-                    bufsrc = rawsrc + ((y % srcyextent) * srcpitch);
+                    bufsrc = rawsrc + (y * srcpitch);
                     x = 0;
 
                     while (x < xsize)
                     {
                         memcpy(bufdst + (x * dstbytesperpixel),
-                            bufsrc + ((x % srcxextent) * srcbytesperpixel),
-                            srcbytesperpixel);
+                            bufsrc + (x * srcbytesperpixel), srcbytesperpixel);
                         x++;
                     }
                     y++;
