@@ -4933,7 +4933,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
     uint32_t dstyorigin = dstrect.min[1] < 0 ? 0 : dstrect.min[1];
     uint32_t dstxextent = ABS(dstrect.max[0]) - dstxorigin;
     uint32_t dstyextent = ABS(dstrect.max[1]) - dstyorigin;
-    uint32_t dstbytesperpixel = 0;
+    uint32_t dstbytesperpixel = 1;
 
     switch (pdstimage->pixeltype)
     {
@@ -4988,14 +4988,13 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
     uint32_t srcyorigin = srcrect.min[1] < 0 ? 0 : srcrect.min[1];
     uint32_t srcxextent = ABS(srcrect.max[0]) - srcxorigin;
     uint32_t srcyextent = ABS(srcrect.max[1]) - srcyorigin;
+    uint32_t srcbytesperpixel = 1;
 
     if (srcxextent > psrcimage->xsize || srcyextent > psrcimage->ysize)
     {
         fprintf(stderr, "ResampleImage, src rectangle exceeds image bounds.\n");
         return false;
     }
-
-    uint32_t srcbytesperpixel = 0;
     
     switch (psrcimage->pixeltype)
     {
@@ -5035,123 +5034,69 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
     }
     else
     {
-        if (filtertype == FILTER_NONE)
+        // convert to internal PIXELTYPE_RGBA
+        uint32_t dbytesperpixel = 4;
+        uint8_t* dptr = (uint8_t*)malloc(dstyextent * dstxextent * dbytesperpixel);
+        uint8_t* dbuf = dptr;
+        uint32_t dpitch = dstxextent * dbytesperpixel;
+
+        uint32_t sbytesperpixel = 4;
+        uint8_t* sptr = (uint8_t*)malloc(srcyextent * srcxextent * sbytesperpixel);
+        uint8_t* sbuf = sptr;
+        uint32_t spitch = srcxextent * sbytesperpixel;
+
+        memset(dptr, 0, dstxextent * dstyextent * dbytesperpixel);
+        memset(sptr, 0, srcxextent * srcyextent * sbytesperpixel);
+
+        if (srcbytesperpixel == 4)
         {
-            if (pdstimage->pixeltype == psrcimage->pixeltype)
+            Blit_32bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
+                srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+        }
+        else if (srcbytesperpixel == 3)
+        {
+            Blit_24bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
+                srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+        }
+        else if (srcbytesperpixel == 2)
+        {
+            Blit_16bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
+                srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+        }
+        else
+        {
+            if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE)
             {
-                uint8_t* rawdst = dstbuf;
-                uint8_t* rawsrc = srcbuf;
-                uint8_t* bufdst = dstbuf;
-                uint8_t* bufsrc = srcbuf;
-                uint32_t xsize = (srcxextent < dstxextent) ? dstxextent : srcxextent;
-                uint32_t ysize = (srcyextent < dstyextent) ? dstyextent : srcyextent;
-                uint32_t x = 0;
-                uint32_t y = 0;
-
-                while (y < ysize)
-                {
-                    bufdst = rawdst;
-                    bufsrc = rawsrc + (y * srcpitch);
-                    x = 0;
-
-                    while (x < xsize)
-                    {
-                        memcpy(bufdst + (x * dstbytesperpixel),
-                            bufsrc + (x * srcbytesperpixel), srcbytesperpixel);
-                        x++;
-                    }
-                    y++;
-
-                    if (y != ysize)
-                    {
-                        rawdst += dstpitch;
-                    }
-                }
+                Blit_8bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
             }
             else
             {
-                if (srcbytesperpixel == 4)
-                {
-                    Blit_32bit_Nbit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else if (srcbytesperpixel == 3)
-                {
-                    Blit_24bit_Nbit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else if (srcbytesperpixel == 2)
-                {
-                    Blit_16bit_Nbit(dstbuf, dstxextent, dstyextent,
-                        pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                        psrcimage->pixeltype);
-                }
-                else
-                {
-                    if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE)
-                    {
-                        Blit_8bit_Nbit(dstbuf, dstxextent, dstyextent,
-                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                            psrcimage->pixeltype);
-                    }
-                    else
-                    {
-                        Blit_PAL_Nbit(dstbuf, dstxextent, dstyextent,
-                            pdstimage->pixeltype, srcbuf, srcxextent, srcyextent,
-                            psrcimage->pixeltype, ppalette);
-                    }
-                }
+                Blit_PAL_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
+                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype,
+                    ppalette);
+            }
+        }
+
+        if (filtertype == FILTER_NONE)
+        {
+            // no filtering or scaling
+            uint8_t* bufdst = dbuf;
+            uint8_t* bufsrc = sbuf;
+            uint32_t xsize = (srcxextent < dstxextent) ? srcxextent : dstxextent;
+            uint32_t ysize = (srcyextent < dstyextent) ? srcyextent : dstyextent;
+            uint32_t y = 0;
+
+            while (y++ < ysize)
+            {
+                memcpy(bufdst, bufsrc, xsize * sbytesperpixel);
+                bufdst = dbuf + (y * dpitch);
+                bufsrc = sbuf + (y * spitch);
             }
         }
         else
         {
-            // convert to internal PIXELTYPE_RGBA
-            uint32_t dbytesperpixel = 4;
-            uint8_t* dptr = (uint8_t*)malloc(dstyextent * dstxextent * dbytesperpixel);
-            uint8_t* dbuf = dptr;
-            uint32_t dpitch = dstxextent * dbytesperpixel;
-
-            uint32_t sbytesperpixel = 4;
-            uint8_t* sptr = (uint8_t*)malloc(srcyextent * srcxextent * sbytesperpixel);
-            uint8_t* sbuf = sptr;
-            uint32_t spitch = srcxextent * sbytesperpixel;
-
-            memset(dptr, 0, dstxextent * dstyextent * dbytesperpixel);
-            memset(sptr, 0, srcxextent * srcyextent * sbytesperpixel);
-
-            if (srcbytesperpixel == 4)
-            {
-                Blit_32bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 3)
-            {
-                Blit_24bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-            }
-            else if (srcbytesperpixel == 2)
-            {
-                Blit_16bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-            }
-            else
-            {
-                if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE)
-                {
-                    Blit_8bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
-                        srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-                }
-                else
-                {
-                    Blit_PAL_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
-                        srcbuf, srcxextent, srcyextent, psrcimage->pixeltype,
-                        ppalette);
-                }
-            }
-
-            // do filtering
+            // do filtering and scaling
             typedef float (*filter_f)(float);
             filter_f filter_func = NULL;
             float filterwidth = 0.0f;
@@ -5176,7 +5121,7 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
             float xscale, yscale;           // scale factors
             float pixelN, pixelW;           // pixel number and weight
             float fwidth, fscale;           // filter calculation variables
-            float mid, min, max;            // filter calculation variables
+            float mid, min, max;
 
             // create intermediate image to hold horizontal zoom
             tmpptr = (uint8_t*)malloc(dstxextent * dstyextent * dbytesperpixel);
@@ -5478,22 +5423,22 @@ ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
             free(filter);
             free(raster);
             free(tmpptr);
+        }
 
-            // convert to destination pixeltype
-            Blit_32bit_Nbit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
-                dbuf, dstxextent, dstyextent, PIXELTYPE_RGBA);
+        // convert to destination pixeltype
+        Blit_32bit_Nbit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
+            dbuf, dstxextent, dstyextent, PIXELTYPE_RGBA);
 
-            if (dptr != NULL)
-            {
-                free(dptr);
-                dptr = NULL;
-            }
+        if (dptr != NULL)
+        {
+            free(dptr);
+            dptr = NULL;
+        }
 
-            if (sptr != NULL)
-            {
-                free(sptr);
-                sptr = NULL;
-            }
+        if (sptr != NULL)
+        {
+            free(sptr);
+            sptr = NULL;
         }
     }
 
