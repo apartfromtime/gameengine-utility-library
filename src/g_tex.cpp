@@ -2256,7 +2256,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
             case TGA_MAPPED_RLE:
             case TGA_BLACK_AND_WHITE_RLE:
             {
-                while (y++ < yextent)
+                while (y < yextent)
                 {
                     rawbuf = rawptr;
                     x = 0;
@@ -2331,14 +2331,10 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             dstbuf += bytesperpixel;
                             bytesencoded += bytesperpixel;
                         }
-
                         x += rlevalue;
                     }
-
-                    if (y != yextent)
-                    {
-                        rawptr += pitch;
-                    }
+                    rawptr += pitch;
+                    y++;
                 }
             } break;
             }
@@ -2635,18 +2631,14 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                             rgba[i] = *srcbuf++;
                         }
                     }
-                    x++;
 
                     memcpy(rawbuf, rgba, bytesperpixel);
                     rawbuf += bytesperpixel;
                     rlecount--;
+                    x++;
                 }
+                rawptr += pitch;
                 y++;
-
-                if (y != ysize)
-                {
-                    rawptr += pitch;
-                }
             }
         } break;
         case TGA_MAPPED:
@@ -2970,7 +2962,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                             bytesencoded++;
                             bytesencoded++;
 
-                            if (y != yextent)
+                            if (y < yextent)
                             {
                                 rawptr = psrc + (y * srcpitch);
                                 rawbuf = rawptr + x;
@@ -3117,12 +3109,8 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                     bytesencoded++;
                     bytesencoded++;
 
+                    rawptr += srcpitch;
                     y++;
-
-                    if (y != yextent)
-                    {
-                        rawptr += srcpitch;
-                    }
                 }
 
                 // end of bitmap 
@@ -3141,16 +3129,14 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
         }
         else            // everything else
         {
-            while (y++ < yextent)
+            while (y < yextent)
             {
                 rawbuf = rawptr;
                 memcpy(dstbuf, rawbuf, srcpitch);
-                if (y != yextent)
-                {
-                    rawptr += srcpitch;
-                }
+                rawptr += srcpitch;
                 dstbuf += srcpitch + padbytes;
                 bytesencoded += srcpitch + padbytes;
+                y++;
             }
         }
     }
@@ -3363,7 +3349,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     // bottom-up dib
     if (ysize >= 0)
     {
-        pixptr = (pixels + ((ABS(ysize)-1)) * pitch);
+        pixptr = (pixels + ((ysize-1)) * pitch);
         pitch = -pitch;
     }
 
@@ -3377,10 +3363,10 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     if (rle)            // run-length encoding
     {
         int32_t x = 0;
-        int32_t y = ABS(ysize);
+        int32_t y = 0;
         uint8_t bit = 0;
 
-        while (y-- > 0)
+        while (y < ysize)
         {
             pixbuf = pixptr;
             bit = 4;
@@ -3407,8 +3393,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                             {
                                 for (int i = 0; i < data1; ++i)
                                 {
-                                    if ((i & 1) == 0)
-                                    {
+                                    if ((i & 1) == 0) {
                                         sample = *srcbuf++;
                                     }
 
@@ -3425,8 +3410,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                                     bit ^= 4;
                                     x++;
 
-                                    if ((x & 1) == 0)
-                                    {
+                                    if ((x & 1) == 0) {
                                         pixbuf++;
                                     }
                                 }
@@ -3447,14 +3431,14 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                         int dy = *srcbuf++;
 
                         dx += (int)(pixbuf - pixptr) * PIXELS_PER_BYTE(bmpinfo.bits);
-                        y -= dy;
+                        y += dy;
 
-                        if (y <= 0) break;
+                        if (y >= ysize) break;
 
-                        if (ysize >= 0) {
-                            pixptr = pixels + (y * ABS(pitch));
-                        } else {
+                        if (bmpinfo.height >= 0) {
                             pixptr = pixels + ((ysize - (y + 1)) * ABS(pitch));
+                        } else {
+                            pixptr = pixels + (y * ABS(pitch));
                         }
 
                         if (bmpinfo.bits == 4)
@@ -3498,8 +3482,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                             bit ^= 4;
                             x++;
 
-                            if ((x & 1) == 0)
-                            {
+                            if ((x & 1) == 0) {
                                 pixbuf++;
                             }
                         }
@@ -3512,27 +3495,21 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                     }
                 }
             }
-
-            if (y != 0)
-            {
-                pixptr += pitch;
-            }
+            pixptr += pitch;
+            y++;
         }
     }
     else            // everything else
     {
         int32_t y = ABS(ysize);
 
-        while (y-- > 0)
+        while (y < ysize)
         {
             pixbuf = pixptr;
             memcpy(pixbuf, srcbuf, ABS(pitch));
             srcbuf += ABS(pitch) + padbytes;
-
-            if (y != 0)
-            {
-                pixptr += pitch;
-            }
+            pixptr += pitch;
+            y++;
         }
 
         if (bmpinfo.bits == 32)
@@ -3732,7 +3709,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     uint8_t sample0 = 0;
     uint8_t sample1 = 0;
 
-    while (y++ < ysize)
+    while (y < ysize)
     {
         colorplane = 0;
 
@@ -3795,10 +3772,8 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 
         } while (colorplane < srcbytesperpixel);
 
-        if (y != ysize)
-        {
-            rawptr += srcpitch;
-        }
+        rawptr += srcpitch;
+        y++;
     }
 
     // palette
@@ -4042,12 +4017,8 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
         } while (subtotal < totalbytes);
 
+        pixptr += pitch;
         y++;
-
-        if (y != ysize)
-        {
-            pixptr += pitch;
-        }
     }
 
     // palette
@@ -4269,13 +4240,8 @@ Blit_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
 
             x++;
         }
-
+        rawdst += dstpitch;
         y++;
-
-        if (y != ysize)
-        {
-            rawdst += dstpitch;
-        }
     }
 }
 
@@ -4430,12 +4396,8 @@ Blit_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             }
             x++;
         }
+        rawdst += dstpitch;
         y++;
-
-        if (y != ysize)
-        {
-            rawdst += dstpitch;
-        }
     }
 }
 
@@ -4609,12 +4571,8 @@ Blit_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             }
             x++;
         }
+        rawdst += dstpitch;
         y++;
-
-        if (y != ysize)
-        {
-            rawdst += dstpitch;
-        }
     }
 }
 
@@ -4733,12 +4691,8 @@ Blit_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             }
             x++;
         }
+        rawdst += dstpitch;
         y++;
-
-        if (y != ysize)
-        {
-            rawdst += dstpitch;
-        }
     }
 }
 
@@ -4862,12 +4816,8 @@ Blit_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             }
             x++;
         }
+        rawdst += dstpitch;
         y++;
-
-        if (y != ysize)
-        {
-            rawdst += dstpitch;
-        }
     }
 }
 
@@ -5610,12 +5560,8 @@ ReplaceColor(image_t* image, palette_t* ppalette, rgba_t dstcolor, rgba_t srccol
             bufdst += bytesperpixel;
             x++;
         }
+        rawsrc += pitch;
         y++;
-
-        if (y != ysize)
-        {
-            rawsrc += pitch;
-        }
     }
 }
 
