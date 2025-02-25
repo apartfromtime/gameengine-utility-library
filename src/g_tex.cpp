@@ -5597,10 +5597,13 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
                     dstformat = PIXELTYPE_RGBA;
                 }
                 else if (psrcimage->pixeltype == PIXELTYPE_RGB
-                    || psrcimage->pixeltype == PIXELTYPE_BGR
-                    || psrcimage->pixeltype == PIXELTYPE_XBGR1555)
+                    || psrcimage->pixeltype == PIXELTYPE_BGR)
                 {
                     dstformat = PIXELTYPE_RGB;
+                }
+                else if (psrcimage->pixeltype == PIXELTYPE_XBGR1555)
+                {
+                    dstformat = PIXELTYPE_XBGR1555;
                 }
                 else if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE_ALPHA)
                 {
@@ -5859,10 +5862,6 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
                     dstimage.xsize, dstimage.ysize, depth, psrcpalette, false,
                     false);
             } break;
-            default:
-            {
-                fprintf(stderr, "SaveImage, Unsupported image format\n");
-            }
             }
         }
     }
