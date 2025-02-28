@@ -4070,650 +4070,35 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
 
 //-----------------------------------------------------------------------------
-// Blit_32bit_Nbit
+// Blit_Nbit_Nbit
 //-----------------------------------------------------------------------------
 static void
-Blit_32bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    uint32_t dstpitch = 0;
-    uint32_t srcpitch = srcxsize * 4;
-    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
-    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
-    uint32_t x = 0;
-    uint32_t y = 0;
-    uint32_t rshift = 0;
-    uint32_t gshift = 0;
-    uint32_t bshift = 0;
-    uint32_t ashift = 0;
-    uint32_t rmask = 0;
-    uint32_t gmask = 0;
-    uint32_t bmask = 0;
-    uint32_t amask = 0;
-    uint16_t rgb16 = 0;
-    uint8_t r = 0;
-    uint8_t g = 0;
-    uint8_t b = 0;
-
-    switch (dstformat)
-    {
-    case PIXELTYPE_RGBA:
-    case PIXELTYPE_ABGR:
-    case PIXELTYPE_BGRA:
-    {
-        dstpitch = dstxsize * 4;
-    } break;
-    case PIXELTYPE_RGB:
-    case PIXELTYPE_BGR:
-    {
-        dstpitch = dstxsize * 3;
-    } break;
-    case PIXELTYPE_XBGR1555:
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    {
-        dstpitch = dstxsize * 2;
-    } break;
-    case PIXELTYPE_LUMINANCE:
-    {
-        dstpitch = dstxsize;
-    } break;
-    }
-
-    switch (srcformat)
-    {
-    case PIXELTYPE_RGBA:
-    {
-        rmask = 0x000000FF;
-        gmask = 0x0000FF00;
-        bmask = 0x00FF0000;
-        amask = 0xFF000000;
-
-        rshift =  0;
-        gshift =  8;
-        bshift = 16;
-        ashift = 24;
-    } break;
-    case PIXELTYPE_ABGR:
-    {
-        amask = 0x000000FF;
-        bmask = 0x0000FF00;
-        gmask = 0x00FF0000;
-        rmask = 0xFF000000;
-
-        rshift = 24;
-        gshift = 16;
-        bshift =  8;
-        ashift =  0;
-    } break;
-    case PIXELTYPE_BGRA:
-    {
-        bmask = 0x000000FF;
-        gmask = 0x0000FF00;
-        rmask = 0x00FF0000;
-        amask = 0xFF000000;
-
-        rshift = 16;
-        gshift =  8;
-        bshift =  0;
-        ashift = 24;
-    } break;
-    }
-
-    while (y < ysize)
-    {
-        bufdst = rawdst;
-        bufsrc = rawsrc + (y * srcpitch);
-        x = 0;
-
-        while (x < xsize)
-        {
-            uint32_t pixel = (bufsrc[x*4+0] << 0)
-                | (bufsrc[x*4+1] <<  8)
-                | (bufsrc[x*4+2] << 16)
-                | (bufsrc[x*4+3] << 24);
-
-            switch (dstformat)
-            {
-            case PIXELTYPE_RGBA:
-            {
-                bufdst[x*4+0] = (pixel & rmask) >> rshift;
-                bufdst[x*4+1] = (pixel & gmask) >> gshift;
-                bufdst[x*4+2] = (pixel & bmask) >> bshift;
-                bufdst[x*4+3] = (pixel & amask) >> ashift;
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                bufdst[x*4+0] = (pixel & amask) >> rshift;
-                bufdst[x*4+1] = (pixel & bmask) >> gshift;
-                bufdst[x*4+2] = (pixel & gmask) >> bshift;
-                bufdst[x*4+3] = (pixel & rmask) >> ashift;
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                bufdst[x*4+0] = (pixel & bmask) >> bshift;
-                bufdst[x*4+1] = (pixel & gmask) >> gshift;
-                bufdst[x*4+2] = (pixel & rmask) >> rshift;
-                bufdst[x*4+3] = (pixel & amask) >> ashift;
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                bufdst[x*3+0] = (pixel & rmask) >> rshift;
-                bufdst[x*3+1] = (pixel & gmask) >> gshift;
-                bufdst[x*3+2] = (pixel & bmask) >> bshift;
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                bufdst[x*3+0] = (pixel & bmask) >> bshift;
-                bufdst[x*3+1] = (pixel & gmask) >> gshift;
-                bufdst[x*3+2] = (pixel & rmask) >> rshift;
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                r = (((pixel & rmask) >> rshift) * 0x1F) / 0xFF;
-                g = (((pixel & gmask) >> gshift) * 0x1F) / 0xFF;
-                b = (((pixel & bmask) >> bshift) * 0x1F) / 0xFF;
-
-                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
-
-                bufdst[x*2+0] = (rgb16 & 0x00FF) >> 0;
-                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                bufdst[x*2+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
-                    ((pixel & gmask) >> gshift) * 0.5870f +
-                    ((pixel & bmask) >> bshift) * 0.1140f);
-                bufdst[x*2+1] = (pixel & amask);
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                bufdst[x] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
-                    ((pixel & gmask) >> gshift) * 0.5870f +
-                    ((pixel & bmask) >> bshift) * 0.1140f);
-            } break;
-            }
-
-            x++;
-        }
-        rawdst += dstpitch;
-        y++;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Blit_24bit_Nbit
-//-----------------------------------------------------------------------------
-static void
-Blit_24bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    uint32_t dstpitch = 0;
-    uint32_t srcpitch = srcxsize * 3;
-    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
-    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
-    uint32_t x = 0;
-    uint32_t y = 0;
-    uint32_t rshift = 0;
-    uint32_t gshift = 0;
-    uint32_t bshift = 0;
-    uint32_t rmask = 0;
-    uint32_t gmask = 0;
-    uint32_t bmask = 0;
-    uint16_t rgb16 = 0;
-    uint8_t r = 0;
-    uint8_t g = 0;
-    uint8_t b = 0;
-
-    switch (dstformat)
-    {
-    case PIXELTYPE_RGBA:
-    case PIXELTYPE_ABGR:
-    case PIXELTYPE_BGRA:
-    {
-        dstpitch = dstxsize * 4;
-    } break;
-    case PIXELTYPE_RGB:
-    case PIXELTYPE_BGR:
-    {
-        dstpitch = dstxsize * 3;
-    } break;
-    case PIXELTYPE_XBGR1555:
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    {
-        dstpitch = dstxsize * 2;
-    } break;
-    case PIXELTYPE_LUMINANCE:
-    {
-        dstpitch = dstxsize;
-    } break;
-    }
-
-    switch (srcformat)
-    {
-    case PIXELTYPE_RGB:
-    {
-        rmask = 0x000000FF;
-        gmask = 0x0000FF00;
-        bmask = 0x00FF0000;
-        
-        rshift =  0;
-        gshift =  8;
-        bshift = 16;
-    } break;
-    case PIXELTYPE_BGR:
-    {
-        bmask = 0x000000FF;
-        gmask = 0x0000FF00;
-        rmask = 0x00FF0000;
-
-        rshift = 16;
-        gshift =  8;
-        bshift =  0;
-    } break;
-    }
-
-    while (y < ysize)
-    {
-        bufdst = rawdst;
-        bufsrc = rawsrc + (y * srcpitch);
-        x = 0;
-
-        while (x < xsize)
-        {
-            uint32_t pixel = (bufsrc[x*3+0] << 0)
-                | (bufsrc[x*3+1] <<  8)
-                | (bufsrc[x*3+2] << 16);
-
-            switch (dstformat)
-            {
-            case PIXELTYPE_RGBA:
-            {
-                bufdst[x*4+0] = (pixel & rmask) >> rshift;
-                bufdst[x*4+1] = (pixel & gmask) >> gshift;
-                bufdst[x*4+2] = (pixel & bmask) >> bshift;
-                bufdst[x*4+3] = 255;
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                bufdst[x*4+0] = 255;
-                bufdst[x*4+1] = (pixel & bmask) >> bshift;
-                bufdst[x*4+2] = (pixel & gmask) >> gshift;
-                bufdst[x*4+3] = (pixel & rmask) >> rshift;
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                bufdst[x*4+0] = (pixel & bmask) >> bshift;
-                bufdst[x*4+1] = (pixel & gmask) >> gshift;
-                bufdst[x*4+2] = (pixel & rmask) >> rshift;
-                bufdst[x*4+3] = 255;
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                bufdst[x*3+0] = (pixel & rmask) >> rshift;
-                bufdst[x*3+1] = (pixel & gmask) >> gshift;
-                bufdst[x*3+2] = (pixel & bmask) >> bshift;
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                bufdst[x*3+0] = (pixel & bmask) >> bshift;
-                bufdst[x*3+1] = (pixel & gmask) >> gshift;
-                bufdst[x*3+2] = (pixel & rmask) >> rshift;
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                r = (((pixel & rmask) >> rshift) * 0x1F) / 0xFF;
-                g = (((pixel & gmask) >> gshift) * 0x1F) / 0xFF;
-                b = (((pixel & bmask) >> bshift) * 0x1F) / 0xFF;
-
-                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
-
-                bufdst[x*2+0] = (rgb16 & 0x00FF) >> 0;
-                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                bufdst[x*2+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
-                    ((pixel & gmask) >> gshift) * 0.5870f +
-                    ((pixel & bmask) >> bshift) * 0.1140f);
-                bufdst[x*2+1] = 255;
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                bufdst[x] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
-                    ((pixel & gmask) >> gshift) * 0.5870f +
-                    ((pixel & bmask) >> bshift) * 0.1140f);
-            } break;
-            }
-            x++;
-        }
-        rawdst += dstpitch;
-        y++;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Blit_16bit_Nbit
-//-----------------------------------------------------------------------------
-static void
-Blit_16bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    float rmod = 0.0f;
-    float gmod = 0.0f;
-    float bmod = 0.0f;
-    float amod = 0.0f;
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    uint32_t dstpitch = 0;
-    uint32_t srcpitch = srcxsize * 2;
-    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
-    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
-    uint32_t x = 0;
-    uint32_t y = 0;
-    uint32_t rshift = 0;
-    uint32_t gshift = 0;
-    uint32_t bshift = 0;
-    uint32_t ashift = 0;
-    uint32_t rmask = 0;
-    uint32_t gmask = 0;
-    uint32_t bmask = 0;
-    uint32_t amask = 0;
-    uint16_t rgb16 = 0;
-    uint8_t r = 0;
-    uint8_t g = 0;
-    uint8_t b = 0;
-
-    switch (dstformat)
-    {
-    case PIXELTYPE_RGBA:
-    case PIXELTYPE_ABGR:
-    case PIXELTYPE_BGRA:
-    {
-        dstpitch = dstxsize * 4;
-    } break;
-    case PIXELTYPE_RGB:
-    case PIXELTYPE_BGR:
-    {
-        dstpitch = dstxsize * 3;
-    } break;
-    case PIXELTYPE_XBGR1555:
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    {
-        dstpitch = dstxsize * 2;
-    } break;
-    case PIXELTYPE_LUMINANCE:
-    {
-        dstpitch = dstxsize;
-    } break;
-    }
-
-    switch (srcformat)
-    {
-    case PIXELTYPE_XBGR1555:
-    {
-        rmask = 0x7C00;
-        gmask = 0x03E0;
-        bmask = 0x001F;
-        amask = 0x8000;
-
-        rshift = 10;
-        gshift =  5;
-        bshift =  0;
-        ashift = 15;
-
-        rmod = 255.0f / 31.0f;
-        gmod = 255.0f / 31.0f;
-        bmod = 255.0f / 31.0f;
-        amod = 0.0f;
-    } break;
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    {
-        rmask = 0xFF00;
-        gmask = 0xFF00;
-        bmask = 0xFF00;
-        amask = 0x00FF;
-
-        rshift = 8;
-        gshift = 8;
-        bshift = 8;
-        ashift = 0;
-
-        rmod = 1.0f;
-        gmod = 1.0f;
-        bmod = 1.0f;
-        amod = 1.0f;
-    } break;
-    }
-
-    while (y < ysize)
-    {
-        bufdst = rawdst;
-        bufsrc = rawsrc + (y * srcpitch);
-        x = 0;
-
-        while (x < xsize)
-        {
-            uint16_t pixel = (bufsrc[x*2+0] << 0)
-                | (bufsrc[x*2+1] << 8);
-
-            switch (dstformat)
-            {
-            case PIXELTYPE_RGBA:
-            {
-                bufdst[x*4+0] = ((pixel & rmask) >> rshift) * rmod;
-                bufdst[x*4+1] = ((pixel & gmask) >> gshift) * gmod;
-                bufdst[x*4+2] = ((pixel & bmask) >> bshift) * bmod;
-                bufdst[x*4+3] = ((pixel & amask) >> ashift) * amod;
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                bufdst[x*4+0] = ((pixel & amask) >> ashift) * amod;
-                bufdst[x*4+1] = ((pixel & bmask) >> bshift) * bmod;
-                bufdst[x*4+2] = ((pixel & gmask) >> gshift) * gmod;
-                bufdst[x*4+3] = ((pixel & rmask) >> rshift) * rmod;
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                bufdst[x*4+0] = ((pixel & bmask) >> bshift) * bmod;
-                bufdst[x*4+1] = ((pixel & gmask) >> gshift) * gmod;
-                bufdst[x*4+2] = ((pixel & rmask) >> rshift) * rmod;
-                bufdst[x*4+3] = ((pixel & amask) >> ashift) * amod;
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                bufdst[x*3+0] = ((pixel & rmask) >> rshift) * rmod;
-                bufdst[x*3+1] = ((pixel & gmask) >> gshift) * gmod;
-                bufdst[x*3+2] = ((pixel & bmask) >> bshift) * bmod;
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                bufdst[x*3+0] = ((pixel & bmask) >> bshift) * bmod;
-                bufdst[x*3+1] = ((pixel & gmask) >> gshift) * gmod;
-                bufdst[x*3+2] = ((pixel & rmask) >> rshift) * rmod;
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                r = (((pixel & rmask) >> rshift) * 0x1F) / 0xFF;
-                g = (((pixel & gmask) >> gshift) * 0x1F) / 0xFF;
-                b = (((pixel & bmask) >> bshift) * 0x1F) / 0xFF;
-
-                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
-
-                bufdst[x*2+0] = (rgb16 & 0x00FF) >> 0;
-                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                bufdst[x*2+0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
-                    ((pixel & gmask) >> gshift) * 0.5870f +
-                    ((pixel & bmask) >> bshift) * 0.1140f);
-                bufdst[x*2+1] = 255;
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                bufdst[x] = (uint8_t)((((pixel & rmask) >> rshift) * rmod) * 0.2990f +
-                    (((pixel & gmask) >> gshift) * gmod) * 0.5870f +
-                    (((pixel & bmask) >> bshift) * bmod) * 0.1140f);
-            } break;
-            }
-            x++;
-        }
-        rawdst += dstpitch;
-        y++;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Blit_8bit_Nbit
-//-----------------------------------------------------------------------------
-static void
-Blit_8bit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat)
-{
-    uint8_t* rawdst = pdst;
-    uint8_t* rawsrc = psrc;
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    uint32_t dstpitch = 0;
-    uint32_t srcpitch = srcxsize;
-    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
-    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
-    uint32_t x = 0;
-    uint32_t y = 0;
-    uint16_t rgb16 = 0;
-    uint8_t r = 0;
-    uint8_t g = 0;
-    uint8_t b = 0;
-    uint8_t a = 255;
-    uint8_t v = 0;
-
-    switch (dstformat)
-    {
-    case PIXELTYPE_RGBA:
-    case PIXELTYPE_ABGR:
-    case PIXELTYPE_BGRA:
-    {
-        dstpitch = dstxsize * 4;
-    } break;
-    case PIXELTYPE_RGB:
-    case PIXELTYPE_BGR:
-    {
-        dstpitch = dstxsize * 3;
-    } break;
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    {
-        dstpitch = dstxsize * 2;
-    } break;
-    }
-
-    while (y < ysize)
-    {
-        bufdst = rawdst;
-        bufsrc = rawsrc + (y * srcpitch);
-        x = 0;
-
-        while (x < xsize)
-        {
-            v = bufsrc[x*1+0];
-            b = v;
-            g = v;
-            r = v;
-
-            switch (dstformat)
-            {
-            case PIXELTYPE_RGBA:
-            {
-                bufdst[x*4+0] = r;
-                bufdst[x*4+1] = g;
-                bufdst[x*4+2] = b;
-                bufdst[x*4+3] = a;
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                bufdst[x*4+0] = a;
-                bufdst[x*4+1] = b;
-                bufdst[x*4+2] = g;
-                bufdst[x*4+3] = r;
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                bufdst[x*4+0] = b;
-                bufdst[x*4+1] = g;
-                bufdst[x*4+2] = r;
-                bufdst[x*4+3] = a;
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                bufdst[x*3+0] = r;
-                bufdst[x*3+1] = g;
-                bufdst[x*3+2] = b;
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                bufdst[x*3+0] = b;
-                bufdst[x*3+1] = g;
-                bufdst[x*3+2] = r;
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                r = (r * 0x1F) / 0xFF;
-                g = (g * 0x1F) / 0xFF;
-                b = (b * 0x1F) / 0xFF;
-
-                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
-
-                bufdst[x*2+0] = (rgb16 & 0x00FF) >> 0;
-                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
-                bufdst[x*2+1] = a;
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                bufdst[x] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
-            } break;
-            }
-            x++;
-        }
-        rawdst += dstpitch;
-        y++;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Blit_PAL_Nbit
-//-----------------------------------------------------------------------------
-static void
-Blit_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
+Blit_Nbit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
     pixel_t srcformat, palette_t* ppalette)
 {
+    float rmod = 1.0f;
+    float gmod = 1.0f;
+    float bmod = 1.0f;
+    float amod = 1.0f;
     uint8_t* rawdst = pdst;
     uint8_t* rawsrc = psrc;
     uint8_t* bufdst = pdst;
     uint8_t* bufsrc = psrc;
-    uint32_t dstpitch = 0;
+    uint32_t dstpitch = dstxsize;
     uint32_t srcpitch = srcxsize;
     uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
     uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
     uint32_t x = 0;
     uint32_t y = 0;
+    uint32_t rshift = 0;
+    uint32_t gshift = 0;
+    uint32_t bshift = 0;
+    uint32_t ashift = 0;
+    uint32_t rmask = 0;
+    uint32_t gmask = 0;
+    uint32_t bmask = 0;
+    uint32_t amask = 0;
     uint16_t rgb16 = 0;
     uint8_t r = 0;
     uint8_t g = 0;
@@ -4721,103 +4106,539 @@ Blit_PAL_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t a = 0;
     uint8_t v = 0;
 
+    uint8_t dstbytes = 1;
+    uint8_t srcbytes = 1;
+
     switch (dstformat)
     {
     case PIXELTYPE_RGBA:
     case PIXELTYPE_ABGR:
     case PIXELTYPE_BGRA:
-    {
-        dstpitch = dstxsize * 4;
-    } break;
+    { dstbytes++; }
     case PIXELTYPE_RGB:
     case PIXELTYPE_BGR:
-    {
-        dstpitch = dstxsize * 3;
-    } break;
+    { dstbytes++; }
+    case PIXELTYPE_XBGR1555:
     case PIXELTYPE_LUMINANCE_ALPHA:
-    {
-        dstpitch = dstxsize * 2;
-    } break;
-    case PIXELTYPE_LUMINANCE:
-    {
-        dstpitch = dstxsize;
-    } break;
+    { dstbytes++; }
     }
 
-    while (y < ysize)
+    switch (srcformat)
     {
-        bufdst = rawdst;
-        bufsrc = rawsrc + (y * srcpitch);
-        x = 0;
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    { srcbytes++; }
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    { srcbytes++; }
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    { srcbytes++; }
+    }
 
-        while (x < xsize)
+    dstpitch = dstxsize * dstbytes;
+    srcpitch = srcxsize * srcbytes;
+
+    if (srcbytes == 4)
+    {
+        switch (srcformat)
         {
-            v = bufsrc[x*1+0];
-            b = ppalette->data[v].b;
-            g = ppalette->data[v].g;
-            r = ppalette->data[v].r;
-            a = ppalette->data[v].a;
+        case PIXELTYPE_RGBA:
+        {
+            rmask = 0x000000FF;
+            gmask = 0x0000FF00;
+            bmask = 0x00FF0000;
+            amask = 0xFF000000;
 
-            switch (dstformat)
-            {
-            case PIXELTYPE_RGBA:
-            {
-                bufdst[x*4+0] = r;
-                bufdst[x*4+1] = g;
-                bufdst[x*4+2] = b;
-                bufdst[x*4+3] = a;
-            } break;
-            case PIXELTYPE_ABGR:
-            {
-                bufdst[x*4+0] = a;
-                bufdst[x*4+1] = b;
-                bufdst[x*4+2] = g;
-                bufdst[x*4+3] = r;
-            } break;
-            case PIXELTYPE_BGRA:
-            {
-                bufdst[x*4+0] = b;
-                bufdst[x*4+1] = g;
-                bufdst[x*4+2] = r;
-                bufdst[x*4+3] = a;
-            } break;
-            case PIXELTYPE_RGB:
-            {
-                bufdst[x*3+0] = r;
-                bufdst[x*3+1] = g;
-                bufdst[x*3+2] = b;
-            } break;
-            case PIXELTYPE_BGR:
-            {
-                bufdst[x*3+0] = b;
-                bufdst[x*3+1] = g;
-                bufdst[x*3+2] = r;
-            } break;
-            case PIXELTYPE_XBGR1555:
-            {
-                r = (r * 0x1F) / 0xFF;
-                g = (g * 0x1F) / 0xFF;
-                b = (b * 0x1F) / 0xFF;
+            rshift = 0;
+            gshift = 8;
+            bshift = 16;
+            ashift = 24;
+        } break;
+        case PIXELTYPE_ABGR:
+        {
+            amask = 0x000000FF;
+            bmask = 0x0000FF00;
+            gmask = 0x00FF0000;
+            rmask = 0xFF000000;
 
-                rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+            rshift = 24;
+            gshift = 16;
+            bshift = 8;
+            ashift = 0;
+        } break;
+        case PIXELTYPE_BGRA:
+        {
+            bmask = 0x000000FF;
+            gmask = 0x0000FF00;
+            rmask = 0x00FF0000;
+            amask = 0xFF000000;
 
-                bufdst[x*2+0] = (rgb16 & 0x00FF) >> 0;
-                bufdst[x*2+1] = (rgb16 & 0xFF00) >> 8;
-            } break;
-            case PIXELTYPE_LUMINANCE_ALPHA:
-            {
-                bufdst[x*2+0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
-                bufdst[x*2+1] = a;
-            } break;
-            case PIXELTYPE_LUMINANCE:
-            {
-                bufdst[x] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
-            } break;
-            }
-            x++;
+            rshift = 16;
+            gshift = 8;
+            bshift = 0;
+            ashift = 24;
+        } break;
         }
-        rawdst += dstpitch;
-        y++;
+
+        while (y < ysize)
+        {
+            bufdst = rawdst;
+            bufsrc = rawsrc + (y * srcpitch);
+            x = 0;
+
+            while (x < xsize)
+            {
+                uint32_t pixel = (bufsrc[x * 4 + 0] << 0)
+                    | (bufsrc[x * 4 + 1] << 8)
+                    | (bufsrc[x * 4 + 2] << 16)
+                    | (bufsrc[x * 4 + 3] << 24);
+
+                switch (dstformat)
+                {
+                case PIXELTYPE_RGBA:
+                {
+                    bufdst[x * 4 + 0] = (pixel & rmask) >> rshift;
+                    bufdst[x * 4 + 1] = (pixel & gmask) >> gshift;
+                    bufdst[x * 4 + 2] = (pixel & bmask) >> bshift;
+                    bufdst[x * 4 + 3] = (pixel & amask) >> ashift;
+                } break;
+                case PIXELTYPE_ABGR:
+                {
+                    bufdst[x * 4 + 0] = (pixel & amask) >> rshift;
+                    bufdst[x * 4 + 1] = (pixel & bmask) >> gshift;
+                    bufdst[x * 4 + 2] = (pixel & gmask) >> bshift;
+                    bufdst[x * 4 + 3] = (pixel & rmask) >> ashift;
+                } break;
+                case PIXELTYPE_BGRA:
+                {
+                    bufdst[x * 4 + 0] = (pixel & bmask) >> bshift;
+                    bufdst[x * 4 + 1] = (pixel & gmask) >> gshift;
+                    bufdst[x * 4 + 2] = (pixel & rmask) >> rshift;
+                    bufdst[x * 4 + 3] = (pixel & amask) >> ashift;
+                } break;
+                case PIXELTYPE_RGB:
+                {
+                    bufdst[x * 3 + 0] = (pixel & rmask) >> rshift;
+                    bufdst[x * 3 + 1] = (pixel & gmask) >> gshift;
+                    bufdst[x * 3 + 2] = (pixel & bmask) >> bshift;
+                } break;
+                case PIXELTYPE_BGR:
+                {
+                    bufdst[x * 3 + 0] = (pixel & bmask) >> bshift;
+                    bufdst[x * 3 + 1] = (pixel & gmask) >> gshift;
+                    bufdst[x * 3 + 2] = (pixel & rmask) >> rshift;
+                } break;
+                case PIXELTYPE_XBGR1555:
+                {
+                    r = (((pixel & rmask) >> rshift) * 0x1F) / 0xFF;
+                    g = (((pixel & gmask) >> gshift) * 0x1F) / 0xFF;
+                    b = (((pixel & bmask) >> bshift) * 0x1F) / 0xFF;
+
+                    rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                    bufdst[x * 2 + 0] = (rgb16 & 0x00FF) >> 0;
+                    bufdst[x * 2 + 1] = (rgb16 & 0xFF00) >> 8;
+                } break;
+                case PIXELTYPE_LUMINANCE_ALPHA:
+                {
+                    bufdst[x * 2 + 0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                        ((pixel & gmask) >> gshift) * 0.5870f +
+                        ((pixel & bmask) >> bshift) * 0.1140f);
+                    bufdst[x * 2 + 1] = (pixel & amask);
+                } break;
+                case PIXELTYPE_LUMINANCE:
+                {
+                    bufdst[x] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                        ((pixel & gmask) >> gshift) * 0.5870f +
+                        ((pixel & bmask) >> bshift) * 0.1140f);
+                } break;
+                }
+                x++;
+            }
+            rawdst += dstpitch;
+            y++;
+        }
+    }
+    else if (srcbytes == 3)
+    {
+        switch (srcformat)
+        {
+        case PIXELTYPE_RGB:
+        {
+            rmask = 0x000000FF;
+            gmask = 0x0000FF00;
+            bmask = 0x00FF0000;
+
+            rshift = 0;
+            gshift = 8;
+            bshift = 16;
+        } break;
+        case PIXELTYPE_BGR:
+        {
+            bmask = 0x000000FF;
+            gmask = 0x0000FF00;
+            rmask = 0x00FF0000;
+
+            rshift = 16;
+            gshift = 8;
+            bshift = 0;
+        } break;
+        }
+
+        while (y < ysize)
+        {
+            bufdst = rawdst;
+            bufsrc = rawsrc + (y * srcpitch);
+            x = 0;
+
+            while (x < xsize)
+            {
+                uint32_t pixel = (bufsrc[x * 3 + 0] << 0)
+                    | (bufsrc[x * 3 + 1] << 8)
+                    | (bufsrc[x * 3 + 2] << 16);
+
+                switch (dstformat)
+                {
+                case PIXELTYPE_RGBA:
+                {
+                    bufdst[x * 4 + 0] = (pixel & rmask) >> rshift;
+                    bufdst[x * 4 + 1] = (pixel & gmask) >> gshift;
+                    bufdst[x * 4 + 2] = (pixel & bmask) >> bshift;
+                    bufdst[x * 4 + 3] = 255;
+                } break;
+                case PIXELTYPE_ABGR:
+                {
+                    bufdst[x * 4 + 0] = 255;
+                    bufdst[x * 4 + 1] = (pixel & bmask) >> bshift;
+                    bufdst[x * 4 + 2] = (pixel & gmask) >> gshift;
+                    bufdst[x * 4 + 3] = (pixel & rmask) >> rshift;
+                } break;
+                case PIXELTYPE_BGRA:
+                {
+                    bufdst[x * 4 + 0] = (pixel & bmask) >> bshift;
+                    bufdst[x * 4 + 1] = (pixel & gmask) >> gshift;
+                    bufdst[x * 4 + 2] = (pixel & rmask) >> rshift;
+                    bufdst[x * 4 + 3] = 255;
+                } break;
+                case PIXELTYPE_RGB:
+                {
+                    bufdst[x * 3 + 0] = (pixel & rmask) >> rshift;
+                    bufdst[x * 3 + 1] = (pixel & gmask) >> gshift;
+                    bufdst[x * 3 + 2] = (pixel & bmask) >> bshift;
+                } break;
+                case PIXELTYPE_BGR:
+                {
+                    bufdst[x * 3 + 0] = (pixel & bmask) >> bshift;
+                    bufdst[x * 3 + 1] = (pixel & gmask) >> gshift;
+                    bufdst[x * 3 + 2] = (pixel & rmask) >> rshift;
+                } break;
+                case PIXELTYPE_XBGR1555:
+                {
+                    r = (((pixel & rmask) >> rshift) * 0x1F) / 0xFF;
+                    g = (((pixel & gmask) >> gshift) * 0x1F) / 0xFF;
+                    b = (((pixel & bmask) >> bshift) * 0x1F) / 0xFF;
+
+                    rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                    bufdst[x * 2 + 0] = (rgb16 & 0x00FF) >> 0;
+                    bufdst[x * 2 + 1] = (rgb16 & 0xFF00) >> 8;
+                } break;
+                case PIXELTYPE_LUMINANCE_ALPHA:
+                {
+                    bufdst[x * 2 + 0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                        ((pixel & gmask) >> gshift) * 0.5870f +
+                        ((pixel & bmask) >> bshift) * 0.1140f);
+                    bufdst[x * 2 + 1] = 255;
+                } break;
+                case PIXELTYPE_LUMINANCE:
+                {
+                    bufdst[x] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                        ((pixel & gmask) >> gshift) * 0.5870f +
+                        ((pixel & bmask) >> bshift) * 0.1140f);
+                } break;
+                }
+                x++;
+            }
+            rawdst += dstpitch;
+            y++;
+        }
+    }
+    else if (srcbytes == 2)
+    {
+        switch (srcformat)
+        {
+        case PIXELTYPE_XBGR1555:
+        {
+            rmask = 0x7C00;
+            gmask = 0x03E0;
+            bmask = 0x001F;
+            amask = 0x8000;
+
+            rshift = 10;
+            gshift = 5;
+            bshift = 0;
+            ashift = 15;
+
+            rmod = 255.0f / 31.0f;
+            gmod = 255.0f / 31.0f;
+            bmod = 255.0f / 31.0f;
+            amod = 0.0f;
+        } break;
+        case PIXELTYPE_LUMINANCE_ALPHA:
+        {
+            rmask = 0xFF00;
+            gmask = 0xFF00;
+            bmask = 0xFF00;
+            amask = 0x00FF;
+
+            rshift = 8;
+            gshift = 8;
+            bshift = 8;
+            ashift = 0;
+
+            rmod = 1.0f;
+            gmod = 1.0f;
+            bmod = 1.0f;
+            amod = 1.0f;
+        } break;
+        }
+
+        while (y < ysize)
+        {
+            bufdst = rawdst;
+            bufsrc = rawsrc + (y * srcpitch);
+            x = 0;
+
+            while (x < xsize)
+            {
+                uint16_t pixel = (bufsrc[x * 2 + 0] << 0)
+                    | (bufsrc[x * 2 + 1] << 8);
+
+                switch (dstformat)
+                {
+                case PIXELTYPE_RGBA:
+                {
+                    bufdst[x * 4 + 0] = ((pixel & rmask) >> rshift) * rmod;
+                    bufdst[x * 4 + 1] = ((pixel & gmask) >> gshift) * gmod;
+                    bufdst[x * 4 + 2] = ((pixel & bmask) >> bshift) * bmod;
+                    bufdst[x * 4 + 3] = ((pixel & amask) >> ashift) * amod;
+                } break;
+                case PIXELTYPE_ABGR:
+                {
+                    bufdst[x * 4 + 0] = ((pixel & amask) >> ashift) * amod;
+                    bufdst[x * 4 + 1] = ((pixel & bmask) >> bshift) * bmod;
+                    bufdst[x * 4 + 2] = ((pixel & gmask) >> gshift) * gmod;
+                    bufdst[x * 4 + 3] = ((pixel & rmask) >> rshift) * rmod;
+                } break;
+                case PIXELTYPE_BGRA:
+                {
+                    bufdst[x * 4 + 0] = ((pixel & bmask) >> bshift) * bmod;
+                    bufdst[x * 4 + 1] = ((pixel & gmask) >> gshift) * gmod;
+                    bufdst[x * 4 + 2] = ((pixel & rmask) >> rshift) * rmod;
+                    bufdst[x * 4 + 3] = ((pixel & amask) >> ashift) * amod;
+                } break;
+                case PIXELTYPE_RGB:
+                {
+                    bufdst[x * 3 + 0] = ((pixel & rmask) >> rshift) * rmod;
+                    bufdst[x * 3 + 1] = ((pixel & gmask) >> gshift) * gmod;
+                    bufdst[x * 3 + 2] = ((pixel & bmask) >> bshift) * bmod;
+                } break;
+                case PIXELTYPE_BGR:
+                {
+                    bufdst[x * 3 + 0] = ((pixel & bmask) >> bshift) * bmod;
+                    bufdst[x * 3 + 1] = ((pixel & gmask) >> gshift) * gmod;
+                    bufdst[x * 3 + 2] = ((pixel & rmask) >> rshift) * rmod;
+                } break;
+                case PIXELTYPE_XBGR1555:
+                {
+                    r = (((pixel & rmask) >> rshift) * 0x1F) / 0xFF;
+                    g = (((pixel & gmask) >> gshift) * 0x1F) / 0xFF;
+                    b = (((pixel & bmask) >> bshift) * 0x1F) / 0xFF;
+
+                    rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                    bufdst[x * 2 + 0] = (rgb16 & 0x00FF) >> 0;
+                    bufdst[x * 2 + 1] = (rgb16 & 0xFF00) >> 8;
+                } break;
+                case PIXELTYPE_LUMINANCE_ALPHA:
+                {
+                    bufdst[x * 2 + 0] = (uint8_t)(((pixel & rmask) >> rshift) * 0.2990f +
+                        ((pixel & gmask) >> gshift) * 0.5870f +
+                        ((pixel & bmask) >> bshift) * 0.1140f);
+                    bufdst[x * 2 + 1] = 255;
+                } break;
+                case PIXELTYPE_LUMINANCE:
+                {
+                    bufdst[x] = (uint8_t)((((pixel & rmask) >> rshift) * rmod) * 0.2990f +
+                        (((pixel & gmask) >> gshift) * gmod) * 0.5870f +
+                        (((pixel & bmask) >> bshift) * bmod) * 0.1140f);
+                } break;
+                }
+                x++;
+            }
+            rawdst += dstpitch;
+            y++;
+        }
+    }
+    else
+    {
+        if (srcformat == PIXELTYPE_LUMINANCE)
+        {
+            while (y < ysize)
+            {
+                bufdst = rawdst;
+                bufsrc = rawsrc + (y * srcpitch);
+                x = 0;
+
+                while (x < xsize)
+                {
+                    v = bufsrc[x * 1 + 0];
+                    b = v;
+                    g = v;
+                    r = v;
+
+                    switch (dstformat)
+                    {
+                    case PIXELTYPE_RGBA:
+                    {
+                        bufdst[x * 4 + 0] = r;
+                        bufdst[x * 4 + 1] = g;
+                        bufdst[x * 4 + 2] = b;
+                        bufdst[x * 4 + 3] = a;
+                    } break;
+                    case PIXELTYPE_ABGR:
+                    {
+                        bufdst[x * 4 + 0] = a;
+                        bufdst[x * 4 + 1] = b;
+                        bufdst[x * 4 + 2] = g;
+                        bufdst[x * 4 + 3] = r;
+                    } break;
+                    case PIXELTYPE_BGRA:
+                    {
+                        bufdst[x * 4 + 0] = b;
+                        bufdst[x * 4 + 1] = g;
+                        bufdst[x * 4 + 2] = r;
+                        bufdst[x * 4 + 3] = a;
+                    } break;
+                    case PIXELTYPE_RGB:
+                    {
+                        bufdst[x * 3 + 0] = r;
+                        bufdst[x * 3 + 1] = g;
+                        bufdst[x * 3 + 2] = b;
+                    } break;
+                    case PIXELTYPE_BGR:
+                    {
+                        bufdst[x * 3 + 0] = b;
+                        bufdst[x * 3 + 1] = g;
+                        bufdst[x * 3 + 2] = r;
+                    } break;
+                    case PIXELTYPE_XBGR1555:
+                    {
+                        r = (r * 0x1F) / 0xFF;
+                        g = (g * 0x1F) / 0xFF;
+                        b = (b * 0x1F) / 0xFF;
+
+                        rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                        bufdst[x * 2 + 0] = (rgb16 & 0x00FF) >> 0;
+                        bufdst[x * 2 + 1] = (rgb16 & 0xFF00) >> 8;
+                    } break;
+                    case PIXELTYPE_LUMINANCE_ALPHA:
+                    {
+                        bufdst[x * 2 + 0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+                        bufdst[x * 2 + 1] = a;
+                    } break;
+                    case PIXELTYPE_LUMINANCE:
+                    {
+                        bufdst[x] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+                    } break;
+                    }
+                    x++;
+                }
+                rawdst += dstpitch;
+                y++;
+            }
+        }
+        else
+        {
+            while (y < ysize)
+            {
+                bufdst = rawdst;
+                bufsrc = rawsrc + (y * srcpitch);
+                x = 0;
+
+                while (x < xsize)
+                {
+                    v = bufsrc[x * 1 + 0];
+                    b = ppalette->data[v].b;
+                    g = ppalette->data[v].g;
+                    r = ppalette->data[v].r;
+                    a = ppalette->data[v].a;
+
+                    switch (dstformat)
+                    {
+                    case PIXELTYPE_RGBA:
+                    {
+                        bufdst[x * 4 + 0] = r;
+                        bufdst[x * 4 + 1] = g;
+                        bufdst[x * 4 + 2] = b;
+                        bufdst[x * 4 + 3] = a;
+                    } break;
+                    case PIXELTYPE_ABGR:
+                    {
+                        bufdst[x * 4 + 0] = a;
+                        bufdst[x * 4 + 1] = b;
+                        bufdst[x * 4 + 2] = g;
+                        bufdst[x * 4 + 3] = r;
+                    } break;
+                    case PIXELTYPE_BGRA:
+                    {
+                        bufdst[x * 4 + 0] = b;
+                        bufdst[x * 4 + 1] = g;
+                        bufdst[x * 4 + 2] = r;
+                        bufdst[x * 4 + 3] = a;
+                    } break;
+                    case PIXELTYPE_RGB:
+                    {
+                        bufdst[x * 3 + 0] = r;
+                        bufdst[x * 3 + 1] = g;
+                        bufdst[x * 3 + 2] = b;
+                    } break;
+                    case PIXELTYPE_BGR:
+                    {
+                        bufdst[x * 3 + 0] = b;
+                        bufdst[x * 3 + 1] = g;
+                        bufdst[x * 3 + 2] = r;
+                    } break;
+                    case PIXELTYPE_XBGR1555:
+                    {
+                        r = (r * 0x1F) / 0xFF;
+                        g = (g * 0x1F) / 0xFF;
+                        b = (b * 0x1F) / 0xFF;
+
+                        rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
+
+                        bufdst[x * 2 + 0] = (rgb16 & 0x00FF) >> 0;
+                        bufdst[x * 2 + 1] = (rgb16 & 0xFF00) >> 8;
+                    } break;
+                    case PIXELTYPE_LUMINANCE_ALPHA:
+                    {
+                        bufdst[x * 2 + 0] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+                        bufdst[x * 2 + 1] = a;
+                    } break;
+                    case PIXELTYPE_LUMINANCE:
+                    {
+                        bufdst[x] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
+                    } break;
+                    }
+                    x++;
+                }
+                rawdst += dstpitch;
+                y++;
+            }
+        }
     }
 }
 
@@ -4853,547 +4674,357 @@ TriangleFilter(float t)
 }
 
 //-----------------------------------------------------------------------------
-// ResampleImage
+// Filter
 //-----------------------------------------------------------------------------
 static bool
-ResampleImage(image_t* pdstimage, rect_t* pdstrect, image_t* psrcimage,
-    palette_t* ppalette, rect_t* psrcrect, uint32_t filtertype)
+Filter(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
+    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize, uint32_t srcbytes,
+    uint32_t filtertype)
 {
-    if (pdstimage == NULL || psrcimage == NULL)
-    {
+    if (psrc == NULL) {
         return false;
     }
 
     // dst stuff
-    rect_t dstrect = {};
+    if (pdst == NULL) {
 
-    if (pdstrect == NULL)
-    {
-        dstrect.min[0] = 0;
-        dstrect.min[1] = 0;
-        dstrect.max[0] = pdstimage->xsize;
-        dstrect.max[1] = pdstimage->ysize;
-    }
-    else
-    {
-        dstrect = *pdstrect;
+        pdst = (uint8_t*)malloc(dstxsize * dstysize * dstbytes);
+        memset(pdst, 0, dstxsize * dstysize * dstbytes);
     }
 
-    uint32_t dstxorigin = dstrect.min[0] < 0 ? 0 : dstrect.min[0];
-    uint32_t dstyorigin = dstrect.min[1] < 0 ? 0 : dstrect.min[1];
-    uint32_t dstxextent = ABS(dstrect.max[0]) - dstxorigin;
-    uint32_t dstyextent = ABS(dstrect.max[1]) - dstyorigin;
-    uint32_t dstbytesperpixel = 1;
-
-    switch (pdstimage->pixeltype)
-    {
-    case PIXELTYPE_ABGR:
-    case PIXELTYPE_RGBA:
-    case PIXELTYPE_BGRA:
-    {
-        dstbytesperpixel = 4;
-    } break;
-    case PIXELTYPE_RGB:
-    case PIXELTYPE_BGR:
-    {
-        dstbytesperpixel = 3;
-    } break;
-    case PIXELTYPE_XBGR1555:
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    {
-        dstbytesperpixel = 2;
-    } break;
-    default:
-    {
-        dstbytesperpixel = 1;
-    }
-    }
-
-    if (pdstimage->data == NULL)
-    {
-        pdstimage->data = (uint8_t*)malloc(dstxextent * dstyextent * dstbytesperpixel);
-        memset(pdstimage->data, 0, dstxextent * dstyextent * dstbytesperpixel);
-    }
-
-    uint32_t dstpitch = dstxextent * dstbytesperpixel;
-    uint8_t* dstbuf = pdstimage->data + (dstyorigin * dstpitch) +
-        (dstxorigin * dstbytesperpixel);
-
-    rect_t srcrect = {};
-
-    if (psrcrect == NULL)
-    {
-        srcrect.min[0] = 0;
-        srcrect.min[1] = 0;
-        srcrect.max[0] = psrcimage->xsize;
-        srcrect.max[1] = psrcimage->ysize;
-    }
-    else
-    {
-        srcrect = *psrcrect;
-    }
+    uint32_t dstpitch = dstxsize * dstbytes;
+    uint8_t* dstbuf = pdst;
 
     // src stuff
-    uint32_t srcxorigin = srcrect.min[0] < 0 ? 0 : srcrect.min[0];
-    uint32_t srcyorigin = srcrect.min[1] < 0 ? 0 : srcrect.min[1];
-    uint32_t srcxextent = ABS(srcrect.max[0]) - srcxorigin;
-    uint32_t srcyextent = ABS(srcrect.max[1]) - srcyorigin;
-    uint32_t srcbytesperpixel = 1;
+    uint32_t srcpitch = srcxsize * srcbytes;
+    uint8_t* srcbuf = psrc;
 
-    if (srcxextent > psrcimage->xsize || srcyextent > psrcimage->ysize)
+    bool result = false;
+
+    // do filtering and scaling
+    typedef float (*filter_f)(float);
+    filter_f filter_func = NULL;
+    float filterwidth = 0.0f;
+
+    switch (filtertype)
     {
-        fprintf(stderr, "ResampleImage, src rectangle exceeds image bounds.\n");
+    case FILTER_POINT:
+    {
+        filter_func = BoxFilter;
+        filterwidth = BOX_SUPPORT;
+    } break;
+    case FILTER_LINEAR:
+    {
+        filter_func = TriangleFilter;
+        filterwidth = TRIANGLE_SUPPORT;
+    } break;
+    }
+
+    uint8_t* tmpptr = NULL;
+    uint8_t* tmpbuf = NULL;
+    uint8_t* raster = NULL;         // a row or column of pixels
+    float xscale, yscale;           // scale factors
+    float pixelN, pixelW;           // pixel number and weight
+    float fwidth, fscale;           // filter calculation variables
+    float mid, min, max;
+
+    // create intermediate image
+    tmpptr = (uint8_t*)malloc(dstysize * dstpitch);
+    tmpbuf = tmpptr;
+
+    xscale = (float)dstxsize / (float)srcxsize;
+    yscale = (float)dstysize / (float)srcysize;
+
+    // pre-calculate filter contributions for a row
+    filter_list_t* filter = (filter_list_t*)malloc((dstxsize + 4) *
+        sizeof(filter_list_t));
+
+    if (filter == NULL)
+    {
+        free(tmpptr);
+
+        fprintf(stderr, "Filter: Out of memory\n");
+
         return false;
     }
-    
-    switch (psrcimage->pixeltype)
+
+    memset(filter, 0, (dstxsize + dstbytes) * sizeof(filter_list_t));
+
+    fwidth = filterwidth;
+    fscale = 1.0f;
+
+    if (xscale < 1.0f)
     {
-    case PIXELTYPE_ABGR:
-    case PIXELTYPE_RGBA:
-    case PIXELTYPE_BGRA:
-    {
-        srcbytesperpixel = 4;
-    } break;
-    case PIXELTYPE_RGB:
-    case PIXELTYPE_BGR:
-    {
-        srcbytesperpixel = 3;
-    } break;
-    case PIXELTYPE_XBGR1555:
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    {
-        srcbytesperpixel = 2;
-    } break;
-    default:
-    {
-        srcbytesperpixel = 1;
-    }
+        fwidth /= xscale;
+        fscale /= xscale;
     }
 
-    uint32_t srcpitch = psrcimage->xsize * srcbytesperpixel;
-    uint8_t* srcbuf = psrcimage->data + (srcyorigin * srcpitch) +
-        (srcxorigin * srcbytesperpixel);
-
-    bool result = true;
-
-    if (dstxorigin == srcxorigin && dstxextent == srcxextent &&
-        dstyorigin == srcyorigin && dstyextent == srcyextent &&
-        pdstimage->pixeltype == psrcimage->pixeltype)
+    for (int i = 0; i < (int)dstxsize; ++i)
     {
-        memcpy(dstbuf, srcbuf, dstyextent * dstpitch);
-    }
-    else
-    {
-        // convert to internal PIXELTYPE_RGBA
-        uint32_t dbytesperpixel = 4;
-        uint8_t* dptr = (uint8_t*)malloc(dstyextent * dstxextent * dbytesperpixel);
-        uint8_t* dbuf = dptr;
-        uint32_t dpitch = dstxextent * dbytesperpixel;
+        filter[i].size = 0;
+        filter[i].info = (filter_info_t*)malloc((int)((fwidth * 2) + 1) *
+            sizeof(filter_info_t));
 
-        uint32_t sbytesperpixel = 4;
-        uint8_t* sptr = (uint8_t*)malloc(srcyextent * srcxextent * sbytesperpixel);
-        uint8_t* sbuf = sptr;
-        uint32_t spitch = srcxextent * sbytesperpixel;
-
-        memset(dptr, 0, dstxextent * dstyextent * dbytesperpixel);
-        memset(sptr, 0, srcxextent * srcyextent * sbytesperpixel);
-
-        if (srcbytesperpixel == 4)
+        if (filter[i].info == NULL)
         {
-            Blit_32bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
-                srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-        }
-        else if (srcbytesperpixel == 3)
-        {
-            Blit_24bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
-                srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-        }
-        else if (srcbytesperpixel == 2)
-        {
-            Blit_16bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
-                srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
-        }
-        else
-        {
-            if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE)
+            for (int j = 0; j < (int)dstxsize - i; ++j)
             {
-                Blit_8bit_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype);
+                free(filter[j].info);
+            }
+
+            free(filter);
+            free(tmpptr);
+
+            fprintf(stderr, "Filter: Out of memory\n");
+
+            return false;
+        }
+
+        memset(filter[i].info, 0, (int)((fwidth * 2) + 1) * sizeof(filter_info_t));
+
+        mid = (float)i / xscale;
+        min =  ceil(mid - fwidth);
+        max = floor(mid + fwidth);
+
+        for (int j = (int)min; j <= (int)max; ++j)
+        {
+            pixelN = 0;
+            pixelW = mid - (float)j;
+            pixelW = filter_func(pixelW / fscale) / fscale;
+
+            if (j < 0)
+            {
+                pixelN = -j;
+            }
+            else if (j >= (int)srcxsize)
+            {
+                pixelN = (srcxsize - j) + (srcxsize - 1);
             }
             else
             {
-                Blit_PAL_Nbit(sbuf, srcxextent, srcyextent, PIXELTYPE_RGBA,
-                    srcbuf, srcxextent, srcyextent, psrcimage->pixeltype,
-                    ppalette);
-            }
-        }
-
-        if (filtertype == FILTER_NONE)
-        {
-            // no filtering or scaling
-            uint8_t* bufdst = dbuf;
-            uint8_t* bufsrc = sbuf;
-            uint32_t xsize = (srcxextent < dstxextent) ? srcxextent : dstxextent;
-            uint32_t ysize = (srcyextent < dstyextent) ? srcyextent : dstyextent;
-            uint32_t y = 0;
-
-            while (y++ < ysize)
-            {
-                memcpy(bufdst, bufsrc, xsize * sbytesperpixel);
-                bufdst = dbuf + (y * dpitch);
-                bufsrc = sbuf + (y * spitch);
-            }
-        }
-        else
-        {
-            // do filtering and scaling
-            typedef float (*filter_f)(float);
-            filter_f filter_func = NULL;
-            float filterwidth = 0.0f;
-
-            switch (filtertype)
-            {
-            case FILTER_POINT:
-            {
-                filter_func = BoxFilter;
-                filterwidth = BOX_SUPPORT;
-            } break;
-            case FILTER_LINEAR:
-            {
-                filter_func = TriangleFilter;
-                filterwidth = TRIANGLE_SUPPORT;
-            } break;
+                pixelN = j;
             }
 
-            uint8_t* tmpptr = NULL;
-            uint8_t* tmpbuf = NULL;
-            uint8_t* raster = NULL;         // a row or column of pixels
-            float xscale, yscale;           // scale factors
-            float pixelN, pixelW;           // pixel number and weight
-            float fwidth, fscale;           // filter calculation variables
-            float mid, min, max;
-
-            // create intermediate image to hold horizontal zoom
-            tmpptr = (uint8_t*)malloc(dstxextent * dstyextent * dbytesperpixel);
-            tmpbuf = tmpptr;
-
-            xscale = (float)dstxextent / (float)srcxextent;
-            yscale = (float)dstyextent / (float)srcyextent;
-
-            // pre-calculate filter contributions for a row
-            filter_list_t* filter = (filter_list_t*)malloc((dstxextent + 4) *
-                sizeof(filter_list_t));
-
-            if (filter == NULL)
+            if (filter[i].size < ((fwidth * 2) + 1))
             {
-                free(tmpptr);
-
-                fprintf(stderr, "ResampleImage: Out of memory\n");
-
-                return false;
+                filter[i].info[filter[i].size].pixelN = pixelN;
+                filter[i].info[filter[i].size].pixelW = pixelW;
+                filter[i].size++;
             }
-
-            memset(filter, 0, (dstxextent + dbytesperpixel) * sizeof(filter_list_t));
-
-            fwidth = filterwidth;
-            fscale = 1.0f;
-
-            if (xscale < 1.0f)
-            {
-                fwidth /= xscale;
-                fscale /= xscale;
-            }
-
-            for (int i = 0; i < (int)dstxextent; ++i)
-            {
-                filter[i].size = 0;
-                filter[i].info = (filter_info_t*)malloc((int)((fwidth * 2) + 1) *
-                    sizeof(filter_info_t));
-
-                if (filter[i].info == NULL)
-                {
-                    for (int j = 0; j < (int)dstxextent - i; ++j)
-                    {
-                        free(filter[j].info);
-                    }
-
-                    free(filter);
-                    free(tmpptr);
-
-                    fprintf(stderr, "ResampleImage: Out of memory\n");
-
-                    return false;
-                }
-
-                memset(filter[i].info, 0, (int)((fwidth * 2) + 1) * sizeof(filter_info_t));
-
-                mid = (float)i / xscale;
-                min =  ceil(mid - fwidth);
-                max = floor(mid + fwidth);
-
-                for (int j = (int)min; j <= (int)max; ++j)
-                {
-                    pixelN = 0;
-                    pixelW = mid - (float)j;
-                    pixelW = filter_func(pixelW / fscale) / fscale;
-
-                    if (j < 0)
-                    {
-                        pixelN = -j;
-                    }
-                    else if (j >= (int)srcxextent)
-                    {
-                        pixelN = (srcxextent - j) + (srcxextent - 1);
-                    }
-                    else
-                    {
-                        pixelN = j;
-                    }
-
-                    if (filter[i].size < ((fwidth * 2) + 1))
-                    {
-                        filter[i].info[filter[i].size].pixelN = pixelN;
-                        filter[i].info[filter[i].size].pixelW = pixelW;
-                        filter[i].size++;
-                    }
-                }
-            }
-
-            // apply filter to zoom horizontally from src to tmp
-            raster = (uint8_t*)malloc((srcxextent + sbytesperpixel) * sbytesperpixel);
-
-            if (raster == NULL)
-            {
-                for (int i = 0; i < (int)dstxextent; ++i)
-                {
-                    free(filter[i].info);
-                }
-
-                free(filter);
-                free(tmpptr);
-
-                fprintf(stderr, "ResampleImage: Out of memory\n");
-
-                return false;
-            }
-
-            memset(raster, 0, (srcxextent + sbytesperpixel) * sbytesperpixel);
-
-            int bit = 0;
-
-            for (int k = 0; k < (int)dstyextent; ++k)
-            {
-                // get pixel row
-                memset(raster, 0, (srcxextent + sbytesperpixel) * sbytesperpixel);
-
-                if ((k % srcyextent) == 0)
-                {
-                    bit ^= 1;
-                }
-
-                int m = (k / srcyextent);
-                int n = 0;
-
-                if (bit == 0)
-                {
-                    n = ((m * srcxextent) - k) + (srcxextent - 1);
-                }
-                else
-                {
-                    n = (k - (m * srcxextent));
-                }
-
-                memcpy(raster, (sbuf + (n * spitch)), spitch);
-
-                for (int i = 0; i < (int)dstxextent; ++i)
-                {
-                    for (size_t bpp = 0; bpp < sbytesperpixel; bpp++)
-                    {
-                        pixelW = 0.0f;
-
-                        for (int j = 0; j < filter[i].size; ++j)
-                        {
-                            pixelW += raster[((int)(filter[i].info[j].pixelN) *
-                                sbytesperpixel) + bpp] * filter[i].info[j].pixelW;
-                        }
-
-                        tmpptr[(k * dpitch) + (i * sbytesperpixel) + bpp] =
-                            CLAMP(pixelW, 0, 255);
-                    }
-                }
-            }
-
-            // free the memory allocated for horizontal filter weights
-            for (int i = 0; i < (int)dstxextent; ++i)
-            {
-                free(filter[i].info);
-            }
-
-            free(filter);
-            free(raster);
-
-            // pre-calculate filter contributions for a column
-            filter = (filter_list_t*)malloc((dstyextent + dbytesperpixel) *
-                sizeof(filter_list_t));
-
-            if (filter == NULL)
-            {
-                free(tmpptr);
-
-                fprintf(stderr, "ResampleImage: Out of memory\n");
-
-                return false;
-            }
-
-            memset(filter, 0, (dstyextent + dbytesperpixel) *
-                sizeof(filter_list_t));
-
-            fwidth = filterwidth;
-            fscale = 1.0f;
-
-            if (yscale < 1.0f)
-            {
-                fwidth /= yscale;
-                fscale /= yscale;
-            }
-
-            for (int i = 0; i < (int)dstyextent; ++i)
-            {
-                filter[i].size = 0;
-                filter[i].info = (filter_info_t*)malloc((int)((fwidth * 2) + 1) *
-                    sizeof(filter_info_t));
-
-                if (filter[i].info == NULL)
-                {
-                    for (int j = 0; j < (int)dstyextent - i; ++j)
-                    {
-                        free(filter[j].info);
-                    }
-
-                    free(filter);
-                    free(tmpptr);
-
-                    fprintf(stderr, "ResampleImage: Out of memory\n");
-
-                    return false;
-                }
-
-                memset(filter[i].info, 0, (int)((fwidth * 2) + 1) *
-                    sizeof(filter_info_t));
-
-                mid = (float)i / yscale;
-                min =  ceil(mid - fwidth);
-                max = floor(mid + fwidth);
-
-                for (int j = (int)min; j <= (int)max; ++j)
-                {
-                    pixelN = 0;
-                    pixelW = mid - (float)j;
-                    pixelW = filter_func(pixelW / fscale) / fscale;
-
-                    if (j < 0)
-                    {
-                        pixelN = -j;
-                    }
-                    else if (j >= (int)dstyextent)
-                    {
-                        pixelN = (dstyextent - j) + (dstyextent - 1);
-                    }
-                    else
-                    {
-                        pixelN = j;
-                    }
-
-                    if (filter[i].size < ((fwidth * 2) + 1))
-                    {
-                        filter[i].info[filter[i].size].pixelN = pixelN;
-                        filter[i].info[filter[i].size].pixelW = pixelW;
-                        filter[i].size++;
-                    }
-                }
-            }
-
-            // apply filter to zoom vertically from tmp to dst
-            raster = (uint8_t*)malloc((dstyextent + dbytesperpixel) *
-                dbytesperpixel);
-
-            if (raster == NULL)
-            {
-                for (int i = 0; i < (int)dstyextent; ++i)
-                {
-                    free(filter[i].info);
-                }
-
-                free(filter);
-                free(tmpptr);
-
-                fprintf(stderr, "ResampleImage: Out of memory\n");
-
-                return false;
-            }
-
-            memset(raster, 0, (dstyextent + dbytesperpixel) * dbytesperpixel);
-
-            for (int k = 0; k < (int)dstxextent; ++k)
-            {
-                uint8_t* pbuf = tmpbuf + (k * dbytesperpixel);
-                uint8_t* rbuf = raster;
-
-                for (int y = dstyextent; y > 0; y--)
-                {
-                    memcpy(rbuf, pbuf, dbytesperpixel);
-                    rbuf += dbytesperpixel;
-                    pbuf += dpitch;
-                }
-
-                for (int i = 0; i < (int)dstyextent; ++i)
-                {
-                    for (size_t bpp = 0; bpp < dbytesperpixel; bpp++)
-                    {
-                        pixelW = 0.0f;
-
-                        for (int j = 0; j < filter[i].size; ++j)
-                        {
-                            pixelW += raster[((int)filter[i].info[j].pixelN *
-                                dbytesperpixel) + bpp] * filter[i].info[j].pixelW;
-                        }
-
-                        dbuf[(i * dpitch) + (k * dbytesperpixel) + bpp] =
-                            CLAMP(pixelW, 0, 255);
-                    }
-                }
-            }
-
-            // free the memory allocated for vertical filter weights
-            for (int i = 0; i < (int)dstyextent; ++i)
-            {
-                free(filter[i].info);
-            }
-
-            free(filter);
-            free(raster);
-            free(tmpptr);
-        }
-
-        // convert to destination pixeltype
-        Blit_32bit_Nbit(dstbuf, dstxextent, dstyextent, pdstimage->pixeltype,
-            dbuf, dstxextent, dstyextent, PIXELTYPE_RGBA);
-
-        if (dptr != NULL)
-        {
-            free(dptr);
-            dptr = NULL;
-        }
-
-        if (sptr != NULL)
-        {
-            free(sptr);
-            sptr = NULL;
         }
     }
 
-    pdstimage->xsize = dstxextent;
-    pdstimage->ysize = dstyextent;
+    // apply filter to horizontal axis from src to tmp
+    raster = (uint8_t*)malloc((srcxsize + srcbytes) * srcbytes);
+
+    if (raster == NULL)
+    {
+        for (int i = 0; i < (int)dstxsize; ++i)
+        {
+            free(filter[i].info);
+        }
+
+        free(filter);
+        free(tmpptr);
+
+        fprintf(stderr, "Filter: Out of memory\n");
+
+        return false;
+    }
+
+    memset(raster, 0, (srcxsize + srcbytes) * srcbytes);
+
+    int bit = 0;
+
+    for (int k = 0; k < (int)dstysize; ++k)
+    {
+        // get pixel row
+        memset(raster, 0, (srcxsize + srcbytes) * srcbytes);
+
+        if ((k % srcysize) == 0)
+        {
+            bit ^= 1;
+        }
+
+        int m = (k / srcysize);
+        int n = 0;
+
+        if (bit == 0)
+        {
+            n = ((m * srcxsize) - k) + (srcxsize - 1);
+        }
+        else
+        {
+            n = (k - (m * srcxsize));
+        }
+
+        memcpy(raster, (srcbuf + (n * srcpitch)), srcpitch);
+
+        for (int i = 0; i < (int)dstxsize; ++i)
+        {
+            for (size_t bpp = 0; bpp < srcbytes; bpp++)
+            {
+                pixelW = 0.0f;
+
+                for (int j = 0; j < filter[i].size; ++j)
+                {
+                    pixelW += raster[((int)filter[i].info[j].pixelN *
+                        srcbytes) + bpp] * filter[i].info[j].pixelW;
+                }
+
+                tmpptr[(k * dstpitch) + (i * dstbytes) + bpp] =
+                    CLAMP(pixelW, 0, 255);
+            }
+        }
+    }
+
+    // free the memory allocated for horizontal filter weights
+    for (int i = 0; i < (int)dstxsize; ++i)
+    {
+        free(filter[i].info);
+    }
+
+    free(filter);
+    free(raster);
+
+    // pre-calculate filter contributions for a column
+    filter = (filter_list_t*)malloc((dstysize + dstbytes) * sizeof(filter_list_t));
+
+    if (filter == NULL)
+    {
+        free(tmpptr);
+
+        fprintf(stderr, "Filter: Out of memory\n");
+
+        return false;
+    }
+
+    memset(filter, 0, (dstysize + dstbytes) * sizeof(filter_list_t));
+
+    fwidth = filterwidth;
+    fscale = 1.0f;
+
+    if (yscale < 1.0f)
+    {
+        fwidth /= yscale;
+        fscale /= yscale;
+    }
+
+    for (int i = 0; i < (int)dstysize; ++i)
+    {
+        filter[i].size = 0;
+        filter[i].info = (filter_info_t*)malloc((int)((fwidth * 2) + 1) *
+            sizeof(filter_info_t));
+
+        if (filter[i].info == NULL)
+        {
+            for (int j = 0; j < (int)dstysize - i; ++j)
+            {
+                free(filter[j].info);
+            }
+
+            free(filter);
+            free(tmpptr);
+
+            fprintf(stderr, "Filter: Out of memory\n");
+
+            return false;
+        }
+
+        memset(filter[i].info, 0, (int)((fwidth * 2) + 1) *
+            sizeof(filter_info_t));
+
+        mid = (float)i / yscale;
+        min =  ceil(mid - fwidth);
+        max = floor(mid + fwidth);
+
+        for (int j = (int)min; j <= (int)max; ++j)
+        {
+            pixelN = 0;
+            pixelW = mid - (float)j;
+            pixelW = filter_func(pixelW / fscale) / fscale;
+
+            if (j < 0)
+            {
+                pixelN = -j;
+            }
+            else if (j >= (int)dstysize)
+            {
+                pixelN = (dstysize - j) + (dstysize - 1);
+            }
+            else
+            {
+                pixelN = j;
+            }
+
+            if (filter[i].size < ((fwidth * 2) + 1))
+            {
+                filter[i].info[filter[i].size].pixelN = pixelN;
+                filter[i].info[filter[i].size].pixelW = pixelW;
+                filter[i].size++;
+            }
+        }
+    }
+
+    // apply filter to vertical axis from tmp to dst
+    raster = (uint8_t*)malloc((dstysize + dstbytes) * dstbytes);
+
+    if (raster == NULL)
+    {
+        for (int i = 0; i < (int)dstysize; ++i)
+        {
+            free(filter[i].info);
+        }
+
+        free(filter);
+        free(tmpptr);
+
+        fprintf(stderr, "Filter: Out of memory\n");
+
+        return false;
+    }
+
+    memset(raster, 0, (dstysize + dstbytes) * dstbytes);
+
+    for (int k = 0; k < (int)dstxsize; ++k)
+    {
+        uint8_t* pbuf = tmpbuf + (k * dstbytes);
+        uint8_t* rbuf = raster;
+
+        for (int y = dstysize; y > 0; y--)
+        {
+            memcpy(rbuf, pbuf, dstbytes);
+            rbuf += dstbytes;
+            pbuf += dstpitch;
+        }
+
+        for (int i = 0; i < (int)dstysize; ++i)
+        {
+            for (size_t bpp = 0; bpp < dstbytes; bpp++)
+            {
+                pixelW = 0.0f;
+
+                for (int j = 0; j < filter[i].size; ++j)
+                {
+                    pixelW += raster[((int)filter[i].info[j].pixelN *
+                        dstbytes) + bpp] * filter[i].info[j].pixelW;
+                }
+
+                dstbuf[(i * dstpitch) + (k * dstbytes) + bpp] =
+                    CLAMP(pixelW, 0, 255);
+            }
+        }
+    }
+
+    // free the memory allocated for vertical filter weights
+    for (int i = 0; i < (int)dstysize; ++i)
+    {
+        free(filter[i].info);
+    }
+
+    free(filter);
+    free(raster);
+    free(tmpptr);
 
     return result;
 }
@@ -5578,9 +5209,8 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         0,
         PIXELTYPE_UNKNOWN
     };
-    uint32_t depth = 0;
+    uint32_t depth = 8;
     pixel_t dstformat = PIXELTYPE_UNKNOWN;
-    uint8_t bytesperpixel = 0;
     bool result = false;
 
     if (psrcimage != NULL)
@@ -5592,33 +5222,32 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             {
                 if (psrcimage->pixeltype == PIXELTYPE_RGBA
                     || psrcimage->pixeltype == PIXELTYPE_ABGR
-                    || psrcimage->pixeltype == PIXELTYPE_BGRA)
-                {
+                    || psrcimage->pixeltype == PIXELTYPE_BGRA) {
+
                     dstformat = PIXELTYPE_RGBA;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_RGB
-                    || psrcimage->pixeltype == PIXELTYPE_BGR)
-                {
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_RGB
+                    || psrcimage->pixeltype == PIXELTYPE_BGR) {
+                    
                     dstformat = PIXELTYPE_RGB;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_XBGR1555)
-                {
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_XBGR1555) {
+                    
                     dstformat = PIXELTYPE_XBGR1555;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE_ALPHA)
-                {
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE_ALPHA) {
+
                     dstformat = PIXELTYPE_LUMINANCE_ALPHA;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE)
-                {
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE) {
+
                     dstformat = PIXELTYPE_LUMINANCE;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
-                {
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX) {
+
                     dstformat = PIXELTYPE_COLOUR_INDEX;
-                }
-                else
-                {
+
+                } else {
                     fprintf(stderr, "SaveImage, Invalid src format, cannot \
                         convert src data to dst format.\n");
                     return false;
@@ -5628,24 +5257,23 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             {
                 if (psrcimage->pixeltype == PIXELTYPE_RGBA
                     || psrcimage->pixeltype == PIXELTYPE_ABGR
-                    || psrcimage->pixeltype == PIXELTYPE_BGRA)
-                {
+                    || psrcimage->pixeltype == PIXELTYPE_BGRA) {
+
                     dstformat = PIXELTYPE_BGRA;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_RGB
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_RGB
                     || psrcimage->pixeltype == PIXELTYPE_BGR
                     || psrcimage->pixeltype == PIXELTYPE_XBGR1555
                     || psrcimage->pixeltype == PIXELTYPE_LUMINANCE_ALPHA
-                    || psrcimage->pixeltype == PIXELTYPE_LUMINANCE)
-                {
+                    || psrcimage->pixeltype == PIXELTYPE_LUMINANCE) {
+
                     dstformat = PIXELTYPE_BGR;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
-                {
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX) {
+
                     dstformat = PIXELTYPE_COLOUR_INDEX;
-                }
-                else
-                {
+
+                } else {
                     fprintf(stderr, "SaveImage, Invalid src format, cannot \
                         convert src data to dst format.\n");
                     return false;
@@ -5660,16 +5288,14 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
                     || psrcimage->pixeltype == PIXELTYPE_BGRA
                     || psrcimage->pixeltype == PIXELTYPE_BGR
                     || psrcimage->pixeltype == PIXELTYPE_LUMINANCE_ALPHA
-                    || psrcimage->pixeltype == PIXELTYPE_LUMINANCE)
-                {
+                    || psrcimage->pixeltype == PIXELTYPE_LUMINANCE) {
+
                     dstformat = PIXELTYPE_RGB;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
-                {
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX) {
+
                     dstformat = PIXELTYPE_COLOUR_INDEX;
-                }
-                else
-                {
+                } else {
                     fprintf(stderr, "SaveImage, Invalid src format, cannot \
                         convert src data to dst format.\n");
                     return false;
@@ -5679,30 +5305,28 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             {
                 if (psrcimage->pixeltype == PIXELTYPE_RGBA
                     || psrcimage->pixeltype == PIXELTYPE_ABGR
-                    || psrcimage->pixeltype == PIXELTYPE_BGRA)
-                {
+                    || psrcimage->pixeltype == PIXELTYPE_BGRA) {
+
                     dstformat = PIXELTYPE_BGRA;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_RGB
-                    || psrcimage->pixeltype == PIXELTYPE_BGR)
-                {
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_RGB
+                    || psrcimage->pixeltype == PIXELTYPE_BGR) {
+
                     dstformat = PIXELTYPE_BGR;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_XBGR1555)
-                {
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_XBGR1555) {
+
                     dstformat = PIXELTYPE_XBGR1555;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE_ALPHA
-                    || psrcimage->pixeltype == PIXELTYPE_LUMINANCE)
-                {
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE_ALPHA
+                    || psrcimage->pixeltype == PIXELTYPE_LUMINANCE) {
+
                     dstformat = PIXELTYPE_LUMINANCE;
-                }
-                else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX)
-                {
+
+                } else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX) {
+
                     dstformat = PIXELTYPE_COLOUR_INDEX;
-                }
-                else
-                {
+                } else {
                     fprintf(stderr, "SaveImage, Invalid src format, cannot \
                         convert src data to dst format.\n");
                     return false;
@@ -5720,41 +5344,23 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         case PIXELTYPE_RGBA:
         case PIXELTYPE_ABGR:
         case PIXELTYPE_BGRA:
-        {
-            depth = 32;
-            bytesperpixel = 4;
-        } break;
+        { depth += 8; }
         case PIXELTYPE_RGB:
         case PIXELTYPE_BGR:
-        {
-            depth = 24;
-            bytesperpixel = 3;
-        } break;
+        { depth += 8; }
         case PIXELTYPE_XBGR1555:
         case PIXELTYPE_LUMINANCE_ALPHA:
-        {
-            depth = 16;
-            bytesperpixel = 2;
-        } break;
-        case PIXELTYPE_LUMINANCE:
-        case PIXELTYPE_COLOUR_INDEX:
-        {
-            depth = 8;
-            bytesperpixel = 1;
-        } break;
+        { depth += 8; }
         }
 
         rect_t srcrect = {};
 
-        if (psrcrect == NULL)
-        {
+        if (psrcrect == NULL) {
             srcrect.min[0] = 0;
             srcrect.min[1] = 0;
             srcrect.max[0] = psrcimage->xsize;
             srcrect.max[1] = psrcimage->ysize;
-        }
-        else
-        {
+        } else {
             srcrect = *psrcrect;
         }
 
@@ -5764,8 +5370,8 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         uint32_t dstxextent = ABS(srcrect.max[0]) - dstxorigin;
         uint32_t dstyextent = ABS(srcrect.max[1]) - dstyorigin;
 
-        if (dstxextent > psrcimage->xsize || dstyextent > psrcimage->ysize)
-        {
+        if (dstxextent > psrcimage->xsize || dstyextent > psrcimage->ysize) {
+
             fprintf(stderr, "SaveImage, src rectangle exceeds image bounds.\n");
             return false;
         }
@@ -5774,71 +5380,41 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         dstimage.ysize = dstyextent;
         dstimage.pixeltype = dstformat;
 
-        dstimage.data = (uint8_t*)malloc(dstimage.xsize * dstimage.ysize * bytesperpixel);
+        dstimage.data = (uint8_t*)malloc(dstimage.xsize * dstimage.ysize * ((depth + 7) >> 3));
 
-        uint32_t dstpitch = psrcimage->xsize * bytesperpixel;
+        uint32_t dstpitch = psrcimage->xsize * ((depth + 7) >> 3);
         uint8_t* dstbuf = psrcimage->data + (dstyorigin * dstpitch) +
-            (dstxorigin * bytesperpixel);
+            (dstxorigin * ((depth + 7) >> 3));
 
-        if (dstimage.data == NULL)
-        {
+        if (dstimage.data == NULL) {
+
             result = false;
             fprintf(stderr, "SaveImage: Out of memory\n");
-        }
-        else
-        {
-            memset(dstimage.data, 0, dstimage.xsize * dstimage.ysize * bytesperpixel);
+
+        } else {
+
+            memset(dstimage.data, 0, dstimage.xsize * dstimage.ysize * ((depth + 7) >> 3));
 
             if (dstxextent == psrcimage->xsize &&
                 dstyextent == psrcimage->ysize &&
-                dstformat == psrcimage->pixeltype)
-            {
+                dstformat == psrcimage->pixeltype) {
                 memcpy(dstimage.data, psrcimage->data, dstyextent * dstpitch);
-            }
-            else
-            {
+            } else {
                 // convert to dst format
-                if (bytesperpixel == 4)
-                {
-                    Blit_32bit_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
-                        psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype);
-                }
-                else if (bytesperpixel == 3)
-                {
-                    Blit_24bit_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
-                        psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype);
-                }
-                else if (bytesperpixel == 2)
-                {
-                    Blit_16bit_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
-                        psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype);
-                }
-                else
-                {
-                    if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE)
-                    {
-                        Blit_8bit_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
-                            psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype);
-                    }
-                    else
-                    {
-                        Blit_PAL_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
-                            psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype,
-                            psrcpalette);
-                    }
-                }
+                Blit_Nbit_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
+                    psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype,
+                    psrcpalette);
 
                 result = true;
             }
         }
 
-        if (dstimage.pixeltype != PIXELTYPE_COLOUR_INDEX)
-        {
+        if (dstimage.pixeltype != PIXELTYPE_COLOUR_INDEX) {
             psrcpalette = NULL;
         }
 
-        if (result == true)
-        {
+        if (result == true) {
+
             switch (format)
             {
             case FILEFORMAT_PNG:
@@ -5947,39 +5523,40 @@ GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
 
     if (psrcinfo != NULL) { psrcinfo->fileformat = FILEFORMAT_NONE; }
     if ((result = GetInfoFromMemoryPNG(&colormap, &xsize, &ysize, &depth, NULL,
-        psrc, psrcsize)) == true)
-    {
+        psrc, psrcsize)) == true) {
+
         if (depth == 32) { pixeltype = PIXELTYPE_RGBA; }
         else if (depth == 24) { pixeltype = PIXELTYPE_RGB; }
         else if (depth == 16) { pixeltype = PIXELTYPE_LUMINANCE_ALPHA; }
         else if (depth <=  8 && colormap == 0) { pixeltype = PIXELTYPE_LUMINANCE; }
         else if (depth <=  8 && colormap == 1) { pixeltype = PIXELTYPE_COLOUR_INDEX; }
+
         format = FILEFORMAT_PNG;
-    }
-    else if ((result = GetInfoFromMemoryBMP(&xsize, &ysize, &depth, psrc,
-        psrcsize)) == true)
-    {
+
+    } else if ((result = GetInfoFromMemoryBMP(&xsize, &ysize, &depth, psrc,
+        psrcsize)) == true) {
+        
         pixeltype = (depth == 32) ? PIXELTYPE_BGRA :
             (depth == 24) ? PIXELTYPE_BGR : PIXELTYPE_COLOUR_INDEX;
         format = FILEFORMAT_BMP;
-    }
-    else if ((result = GetInfoFromMemoryPCX(&xsize, &ysize, &depth, psrc,
-        psrcsize)) == true)
-    {
+
+    } else if ((result = GetInfoFromMemoryPCX(&xsize, &ysize, &depth, psrc,
+        psrcsize)) == true) {
+        
         pixeltype = (depth <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;        
         format = FILEFORMAT_PCX;
-    }
-    else if ((result = GetInfoFromMemoryTGA(&colormap, &xsize, &ysize,
-        &depth, psrc, psrcsize)) == true)
-    {
+
+    } else if ((result = GetInfoFromMemoryTGA(&colormap, &xsize, &ysize,
+        &depth, psrc, psrcsize)) == true) {
         if (depth == 32) { pixeltype = PIXELTYPE_BGRA; }
         else if (depth == 24) { pixeltype = PIXELTYPE_BGR; }
         else if (depth == 16) { pixeltype = PIXELTYPE_XBGR1555; }
         else if (depth ==  8 && colormap == 0) { pixeltype = PIXELTYPE_LUMINANCE; }
         else if (depth ==  8 && colormap == 1) { pixeltype = PIXELTYPE_COLOUR_INDEX; }
+        
         format = FILEFORMAT_TGA;
-    }
-    else { fprintf(stderr, "GetImageInfo, Unsupported image format\n"); }
+
+    } else { fprintf(stderr, "GetImageInfo, Unsupported image format\n"); }
 
     if (psrcinfo != NULL)
     {
@@ -6070,7 +5647,7 @@ GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
 bool
 LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
     uint8_t* psrc, uint32_t srcsize, pixel_t dstformat, rect_t* psrcrect,
-    uint32_t filter, rgba_t colorkey, image_info_t* psrcinfo)
+    uint32_t filtertype, rgba_t colorkey, image_info_t* psrcinfo)
 {
     bool result = false;
     palette_t srcpalette = {};
@@ -6080,6 +5657,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         0,
         PIXELTYPE_UNKNOWN
     };
+    image_t* psrcimage = &srcimage;
     uint8_t depth = 0;
     file_format_t format = FILEFORMAT_NONE;
 
@@ -6089,44 +5667,42 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
 
         if ((result = LoadFromMemoryPNG(&srcimage.data, &srcpalette, psrc,
             srcsize, &srcimage.xsize, &srcimage.ysize, &depth, NULL,
-            &pngcolorkey)) == true)
-        {
+            &pngcolorkey)) == true) {
             if (depth == 32) { srcimage.pixeltype = PIXELTYPE_RGBA; }
             else if (depth == 24) { srcimage.pixeltype = PIXELTYPE_RGB; }
             else if (depth == 16) { srcimage.pixeltype = PIXELTYPE_LUMINANCE_ALPHA; }
-            else if (depth <=  8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
-            else if (depth <=  8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
-            if (pngcolorkey.b != 0 && pngcolorkey.g != 0 && pngcolorkey.r != 0 && pngcolorkey.a != 0)
-            {
+            else if (depth <= 8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
+            else if (depth <= 8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
+            if (pngcolorkey.b != 0 && pngcolorkey.g != 0 && pngcolorkey.r != 0 && pngcolorkey.a != 0) {
                 colorkey = pngcolorkey;
             }
-
+            
             format = FILEFORMAT_PNG;
-        }
-        else if ((result = LoadFromMemoryBMP(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true)
-        {
+
+        } else if ((result = LoadFromMemoryBMP(&srcimage.data, &srcpalette, psrc,
+            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true) {
             srcimage.pixeltype = (depth == 32) ? PIXELTYPE_BGRA :
                 (depth == 24) ? PIXELTYPE_BGR : PIXELTYPE_COLOUR_INDEX;
+            
             format = FILEFORMAT_BMP;
-        }
-        else if ((result = LoadFromMemoryPCX(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true)
-        {
+
+        } else if ((result = LoadFromMemoryPCX(&srcimage.data, &srcpalette, psrc,
+            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true) {
             srcimage.pixeltype = (depth <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;
+            
             format = FILEFORMAT_PCX;
-        }
-        else if ((result = LoadFromMemoryTGA(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true)
-        {
+
+        } else if ((result = LoadFromMemoryTGA(&srcimage.data, &srcpalette, psrc,
+            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true) {
             if (depth == 32) { srcimage.pixeltype = PIXELTYPE_BGRA; }
             else if (depth == 24) { srcimage.pixeltype = PIXELTYPE_BGR; }
             else if (depth == 16) { srcimage.pixeltype = PIXELTYPE_XBGR1555; }
-            else if (depth ==  8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
-            else if (depth ==  8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
+            else if (depth == 8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
+            else if (depth == 8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
+            
             format = FILEFORMAT_TGA;
-        }
-        else { fprintf(stderr, "LoadImage, Unsupported image format\n"); }
+
+        } else { fprintf(stderr, "LoadImage, Unsupported image format\n"); }
 
         if (result == true && psrcinfo != NULL)
         {
@@ -6138,7 +5714,8 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         }
 
         // expand packed type
-        if ((format == FILEFORMAT_BMP || format == FILEFORMAT_PCX || format == FILEFORMAT_PNG) && depth <= 4)
+        if ((format == FILEFORMAT_PNG || format == FILEFORMAT_BMP ||
+             format == FILEFORMAT_PCX) && depth <= 4 && result == true)
         {
             uint32_t x = 0;
             uint32_t y = 0;
@@ -6203,16 +5780,205 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             depth = 8;
         }
 
-        // convert to format and filter
-        if (result == true)
-        {
-            pdstimage->xsize = srcimage.xsize;
-            pdstimage->ysize = srcimage.ysize;
-            pdstimage->pixeltype = (dstformat == PIXELTYPE_UNKNOWN) ? PIXELTYPE_RGBA :
-                dstformat;
+        // filter and convert to format
 
-            result = ResampleImage(pdstimage, pdstrect, &srcimage, &srcpalette,
-                psrcrect, filter);
+        // dst stuff
+        rect_t dstrect = {};
+
+        if (pdstrect == NULL) {
+            dstrect.min[0] = 0;
+            dstrect.min[1] = 0;
+            dstrect.max[0] = psrcimage->xsize;
+            dstrect.max[1] = psrcimage->ysize;
+        } else {
+            dstrect = *pdstrect;
+        }
+
+        uint8_t dstbytes = 1;
+
+        switch (dstformat)
+        {
+        case PIXELTYPE_RGBA:
+        case PIXELTYPE_ABGR:
+        case PIXELTYPE_BGRA:
+        { dstbytes++; }
+        case PIXELTYPE_RGB:
+        case PIXELTYPE_BGR:
+        { dstbytes++; }
+        case PIXELTYPE_XBGR1555:
+        case PIXELTYPE_LUMINANCE_ALPHA:
+        { dstbytes++; }
+        }
+
+        uint32_t dstxorigin = dstrect.min[0] < 0 ? 0 : dstrect.min[0];
+        uint32_t dstyorigin = dstrect.min[1] < 0 ? 0 : dstrect.min[1];
+        uint32_t dstxextent = ABS(dstrect.max[0]);
+        uint32_t dstyextent = ABS(dstrect.max[1]);
+
+        uint32_t dstxsize = dstxextent - dstxorigin;
+        uint32_t dstysize = dstyextent - dstyorigin;
+        uint32_t dstpitch = dstxextent * dstbytes;
+
+        if (pdstimage->data == NULL) {
+
+            pdstimage->data = (uint8_t*)malloc(dstyextent * dstpitch);
+            memset(pdstimage->data, 0, dstyextent * dstpitch);
+        }
+
+        pdstimage->xsize = dstxextent;
+        pdstimage->ysize = dstyextent;
+        pdstimage->pixeltype = (dstformat == PIXELTYPE_UNKNOWN) ? PIXELTYPE_RGBA :
+            dstformat;
+
+        // src stuff
+        rect_t srcrect = {};
+
+        if (psrcrect == NULL) {
+            srcrect.min[0] = 0;
+            srcrect.min[1] = 0;
+            srcrect.max[0] = psrcimage->xsize;
+            srcrect.max[1] = psrcimage->ysize;
+        } else {
+            srcrect = *psrcrect;
+        }
+
+        if (pdstimage->pixeltype != psrcimage->pixeltype ||
+            (dstrect.min[0] != srcrect.min[0] &&
+             dstrect.max[0] != srcrect.max[0] &&
+             dstrect.min[1] != srcrect.min[1] &&
+             dstrect.max[1] != srcrect.max[1])) {
+
+            uint32_t srcxorigin = srcrect.min[0] < 0 ? 0 :
+                MIN((uint32_t)srcrect.min[0], psrcimage->xsize);
+            uint32_t srcyorigin = srcrect.min[1] < 0 ? 0 :
+                MIN((uint32_t)srcrect.min[1], psrcimage->ysize);
+            uint32_t srcxextent = psrcimage->xsize;
+            uint32_t srcyextent = psrcimage->ysize;
+
+            uint32_t srcxsize = psrcimage->xsize - srcxorigin;
+            uint32_t srcysize = psrcimage->ysize - srcyorigin;
+            uint32_t srcpitch = psrcimage->xsize * ((depth + 7) >> 3);
+
+            if (pdstimage->pixeltype == psrcimage->pixeltype &&
+                filtertype == FILTER_NONE) {
+
+                // no filtering or scaling
+                uint8_t* bufdst = pdstimage->data + (dstyorigin * dstpitch) +
+                    (dstxorigin * dstbytes);
+                uint8_t* bufsrc = psrcimage->data + (srcyorigin * srcpitch) +
+                    (srcxorigin * dstbytes);
+                uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
+                uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
+                uint32_t pitch = xsize * ((depth + 7) >> 3);
+                uint32_t y = 0;
+
+                while (y++ < ysize)
+                {
+                    memcpy(bufdst, bufsrc, pitch);
+                    bufdst = pdstimage->data + (y * dstpitch);
+                    bufsrc = psrcimage->data + (y * srcpitch);
+                }
+
+            } else {
+
+                // convert to PIXELTYPE_RGBA
+                uint32_t dbytes = 4;
+                uint32_t dpitch = dstxextent * dbytes;
+                uint8_t* dptr = (uint8_t*)malloc(dstyextent * dstxextent * dbytes);
+                uint8_t* dbuf = dptr;
+
+                uint32_t sbytes = 4;
+                uint32_t spitch = srcxextent * sbytes;
+                uint8_t* sptr = (uint8_t*)malloc(srcyextent * srcxextent * sbytes);
+                uint8_t* sbuf = sptr;
+
+                memset(dptr, 0, dstyextent * dpitch);
+                memset(sptr, 0, srcyextent * spitch);
+
+                Blit_Nbit_Nbit(sptr, srcxextent, srcyextent, PIXELTYPE_RGBA,
+                    psrcimage->data, srcxextent, srcyextent,
+                    psrcimage->pixeltype, &srcpalette);
+
+                if (filtertype == FILTER_NONE) {
+
+                    // no filtering or scaling
+                    dbuf = dptr + (dstyorigin * dpitch) + (dstxorigin * dbytes);
+                    sbuf = sptr + (srcyorigin * spitch) + (srcxorigin * sbytes);
+
+                    uint8_t* bufdst = dbuf;
+                    uint8_t* bufsrc = sbuf;
+                    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
+                    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
+                    uint32_t pitch = xsize * sbytes;
+                    uint32_t y = 0;
+
+                    while (++y < ysize)
+                    {
+                        memcpy(bufdst, bufsrc, pitch);
+                        bufdst = dbuf + (y * dpitch);
+                        bufsrc = sbuf + (y * spitch);
+                    }
+                }
+                else {
+
+                    // do filtering and scaling
+                    uint32_t tbytes = 4;
+                    uint32_t tpitch = dstxextent * tbytes;
+                    uint8_t* tptr = (uint8_t*)malloc(dstyextent * dstxextent * tbytes);
+                    uint8_t* tbuf = tptr;
+
+                    result = Filter(tptr, dstxextent, dstyextent, tbytes,
+                        sptr, srcxextent, srcyextent, sbytes, filtertype);
+
+                    dbuf = dptr + (dstyorigin * dpitch) + (dstxorigin * dbytes);
+                    tbuf = tptr + (srcyorigin * tpitch) + (srcxorigin * tbytes);
+
+                    uint8_t* bufdst = dbuf;
+                    uint8_t* bufsrc = tbuf;
+                    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
+                    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
+                    uint32_t pitch = xsize * tbytes;
+                    uint32_t y = 0;
+
+                    while (++y < ysize)
+                    {
+                        memcpy(bufdst, bufsrc, pitch);
+                        bufdst = dbuf + (y * dpitch);
+                        bufsrc = tbuf + (y * tpitch);
+                    }
+
+                    if (tptr != NULL)
+                    {
+                        free(tptr);
+                        tptr = NULL;
+                    }
+                }
+
+                // convert to destination pixeltype
+                Blit_Nbit_Nbit(pdstimage->data, dstxextent, dstyextent,
+                    pdstimage->pixeltype, dptr, dstxextent, dstyextent,
+                    PIXELTYPE_RGBA, &srcpalette);
+
+                if (dptr != NULL)
+                {
+                    free(dptr);
+                    dptr = NULL;
+                }
+
+                if (sptr != NULL)
+                {
+                    free(sptr);
+                    sptr = NULL;
+                }
+
+                result = true;
+            }
+
+        } else {
+
+            uint32_t pitch = dstrect.max[0] - dstrect.min[0] * ((depth + 7) >> 3);
+            uint32_t ysize = dstrect.max[1] - dstrect.min[1];
+            memcpy(pdstimage->data, psrcimage->data, ysize * pitch);
         }
 
         if (result == true)
