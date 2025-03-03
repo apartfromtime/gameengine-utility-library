@@ -3501,7 +3501,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     }
     else            // everything else
     {
-        int32_t y = ABS(ysize);
+        int32_t y = 0;
 
         while (y < ysize)
         {
@@ -4675,6 +4675,7 @@ TriangleFilter(float t)
 
 //-----------------------------------------------------------------------------
 // Filter
+// TODO: handle scales of < 1.0f properly
 //-----------------------------------------------------------------------------
 static bool
 Filter(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
@@ -4851,11 +4852,11 @@ Filter(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
 
         if (bit == 0)
         {
-            n = ((m * srcxsize) - k) + (srcxsize - 1);
+            n = ((m * srcysize) - k) + (srcysize - 1);
         }
         else
         {
-            n = (k - (m * srcxsize));
+            n = (k - (m * srcysize));
         }
 
         memcpy(raster, (srcbuf + (n * srcpitch)), srcpitch);
@@ -5404,9 +5405,9 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
                 Blit_Nbit_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
                     psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype,
                     psrcpalette);
-
-                result = true;
             }
+
+            result = true;
         }
 
         if (dstimage.pixeltype != PIXELTYPE_COLOUR_INDEX) {
@@ -5810,8 +5811,8 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         { dstbytes++; }
         }
 
-        uint32_t dstxorigin = dstrect.min[0] < 0 ? 0 : dstrect.min[0];
-        uint32_t dstyorigin = dstrect.min[1] < 0 ? 0 : dstrect.min[1];
+        uint32_t dstxorigin = MAX(0, ABS(dstrect.min[0]));
+        uint32_t dstyorigin = MAX(0, ABS(dstrect.min[1]));
         uint32_t dstxextent = ABS(dstrect.max[0]);
         uint32_t dstyextent = ABS(dstrect.max[1]);
 
@@ -5842,22 +5843,39 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             srcrect = *psrcrect;
         }
 
+        uint8_t srcbytes = 1;
+
+        switch (srcimage.pixeltype)
+        {
+        case PIXELTYPE_RGBA:
+        case PIXELTYPE_ABGR:
+        case PIXELTYPE_BGRA:
+        { srcbytes++; }
+        case PIXELTYPE_RGB:
+        case PIXELTYPE_BGR:
+        { srcbytes++; }
+        case PIXELTYPE_XBGR1555:
+        case PIXELTYPE_LUMINANCE_ALPHA:
+        { srcbytes++; }
+        }
+
+        uint32_t srcxorigin = MAX(0, MIN((uint32_t)srcrect.min[0],
+            psrcimage->xsize));
+        uint32_t srcyorigin = MAX(0, MIN((uint32_t)srcrect.min[1],
+            psrcimage->ysize));
+        uint32_t srcxextent = psrcimage->xsize;
+        uint32_t srcyextent = psrcimage->ysize;
+
+        uint32_t srcxsize = srcxextent - srcxorigin;
+        uint32_t srcysize = srcyextent - srcyorigin;
+        uint32_t srcpitch = srcxextent * srcbytes;
+
         if (pdstimage->pixeltype != psrcimage->pixeltype ||
-            (dstrect.min[0] != srcrect.min[0] &&
-             dstrect.max[0] != srcrect.max[0] &&
-             dstrect.min[1] != srcrect.min[1] &&
-             dstrect.max[1] != srcrect.max[1])) {
-
-            uint32_t srcxorigin = srcrect.min[0] < 0 ? 0 :
-                MIN((uint32_t)srcrect.min[0], psrcimage->xsize);
-            uint32_t srcyorigin = srcrect.min[1] < 0 ? 0 :
-                MIN((uint32_t)srcrect.min[1], psrcimage->ysize);
-            uint32_t srcxextent = psrcimage->xsize;
-            uint32_t srcyextent = psrcimage->ysize;
-
-            uint32_t srcxsize = psrcimage->xsize - srcxorigin;
-            uint32_t srcysize = psrcimage->ysize - srcyorigin;
-            uint32_t srcpitch = psrcimage->xsize * ((depth + 7) >> 3);
+            dstrect.min[0] != srcrect.min[0] ||
+            dstrect.max[0] != srcrect.max[0] ||
+            dstrect.min[1] != srcrect.min[1] ||
+            dstrect.max[1] != srcrect.max[1] ||
+            filtertype != FILTER_NONE) {
 
             if (pdstimage->pixeltype == psrcimage->pixeltype &&
                 filtertype == FILTER_NONE) {
@@ -5866,17 +5884,17 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
                 uint8_t* bufdst = pdstimage->data + (dstyorigin * dstpitch) +
                     (dstxorigin * dstbytes);
                 uint8_t* bufsrc = psrcimage->data + (srcyorigin * srcpitch) +
-                    (srcxorigin * dstbytes);
+                    (srcxorigin * srcbytes);
                 uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
                 uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
-                uint32_t pitch = xsize * ((depth + 7) >> 3);
+                uint32_t pitch = xsize * srcbytes;
                 uint32_t y = 0;
 
                 while (y++ < ysize)
                 {
                     memcpy(bufdst, bufsrc, pitch);
-                    bufdst = pdstimage->data + (y * dstpitch);
-                    bufsrc = psrcimage->data + (y * srcpitch);
+                    bufdst += dstpitch;
+                    bufsrc += srcpitch;
                 }
 
             } else {
@@ -5892,6 +5910,11 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
                 uint8_t* sptr = (uint8_t*)malloc(srcyextent * srcxextent * sbytes);
                 uint8_t* sbuf = sptr;
 
+                uint32_t tbytes = 4;
+                uint32_t tpitch = dstxextent * tbytes;
+                uint8_t* tptr = NULL;
+                uint8_t* tbuf = NULL;
+
                 memset(dptr, 0, dstyextent * dpitch);
                 memset(sptr, 0, srcyextent * spitch);
 
@@ -5902,55 +5925,42 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
                 if (filtertype == FILTER_NONE) {
 
                     // no filtering or scaling
-                    dbuf = dptr + (dstyorigin * dpitch) + (dstxorigin * dbytes);
-                    sbuf = sptr + (srcyorigin * spitch) + (srcxorigin * sbytes);
-
-                    uint8_t* bufdst = dbuf;
-                    uint8_t* bufsrc = sbuf;
+                    uint8_t* bufdst = dptr + (dstyorigin * dpitch) + (dstxorigin * dbytes);
+                    uint8_t* bufsrc = sptr + (srcyorigin * spitch) + (srcxorigin * sbytes);
                     uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
                     uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
                     uint32_t pitch = xsize * sbytes;
                     uint32_t y = 0;
 
-                    while (++y < ysize)
+                    while (y++ < ysize)
                     {
                         memcpy(bufdst, bufsrc, pitch);
-                        bufdst = dbuf + (y * dpitch);
-                        bufsrc = sbuf + (y * spitch);
+                        bufdst += dpitch;
+                        bufsrc += spitch;
                     }
                 }
                 else {
 
                     // do filtering and scaling
-                    uint32_t tbytes = 4;
-                    uint32_t tpitch = dstxextent * tbytes;
-                    uint8_t* tptr = (uint8_t*)malloc(dstyextent * dstxextent * tbytes);
-                    uint8_t* tbuf = tptr;
+                    tptr = (uint8_t*)malloc(dstyextent * dstxextent * tbytes);
+                    tbuf = tptr;
+
+                    memset(tptr, 0, dstyextent * tpitch);
 
                     result = Filter(tptr, dstxextent, dstyextent, tbytes,
                         sptr, srcxextent, srcyextent, sbytes, filtertype);
 
-                    dbuf = dptr + (dstyorigin * dpitch) + (dstxorigin * dbytes);
-                    tbuf = tptr + (srcyorigin * tpitch) + (srcxorigin * tbytes);
-
-                    uint8_t* bufdst = dbuf;
-                    uint8_t* bufsrc = tbuf;
-                    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
-                    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
-                    uint32_t pitch = xsize * tbytes;
+                    uint8_t* bufdst = dptr + (dstyorigin * dpitch) + (dstxorigin * dbytes);
+                    uint8_t* bufsrc = tptr + (srcyorigin * dpitch) + (srcxorigin * dbytes);
+                    uint32_t pitch = dstxsize * dbytes;
+                    uint32_t ysize = dstysize;
                     uint32_t y = 0;
 
-                    while (++y < ysize)
+                    while (y++ < ysize)
                     {
                         memcpy(bufdst, bufsrc, pitch);
-                        bufdst = dbuf + (y * dpitch);
-                        bufsrc = tbuf + (y * tpitch);
-                    }
-
-                    if (tptr != NULL)
-                    {
-                        free(tptr);
-                        tptr = NULL;
+                        bufdst += dpitch;
+                        bufsrc += dpitch;
                     }
                 }
 
@@ -5959,10 +5969,10 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
                     pdstimage->pixeltype, dptr, dstxextent, dstyextent,
                     PIXELTYPE_RGBA, &srcpalette);
 
-                if (dptr != NULL)
+                if (tptr != NULL)
                 {
-                    free(dptr);
-                    dptr = NULL;
+                    free(tptr);
+                    tptr = NULL;
                 }
 
                 if (sptr != NULL)
@@ -5971,14 +5981,31 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
                     sptr = NULL;
                 }
 
+                if (dptr != NULL)
+                {
+                    free(dptr);
+                    dptr = NULL;
+                }
+
                 result = true;
             }
 
         } else {
 
-            uint32_t pitch = dstrect.max[0] - dstrect.min[0] * ((depth + 7) >> 3);
-            uint32_t ysize = dstrect.max[1] - dstrect.min[1];
-            memcpy(pdstimage->data, psrcimage->data, ysize * pitch);
+            // no filtering or scaling
+            uint8_t* bufdst = pdstimage->data + (dstyorigin * dstpitch) + (dstxorigin * dstbytes);
+            uint8_t* bufsrc = psrcimage->data + (dstyorigin * srcpitch) + (dstxorigin * dstbytes);
+            uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
+            uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
+            uint32_t pitch = xsize * srcbytes;
+            uint32_t y = 0;
+
+            while (y++ < ysize)
+            {
+                memcpy(bufdst, bufsrc, pitch);
+                bufdst += dstpitch;
+                bufsrc += srcpitch;
+            }
         }
 
         if (result == true)
