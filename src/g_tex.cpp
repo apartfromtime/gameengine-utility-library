@@ -4678,7 +4678,7 @@ TriangleFilter(float t)
 // TODO: handle scales of < 1.0f properly
 //-----------------------------------------------------------------------------
 static bool
-Filter(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
+Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
     uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize, uint32_t srcbytes,
     uint32_t filtertype)
 {
@@ -4687,20 +4687,20 @@ Filter(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
     }
 
     // dst stuff
-    if (pdst == NULL) {
+    if (*pdst == NULL) {
 
-        pdst = (uint8_t*)malloc(dstxsize * dstysize * dstbytes);
-        memset(pdst, 0, dstxsize * dstysize * dstbytes);
+        *pdst = (uint8_t*)malloc(dstxsize * dstysize * dstbytes);
+        memset(*pdst, 0, dstxsize * dstysize * dstbytes);
     }
 
     uint32_t dstpitch = dstxsize * dstbytes;
-    uint8_t* dstbuf = pdst;
+    uint8_t* dstbuf = pdst[0];
 
     // src stuff
     uint32_t srcpitch = srcxsize * srcbytes;
     uint8_t* srcbuf = psrc;
 
-    bool result = false;
+    bool result = true;
 
     // do filtering and scaling
     typedef float (*filter_f)(float);
@@ -5781,8 +5781,6 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             depth = 8;
         }
 
-        // filter and convert to format
-
         // dst stuff
         rect_t dstrect = {};
 
@@ -5859,9 +5857,9 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         { srcbytes++; }
         }
 
-        uint32_t srcxorigin = MAX(0, MIN((uint32_t)srcrect.min[0],
+        uint32_t srcxorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[0]),
             psrcimage->xsize));
-        uint32_t srcyorigin = MAX(0, MIN((uint32_t)srcrect.min[1],
+        uint32_t srcyorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[1]),
             psrcimage->ysize));
         uint32_t srcxextent = psrcimage->xsize;
         uint32_t srcyextent = psrcimage->ysize;
@@ -5870,133 +5868,46 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         uint32_t srcysize = srcyextent - srcyorigin;
         uint32_t srcpitch = srcxextent * srcbytes;
 
-        if (pdstimage->pixeltype != psrcimage->pixeltype ||
-            dstrect.min[0] != srcrect.min[0] ||
-            dstrect.max[0] != srcrect.max[0] ||
-            dstrect.min[1] != srcrect.min[1] ||
-            dstrect.max[1] != srcrect.max[1] ||
-            filtertype != FILTER_NONE) {
+        // convert to dstformat
+        if (pdstimage->pixeltype != psrcimage->pixeltype == true) 
+        {
+            uint8_t* tmpptr = NULL;
 
-            if (pdstimage->pixeltype == psrcimage->pixeltype &&
-                filtertype == FILTER_NONE) {
+            tmpptr = (uint8_t*)malloc(srcyextent * srcpitch);
 
-                // no filtering or scaling
-                uint8_t* bufdst = pdstimage->data + (dstyorigin * dstpitch) +
-                    (dstxorigin * dstbytes);
-                uint8_t* bufsrc = psrcimage->data + (srcyorigin * srcpitch) +
-                    (srcxorigin * srcbytes);
-                uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
-                uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
-                uint32_t pitch = xsize * srcbytes;
-                uint32_t y = 0;
+            Blit_Nbit_Nbit(tmpptr, srcxextent, srcyextent, dstformat,
+                psrcimage->data, srcxextent, srcyextent, psrcimage->pixeltype,
+                &srcpalette);
 
-                while (y++ < ysize)
-                {
-                    memcpy(bufdst, bufsrc, pitch);
-                    bufdst += dstpitch;
-                    bufsrc += srcpitch;
-                }
+            free(psrcimage->data);
+            psrcimage->data = tmpptr;
+        }
 
-            } else {
+        // filter and scale
+        if (filtertype != FILTER_NONE && dstformat != PIXELTYPE_COLOUR_INDEX == true) {
 
-                // convert to PIXELTYPE_RGBA
-                uint32_t dbytes = 4;
-                uint32_t dpitch = dstxextent * dbytes;
-                uint8_t* dptr = (uint8_t*)malloc(dstyextent * dstxextent * dbytes);
-                uint8_t* dbuf = dptr;
+            uint8_t* tmpptr = NULL;
 
-                uint32_t sbytes = 4;
-                uint32_t spitch = srcxextent * sbytes;
-                uint8_t* sptr = (uint8_t*)malloc(srcyextent * srcxextent * sbytes);
-                uint8_t* sbuf = sptr;
+            result = Filter(&tmpptr, dstxextent, dstyextent, dstbytes,
+                psrcimage->data, srcxextent, srcyextent, srcbytes, filtertype);
 
-                uint32_t tbytes = 4;
-                uint32_t tpitch = dstxextent * tbytes;
-                uint8_t* tptr = NULL;
-                uint8_t* tbuf = NULL;
+            srcxsize = dstxextent - srcxorigin;
+            srcysize = dstyextent - srcyorigin;
+            srcpitch = dstxextent * dstbytes;
 
-                memset(dptr, 0, dstyextent * dpitch);
-                memset(sptr, 0, srcyextent * spitch);
+            free(psrcimage->data);
+            psrcimage->data = tmpptr;
+        }
 
-                Blit_Nbit_Nbit(sptr, srcxextent, srcyextent, PIXELTYPE_RGBA,
-                    psrcimage->data, srcxextent, srcyextent,
-                    psrcimage->pixeltype, &srcpalette);
-
-                if (filtertype == FILTER_NONE) {
-
-                    // no filtering or scaling
-                    uint8_t* bufdst = dptr + (dstyorigin * dpitch) + (dstxorigin * dbytes);
-                    uint8_t* bufsrc = sptr + (srcyorigin * spitch) + (srcxorigin * sbytes);
-                    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
-                    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
-                    uint32_t pitch = xsize * sbytes;
-                    uint32_t y = 0;
-
-                    while (y++ < ysize)
-                    {
-                        memcpy(bufdst, bufsrc, pitch);
-                        bufdst += dpitch;
-                        bufsrc += spitch;
-                    }
-                }
-                else {
-
-                    // do filtering and scaling
-                    tptr = (uint8_t*)malloc(dstyextent * dstxextent * tbytes);
-                    tbuf = tptr;
-
-                    memset(tptr, 0, dstyextent * tpitch);
-
-                    result = Filter(tptr, dstxextent, dstyextent, tbytes,
-                        sptr, srcxextent, srcyextent, sbytes, filtertype);
-
-                    uint8_t* bufdst = dptr + (dstyorigin * dpitch) + (dstxorigin * dbytes);
-                    uint8_t* bufsrc = tptr + (srcyorigin * dpitch) + (srcxorigin * dbytes);
-                    uint32_t pitch = dstxsize * dbytes;
-                    uint32_t ysize = dstysize;
-                    uint32_t y = 0;
-
-                    while (y++ < ysize)
-                    {
-                        memcpy(bufdst, bufsrc, pitch);
-                        bufdst += dpitch;
-                        bufsrc += dpitch;
-                    }
-                }
-
-                // convert to destination pixeltype
-                Blit_Nbit_Nbit(pdstimage->data, dstxextent, dstyextent,
-                    pdstimage->pixeltype, dptr, dstxextent, dstyextent,
-                    PIXELTYPE_RGBA, &srcpalette);
-
-                if (tptr != NULL)
-                {
-                    free(tptr);
-                    tptr = NULL;
-                }
-
-                if (sptr != NULL)
-                {
-                    free(sptr);
-                    sptr = NULL;
-                }
-
-                if (dptr != NULL)
-                {
-                    free(dptr);
-                    dptr = NULL;
-                }
-
-                result = true;
-            }
-
-        } else {
-
-            // no filtering or scaling
-            uint8_t* bufdst = pdstimage->data + (dstyorigin * dstpitch) + (dstxorigin * dstbytes);
-            uint8_t* bufsrc = psrcimage->data + (dstyorigin * srcpitch) + (dstxorigin * dstbytes);
-            uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
-            uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
+        // copy to destination
+        if (result == true)
+        {
+            uint8_t* bufdst = pdstimage->data + (dstyorigin * dstpitch) +
+                (dstxorigin * dstbytes);
+            uint8_t* bufsrc = psrcimage->data + (srcyorigin * srcpitch) +
+                (srcxorigin * srcbytes);
+            uint32_t xsize = MIN(srcxsize, dstxsize);
+            uint32_t ysize = MIN(srcysize, dstysize);
             uint32_t pitch = xsize * srcbytes;
             uint32_t y = 0;
 
@@ -6008,6 +5919,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             }
         }
 
+        // transparency
         if (result == true)
         {
             if (colorkey.b != 0 || colorkey.g != 0 || colorkey.r != 0 ||
@@ -6016,17 +5928,18 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
                 const rgba_t transparent_black = { 0, 0, 0, 0 };
                 ReplaceColor(pdstimage, &srcpalette, transparent_black, colorkey);
             }
+        }
 
-            if (pdstpalette != NULL)
+        // palette
+        if (pdstpalette != NULL && dstformat == PIXELTYPE_COLOR_INDEX)
+        {
+            for (uint32_t i = 0; i < srcpalette.size; ++i)
             {
-                for (uint32_t i = 0; i < srcpalette.size; ++i)
-                {
-                    pdstpalette->data[i] = srcpalette.data[i];
-                }
-
-                pdstpalette->size = srcpalette.size;
-                pdstpalette->bits = srcpalette.bits;
+                pdstpalette->data[i] = srcpalette.data[i];
             }
+
+            pdstpalette->size = srcpalette.size;
+            pdstpalette->bits = srcpalette.bits;
         }
 
         if (srcimage.data != NULL)
