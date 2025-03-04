@@ -5210,6 +5210,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         0,
         PIXELTYPE_UNKNOWN
     };
+    image_t* pdstimage = &dstimage;
     uint32_t depth = 8;
     pixel_t dstformat = PIXELTYPE_UNKNOWN;
     bool result = false;
@@ -5335,7 +5336,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             } break;
             default:
             {
-                fprintf(stderr, "SaveImage, Unsupported image format\n");
+                fprintf(stderr, "SaveImage, Unsupported image format.\n");
                 return false;
             }
         }
@@ -5354,6 +5355,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         { depth += 8; }
         }
 
+        // src stuff
         rect_t srcrect = {};
 
         if (psrcrect == NULL) {
@@ -5365,46 +5367,76 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             srcrect = *psrcrect;
         }
 
-        // src stuff
-        uint32_t dstxorigin = srcrect.min[0] < 0 ? 0 : srcrect.min[0];
-        uint32_t dstyorigin = srcrect.min[1] < 0 ? 0 : srcrect.min[1];
-        uint32_t dstxextent = ABS(srcrect.max[0]) - dstxorigin;
-        uint32_t dstyextent = ABS(srcrect.max[1]) - dstyorigin;
+        uint8_t srcbytes = 1;
 
-        if (dstxextent > psrcimage->xsize || dstyextent > psrcimage->ysize) {
-
-            fprintf(stderr, "SaveImage, src rectangle exceeds image bounds.\n");
-            return false;
+        switch (psrcimage->pixeltype)
+        {
+        case PIXELTYPE_RGBA:
+        case PIXELTYPE_ABGR:
+        case PIXELTYPE_BGRA:
+        { srcbytes++; }
+        case PIXELTYPE_RGB:
+        case PIXELTYPE_BGR:
+        { srcbytes++; }
+        case PIXELTYPE_XBGR1555:
+        case PIXELTYPE_LUMINANCE_ALPHA:
+        { srcbytes++; }
         }
 
-        dstimage.xsize = dstxextent;
-        dstimage.ysize = dstyextent;
+        uint32_t srcxorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[0]),
+            psrcimage->xsize));
+        uint32_t srcyorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[1]),
+            psrcimage->ysize));
+        uint32_t srcxextent = MIN((uint32_t)ABS(srcrect.max[0]), psrcimage->xsize);
+        uint32_t srcyextent = MIN((uint32_t)ABS(srcrect.max[1]), psrcimage->ysize);
+        uint32_t srcpitch = srcxextent * srcbytes;
+        uint32_t srcxsize = srcxextent - srcxorigin;
+        uint32_t srcysize = srcyextent - srcyorigin;
+
+        // dst stuff
+        uint32_t dstbytes = (depth + 7) >> 3;
+        uint32_t dstpitch = srcxsize * srcbytes;
+
+        dstimage.xsize = srcxsize;
+        dstimage.ysize = srcysize;
         dstimage.pixeltype = dstformat;
-
-        dstimage.data = (uint8_t*)malloc(dstimage.xsize * dstimage.ysize * ((depth + 7) >> 3));
-
-        uint32_t dstpitch = psrcimage->xsize * ((depth + 7) >> 3);
-        uint8_t* dstbuf = psrcimage->data + (dstyorigin * dstpitch) +
-            (dstxorigin * ((depth + 7) >> 3));
+        dstimage.data = (uint8_t*)malloc(srcysize * srcpitch);
 
         if (dstimage.data == NULL) {
 
             result = false;
-            fprintf(stderr, "SaveImage: Out of memory\n");
+            fprintf(stderr, "SaveImage: Out of memory.\n");
+        }
+        else {
 
-        } else {
+            memset(dstimage.data, 0, srcysize * dstpitch);
 
-            memset(dstimage.data, 0, dstimage.xsize * dstimage.ysize * ((depth + 7) >> 3));
+            // copy to destination
+            uint8_t* bufdst = pdstimage->data;
+            uint8_t* bufsrc = psrcimage->data + (srcyorigin * srcpitch) +
+                (srcxorigin * srcbytes);
+            uint32_t xsize = srcxsize;
+            uint32_t ysize = srcysize;
+            uint32_t pitch = srcxsize * srcbytes;
+            uint32_t y = 0;
 
-            if (dstxextent == psrcimage->xsize &&
-                dstyextent == psrcimage->ysize &&
-                dstformat == psrcimage->pixeltype) {
-                memcpy(dstimage.data, psrcimage->data, dstyextent * dstpitch);
-            } else {
-                // convert to dst format
-                Blit_Nbit_Nbit(dstimage.data, dstimage.xsize, dstimage.ysize, dstformat,
-                    psrcimage->data, dstimage.xsize, dstimage.ysize, psrcimage->pixeltype,
-                    psrcpalette);
+            while (y++ < ysize)
+            {
+                memcpy(bufdst, bufsrc, pitch);
+                bufdst += dstpitch;
+                bufsrc += srcpitch;
+            }
+
+            // convert to dstformat
+            if (dstformat != psrcimage->pixeltype)
+            {
+                uint8_t* tmpptr = (uint8_t*)malloc(srcysize * dstpitch);
+
+                Blit_Nbit_Nbit(tmpptr, srcxsize, srcysize, dstformat, pdstimage->data,
+                    srcxsize, srcysize, psrcimage->pixeltype, psrcpalette);
+
+                free(pdstimage->data);
+                pdstimage->data = tmpptr;
             }
 
             result = true;
@@ -5441,12 +5473,12 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             } break;
             }
         }
-    }
 
-    if (dstimage.data != NULL)
-    {
-        free(dstimage.data);
-        dstimage.data = NULL;
+        if (dstimage.data != NULL) {
+
+            free(dstimage.data);
+            dstimage.data = NULL;
+        }
     }
 
     return result;
@@ -5869,27 +5901,26 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         uint32_t srcpitch = srcxextent * srcbytes;
 
         // convert to dstformat
-        if (pdstimage->pixeltype != psrcimage->pixeltype == true) 
+        if (pdstimage->pixeltype != psrcimage->pixeltype) 
         {
-            uint8_t* tmpptr = NULL;
+            uint8_t* tmpptr = (uint8_t*)malloc(srcyextent * srcxextent * dstbytes);
 
-            tmpptr = (uint8_t*)malloc(srcyextent * srcpitch);
+            Blit_Nbit_Nbit(tmpptr, srcxextent, srcyextent, dstformat, psrcimage->data,
+                srcxextent, srcyextent, psrcimage->pixeltype, &srcpalette);
 
-            Blit_Nbit_Nbit(tmpptr, srcxextent, srcyextent, dstformat,
-                psrcimage->data, srcxextent, srcyextent, psrcimage->pixeltype,
-                &srcpalette);
-
+            srcpitch = srcxextent * dstbytes;
+            
             free(psrcimage->data);
             psrcimage->data = tmpptr;
         }
 
         // filter and scale
-        if (filtertype != FILTER_NONE && dstformat != PIXELTYPE_COLOUR_INDEX == true) {
+        if (filtertype != FILTER_NONE && dstformat != PIXELTYPE_COLOUR_INDEX) {
 
             uint8_t* tmpptr = NULL;
 
-            result = Filter(&tmpptr, dstxextent, dstyextent, dstbytes,
-                psrcimage->data, srcxextent, srcyextent, srcbytes, filtertype);
+            result = Filter(&tmpptr, dstxextent, dstyextent, dstbytes, psrcimage->data,
+                srcxextent, srcyextent, dstbytes, filtertype);
 
             srcxsize = dstxextent - srcxorigin;
             srcysize = dstyextent - srcyorigin;
@@ -5905,10 +5936,10 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             uint8_t* bufdst = pdstimage->data + (dstyorigin * dstpitch) +
                 (dstxorigin * dstbytes);
             uint8_t* bufsrc = psrcimage->data + (srcyorigin * srcpitch) +
-                (srcxorigin * srcbytes);
+                (srcxorigin * dstbytes);
             uint32_t xsize = MIN(srcxsize, dstxsize);
             uint32_t ysize = MIN(srcysize, dstysize);
-            uint32_t pitch = xsize * srcbytes;
+            uint32_t pitch = xsize * dstbytes;
             uint32_t y = 0;
 
             while (y++ < ysize)
@@ -5931,7 +5962,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         }
 
         // palette
-        if (pdstpalette != NULL && dstformat == PIXELTYPE_COLOR_INDEX)
+        if (pdstpalette != NULL && dstformat == PIXELTYPE_COLOUR_INDEX)
         {
             for (uint32_t i = 0; i < srcpalette.size; ++i)
             {
