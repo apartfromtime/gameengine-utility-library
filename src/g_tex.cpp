@@ -4784,8 +4784,8 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
         memset(filter[i].info, 0, (int)((fwidth * 2) + 1) * sizeof(filter_info_t));
 
         mid = (float)i / xscale;
-        min =  ceil(mid - fwidth);
-        max = floor(mid + fwidth);
+        min =  ceilf(mid - fwidth);
+        max = floorf(mid + fwidth);
 
         for (int j = (int)min; j <= (int)max; ++j)
         {
@@ -4936,8 +4936,8 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
             sizeof(filter_info_t));
 
         mid = (float)i / yscale;
-        min =  ceil(mid - fwidth);
-        max = floor(mid + fwidth);
+        min =  ceilf(mid - fwidth);
+        max = floorf(mid + fwidth);
 
         for (int j = (int)min; j <= (int)max; ++j)
         {
@@ -5521,7 +5521,7 @@ SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec
     // file write
     size_t bytesWritten = 0;
 
-    if (hFile != NULL && fileSize != 0)
+    if (hFile != NULL && dstbuf != NULL && fileSize != 0)
     {
         bytesWritten = fwrite(dstbuf, sizeof(uint8_t), fileSize, hFile);
 
