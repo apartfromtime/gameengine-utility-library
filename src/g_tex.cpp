@@ -28,6 +28,25 @@
 #pragma warning (disable : 4244)            // conversion from <type> to <type>
 #pragma warning (disable : 4996)            // deprecation warning
 
+// returns width in bytes, depth must be bits per pixel
+static uint32_t
+WidthInBytes(uint32_t width, uint32_t depth)
+{
+    uint32_t bytes = width;
+
+    switch (depth)
+    {
+    case 32: bytes += width;
+    case 24: bytes += width;
+    case 16: bytes += width; break;
+    case  1: width >>= 1;
+    case  2: width >>= 1;
+    case  4: width >>= 1;
+    };
+
+    return bytes;
+}
+
 static const uint32_t s_rgba_size = 4;
 
 #ifndef _PNG_H
@@ -180,7 +199,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
     uint32_t dstofs = 0;
     uint32_t srcbytes = (srcdepth + 7) >> 3;
     float srcpixelsperbyte = (8.0f / (float)srcdepth);
-    uint32_t srcpitch = (uint32_t)(ceilf((float)(srcxsize) / srcpixelsperbyte));
+    uint32_t srcpitch = WidthInBytes(srcxsize, srcdepth);
     uint32_t srcxskip = 1;
     uint32_t srcyskip = 1;
     uint32_t srcxorig = 0;
@@ -500,7 +519,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 
     // src stuff
     uint8_t* srcptr = psrc;
-    uint32_t srcpitch = (uint32_t)(ceilf((float)(srcxsize) / (8.0f / (float)srcdepth)));
+    uint32_t srcpitch = WidthInBytes(srcxsize, srcdepth);
     uint32_t palettesize = 0;
     uint32_t crc = 0;
 
@@ -1178,7 +1197,7 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
     uint32_t srcofs = 0;
     uint32_t dstbytes = (dstdepth + 7) >> 3;
     float dstpixelsperbyte = (8.0f / (float)dstdepth);
-    uint32_t dstpitch = (uint32_t)(ceilf((float)(dstxsize) / dstpixelsperbyte));
+    uint32_t dstpitch = WidthInBytes(dstxsize, dstdepth);
     uint32_t dstxskip = 1;
     uint32_t dstyskip = 1;
     uint32_t dstxorig = 0;
@@ -1760,7 +1779,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         }
     }
 
-    int32_t dstpitch = (int32_t)(ceilf((float)(xsize) / (8.0f / (float)(depth * bytesperpixel))) + 1) & ~1;
+    uint32_t dstpitch = (WidthInBytes(xsize, (depth * bytesperpixel)) + 1) & ~1;
 
     // idat chunks
     uint8_t* idatptr = (uint8_t*)malloc(((idatlen + 1) & ~1));
@@ -2748,7 +2767,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     uint8_t dstdepth = srcdepth;
 
     // dst stuff
-    uint32_t dstpitch = (uint32_t)(ceilf((float)(xextent) / (8.0f / (float)dstdepth)) + 3) & ~3;           // 4-byte boundary
+    uint32_t dstpitch = (WidthInBytes(xextent, dstdepth) + 3) & ~3;           // 4-byte boundary
     uint32_t dstpalettesize = 0;
 
     // palette
@@ -2761,7 +2780,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     }
 
     // src stuff
-    uint32_t srcpitch = (uint32_t)(ceilf((float)(xextent) / (8.0f / (float)srcdepth)));
+    uint32_t srcpitch = WidthInBytes(xextent, srcdepth);
     uint8_t* rawsrc = psrc;
     uint8_t* rawptr = psrc;
     uint8_t* rawbuf = psrc;
@@ -3322,7 +3341,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     bool rle = ((bmpinfo.compression == BI_RLE8) || (bmpinfo.compression == BI_RLE4));          // BI_RLE4=2 && BI_RLE8=1
     int32_t xsize = bmpinfo.width;
     int32_t ysize = bmpinfo.height;
-    int32_t pitch = (int32_t)(ceilf((float)(xsize) / (8.0f / (float)bmpinfo.bits)));
+    int32_t pitch = WidthInBytes(xsize, bmpinfo.bits);
     int32_t widthbytes = ((xsize * bmpinfo.bits + 31) >> 5) * 4;           // 4-byte boundary
     int32_t padbytes = widthbytes - pitch;
     int32_t rlecount = 0;
@@ -3627,11 +3646,11 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 
     // dst stuff
     uint8_t dstdepth = (srcdepth == 24) ? 8 : srcdepth;
-    uint32_t dstpitch = (uint32_t)(ceilf((float)(srcxsize) / (8.0f / (float)dstdepth)) + 1) & ~1;           // must be an even number
+    uint32_t dstpitch = (WidthInBytes(srcxsize, dstdepth) + 1) & ~1;           // must be an even number
 
     // src stuff
     uint32_t srcbytesperpixel = ((srcdepth == 24) ? 3 : 1);
-    uint32_t srcpitch = (uint32_t)(ceilf((float)(srcxsize) / (8.0f / (float)srcdepth)));
+    uint32_t srcpitch = WidthInBytes(srcxsize, srcdepth);
 
     if (srcdepth < 8)
     {
@@ -3950,7 +3969,7 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t xsize = (pcx.xMax - pcx.xMin) + 1;
     uint32_t ysize = (pcx.yMax - pcx.yMin) + 1;
     uint32_t bytesperscanline = pcx.bytesPerLine;
-    uint32_t pitch = (uint32_t)(ceilf((float)(xsize) / (8.0f / (float)pcx.bitsPerPixel)));
+    uint32_t pitch = WidthInBytes(xsize, pcx.bitsPerPixel);
     uint32_t padbytes = bytesperscanline - pitch;
     uint32_t totalbytes = pcx.numBitPlanes * pitch;
     uint32_t rlecount = 0;
