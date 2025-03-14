@@ -4112,7 +4112,8 @@ TriangleFilter(float t)
 
 //-----------------------------------------------------------------------------
 // Filter
-// TODO: handle scales of < 1.0f properly
+// When downscaling best to adhere scales of 0.5f and 0.25f, other scales produce some
+// artifacting.
 //-----------------------------------------------------------------------------
 static bool
 Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
@@ -4167,7 +4168,7 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
     float mid, min, max;
 
     // create intermediate image
-    tmpptr = (uint8_t*)malloc(dstysize * dstpitch);
+    tmpptr = (uint8_t*)malloc(srcysize * dstpitch);
     tmpbuf = tmpptr;
 
     xscale = (float)dstxsize / (float)srcxsize;
@@ -4177,12 +4178,11 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
     filter_list_t* filter = (filter_list_t*)malloc((dstxsize + 4) *
         sizeof(filter_list_t));
 
-    if (filter == NULL)
-    {
-        free(tmpptr);
-
+    if (filter == NULL) {
+        
         fprintf(stderr, "Filter: Out of memory\n");
-
+        free(tmpptr);
+        
         return false;
     }
 
@@ -4191,8 +4191,7 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
     fwidth = filterwidth;
     fscale = 1.0f;
 
-    if (xscale < 1.0f)
-    {
+    if (xscale < 1.0f) {
         fwidth /= xscale;
         fscale /= xscale;
     }
@@ -4203,17 +4202,17 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
         filter[i].info = (filter_info_t*)malloc((int)((fwidth * 2) + 1) *
             sizeof(filter_info_t));
 
-        if (filter[i].info == NULL)
-        {
+        if (filter[i].info == NULL) {
+
             for (int j = 0; j < (int)dstxsize - i; ++j)
             {
                 free(filter[j].info);
             }
 
+            fprintf(stderr, "Filter: Out of memory\n");
+            
             free(filter);
             free(tmpptr);
-
-            fprintf(stderr, "Filter: Out of memory\n");
 
             return false;
         }
@@ -4230,21 +4229,16 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
             pixelW = mid - (float)j;
             pixelW = filter_func(pixelW / fscale) / fscale;
 
-            if (j < 0)
-            {
+            if (j < 0) {
                 pixelN = -j;
-            }
-            else if (j >= (int)srcxsize)
-            {
+            } else if (j >= (int)srcxsize) {
                 pixelN = (srcxsize - j) + (srcxsize - 1);
-            }
-            else
-            {
+            } else {
                 pixelN = j;
             }
 
-            if (filter[i].size < ((fwidth * 2) + 1))
-            {
+            if (filter[i].size < ((fwidth * 2) + 1)) {
+
                 filter[i].info[filter[i].size].pixelN = pixelN;
                 filter[i].info[filter[i].size].pixelW = pixelW;
                 filter[i].size++;
@@ -4255,8 +4249,10 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
     // apply filter to horizontal axis from src to tmp
     raster = (uint8_t*)malloc((srcxsize + srcbytes) * srcbytes);
 
-    if (raster == NULL)
-    {
+    if (raster == NULL) {
+        
+        fprintf(stderr, "Filter: Out of memory\n");
+
         for (int i = 0; i < (int)dstxsize; ++i)
         {
             free(filter[i].info);
@@ -4265,36 +4261,16 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
         free(filter);
         free(tmpptr);
 
-        fprintf(stderr, "Filter: Out of memory\n");
-
         return false;
     }
 
     memset(raster, 0, (srcxsize + srcbytes) * srcbytes);
 
-    int bit = 0;
-
-    for (int k = 0; k < (int)dstysize; ++k)
+    for (int k = 0; k < (int)srcysize; ++k)
     {
         // get pixel row
         memset(raster, 0, (srcxsize + srcbytes) * srcbytes);
-
-        if ((k % srcysize) == 0)
-        {
-            bit ^= 1;
-        }
-
-        int m = (k / srcysize);
-        int n = 0;
-
-        if (bit == 0)
-        {
-            n = ((m * srcysize) - k) + (srcysize - 1);
-        }
-        else
-        {
-            n = (k - (m * srcysize));
-        }
+        int n = (k - ((k / srcysize) * srcysize));
 
         memcpy(raster, (srcbuf + (n * srcpitch)), srcpitch);
 
@@ -4328,11 +4304,10 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
     // pre-calculate filter contributions for a column
     filter = (filter_list_t*)malloc((dstysize + dstbytes) * sizeof(filter_list_t));
 
-    if (filter == NULL)
-    {
-        free(tmpptr);
+    if (filter == NULL) {
 
         fprintf(stderr, "Filter: Out of memory\n");
+        free(tmpptr);
 
         return false;
     }
@@ -4342,8 +4317,7 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
     fwidth = filterwidth;
     fscale = 1.0f;
 
-    if (yscale < 1.0f)
-    {
+    if (yscale < 1.0f) {
         fwidth /= yscale;
         fscale /= yscale;
     }
@@ -4354,8 +4328,10 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
         filter[i].info = (filter_info_t*)malloc((int)((fwidth * 2) + 1) *
             sizeof(filter_info_t));
 
-        if (filter[i].info == NULL)
-        {
+        if (filter[i].info == NULL) {
+            
+            fprintf(stderr, "Filter: Out of memory\n");
+
             for (int j = 0; j < (int)dstysize - i; ++j)
             {
                 free(filter[j].info);
@@ -4363,8 +4339,6 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
 
             free(filter);
             free(tmpptr);
-
-            fprintf(stderr, "Filter: Out of memory\n");
 
             return false;
         }
@@ -4382,21 +4356,16 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
             pixelW = mid - (float)j;
             pixelW = filter_func(pixelW / fscale) / fscale;
 
-            if (j < 0)
-            {
+            if (j < 0) {
                 pixelN = -j;
-            }
-            else if (j >= (int)dstysize)
-            {
-                pixelN = (dstysize - j) + (dstysize - 1);
-            }
-            else
-            {
+            } else if (j >= (int)srcysize) {
+                pixelN = (srcysize - j) + (srcysize - 1);
+            } else {
                 pixelN = j;
             }
 
-            if (filter[i].size < ((fwidth * 2) + 1))
-            {
+            if (filter[i].size < ((fwidth * 2) + 1)) {
+
                 filter[i].info[filter[i].size].pixelN = pixelN;
                 filter[i].info[filter[i].size].pixelW = pixelW;
                 filter[i].size++;
@@ -4405,10 +4374,12 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
     }
 
     // apply filter to vertical axis from tmp to dst
-    raster = (uint8_t*)malloc((dstysize + dstbytes) * dstbytes);
+    raster = (uint8_t*)malloc((srcysize + dstbytes) * dstbytes);
 
-    if (raster == NULL)
-    {
+    if (raster == NULL) {
+
+        fprintf(stderr, "Filter: Out of memory\n");
+
         for (int i = 0; i < (int)dstysize; ++i)
         {
             free(filter[i].info);
@@ -4417,19 +4388,17 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
         free(filter);
         free(tmpptr);
 
-        fprintf(stderr, "Filter: Out of memory\n");
-
         return false;
     }
 
-    memset(raster, 0, (dstysize + dstbytes) * dstbytes);
+    memset(raster, 0, (srcysize + dstbytes) * dstbytes);
 
     for (int k = 0; k < (int)dstxsize; ++k)
     {
         uint8_t* pbuf = tmpbuf + (k * dstbytes);
         uint8_t* rbuf = raster;
 
-        for (int y = dstysize; y > 0; y--)
+        for (int y = srcysize; y > 0; y--)
         {
             memcpy(rbuf, pbuf, dstbytes);
             rbuf += dstbytes;
