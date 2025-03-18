@@ -195,8 +195,8 @@ typedef struct _viewport
     uint32_t y;
     uint32_t w;
     uint32_t h;
-    float minZ;
-    float maxZ;
+    float    n;
+    float    f;
 } viewport_t;
 
 
@@ -1952,7 +1952,7 @@ inline matrix4_t Transformation3DMatrix4(const vector3_t scalingCenter,
 // constructs a viewport
 //-----------------------------------------------------------------------------
 inline viewport_t Viewport(uint32_t x = 0, uint32_t y = 0, uint32_t w = 0,
-    uint32_t h = 0, float minZ = 0.0f, float maxZ = 0.0f)
+    uint32_t h = 0, float n = 0.0f, float f = 0.0f)
 {
     viewport_t v = {};
 
@@ -1960,8 +1960,8 @@ inline viewport_t Viewport(uint32_t x = 0, uint32_t y = 0, uint32_t w = 0,
     v.y = y;
     v.w = w;
     v.h = h;
-    v.minZ = minZ;
-    v.maxZ = maxZ;
+    v.n = n;
+    v.f = f;
 
     return v;
 }
@@ -1976,8 +1976,8 @@ inline vector3_t ProjectViewport(const vector3_t v, const viewport_t viewport,
     // multiply world, view, projection, viewport
     const matrix4_t t = MultiplyMatrix4(OrthographicOffCenterLHMatrix4((float)viewport.x,
         (float)(viewport.x + viewport.w), (float)viewport.y,
-        (float)(viewport.y + viewport.h), viewport.minZ,
-        viewport.maxZ), MultiplyMatrix4(projection, MultiplyMatrix4(view, world)));
+        (float)(viewport.y + viewport.h), viewport.n,
+        viewport.f), MultiplyMatrix4(projection, MultiplyMatrix4(view, world)));
     return TransformVector3Coord(v, t);
 }
 
@@ -1995,7 +1995,7 @@ inline vector3_t UnprojectViewport(const vector3_t v, const viewport_t viewport,
             (float)(viewport.x + viewport.w),
             (float)viewport.y,
             (float)(viewport.y + viewport.h),
-            viewport.minZ, viewport.maxZ))));
+            viewport.n, viewport.f))));
 
     return TransformVector3Coord(v, t);
 }
