@@ -1724,27 +1724,41 @@ inline matrix4_t PerspectiveFovRHMatrix4(float fovy, float aspect, float zn, flo
 // builds a customized, left-handed perspective projection matrix
 //-----------------------------------------------------------------------------
 inline matrix4_t PerspectiveOffCenterLHMatrix4(float l, float r, float t, float b,
-    float zn, float zf)
+    float n, float f)
 {
+    float xScale = (2.0f * n) / (r - l);
+    float yScale = (2.0f * n) / (b - t);
+    float ta = (l + r) / (r - l);
+    float tb = (t + b) / (b - t);
+    float tc = f / (f - n);
+    float td = (-n * f) / (f - n);
+
     return Matrix4(
-        (2.0f * zn) / (r - l), 0.0f,                 0.0f,                 0.0f,
-        0.0f,                 (2.0f * zn) / (b - t), 0.0f,                 0.0f,
-        (l + r) / (r - l),    (t + b) / (b - t),     zf / (zf - zn),       1.0f,
-        0.0f,                  0.0f,               (-zn * zf) / (zf - zn), 0.0f
+        xScale,   0.0f, 0.0f,   0.0f,
+          0.0f, yScale, 0.0f,   0.0f,
+            ta,     tb,   tc,   1.0f,
+          0.0f,   0.0f,   td,   0.0f
     );
 }
 
 //-----------------------------------------------------------------------------
 // builds a customized, right-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveOffCenterMatrix4(float l, float r, float t, float b,
-    float zn, float zf)
+inline matrix4_t PerspectiveOffCenterRHMatrix4(float l, float r, float t, float b,
+    float n, float f)
 {
+    float xScale = (2.0f * n) / (r - l);
+    float yScale = (2.0f * n) / (b - t);
+    float ta = (l + r) / (r - l);
+    float tb = (t + b) / (b - t);
+    float tc = f / (n - f);
+    float td = (-n * f) / (n - f);
+
     return Matrix4(
-        (2.0f * zn) / (r - l), 0.0f,                 0.0f,                 0.0f,
-        0.0f,                 (2.0f * zn) / (b - t), 0.0f,                 0.0f,
-        (l + r) / (r - l),    (t + b) / (b - t),     zf / (zn - zf),       1.0f,
-        0.0f,                  0.0f,               (-zn * zf) / (zn - zf), 0.0f
+        xScale,   0.0f, 0.0f,   0.0f,
+          0.0f, yScale, 0.0f,   0.0f,
+            ta,     tb,    tc,  1.0f,
+          0.0f,   0.0f,    td,  0.0f
     );
 }
 
@@ -1951,7 +1965,7 @@ inline matrix4_t Transformation3DMatrix4(const vector3_t scalingCenter,
 //-----------------------------------------------------------------------------
 // constructs a viewport
 //-----------------------------------------------------------------------------
-inline viewport_t Viewport(uint32_t x = 0, uint32_t y = 0, uint32_t w = 0,
+inline viewport_t Viewport3d(uint32_t x = 0, uint32_t y = 0, uint32_t w = 0,
     uint32_t h = 0, float n = 0.0f, float f = 0.0f)
 {
     viewport_t v = {};
