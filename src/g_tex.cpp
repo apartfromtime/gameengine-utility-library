@@ -4110,10 +4110,93 @@ TriangleFilter(float t)
     return 0.0f;
 }
 
+static const float BELL_SUPPORT = 1.5f;
+
+static float
+BellFilter(float t)
+{
+    if (t < 0.0f) t = -t;
+    if (t < 0.5f) return (0.75f - (t * t));
+    if (t < 1.5f) {
+        t = (t - 1.5f);
+        return (0.5f * (t * t));
+    }
+    return 0.0f;
+}
+
+static const float B_SPLINE_SUPPORT = 2.0f;
+
+static float
+BSplineFilter(float t)
+{
+    float tt;
+
+    if (t < 0.0f) t = -t;
+    if (t < 1.0f) {
+        tt = t * t;
+        return ((0.5f * tt * t) - tt + (2.0f / 3.0f));
+    } else if (t < 2.0f) {
+        t = 2.0f - t;
+        return ((1.0f / 6.0f) * (t * t * t));
+    }
+    return 0.0f;
+}
+
+static const float CUBIC_SUPPORT = 1.0f;
+
+static float
+CubicFilter(float t)
+{
+    if (t < 0.0f) t = -t;
+    if (t < 1.0f) return ((2.0f * t - 3.0f) * t * t + 1.0f);
+    return 0.0f;
+}
+
+static float
+Sinc(float x)
+{
+    x *= M_PI;
+    if (x != 0.0f) return (sinf(x) / x);
+    return 1.0f;
+}
+
+static const float LANCZOS3_SUPPORT = 3.0f;
+
+static float
+Lanczos3Filter(float t)
+{
+    if (t < 0.0f) t = -t;
+    if (t < 3.0) return(Sinc(t) * Sinc(t / 3.0f));
+    return 0.0f;
+}
+
+static const float MITCHELL_SUPPORT = 2.0f;
+
+#define	B	(1.0f / 3.0f)
+#define	C	(1.0f / 3.0f)
+
+static float
+MitchellFilter(float t)
+{
+    float tt = t * t;
+    if (t < 0.0f) t = -t;
+    if (t < 1.0f) {
+        t = (((12.0f - 9.0f * B - 6.0f * C) * (t * tt))
+            + ((-18.0f + 12.0f * B + 6.0f * C) * tt)
+            + (6.0f - 2.0f * B));
+        return (t / 6.0f);
+    } else if (t < 2.0f) {
+        t = (((-1.0f * B - 6.0f * C) * (t * tt))
+            + ((6.0f * B + 30.0f * C) * tt)
+            + ((-12.0f * B - 48.0f * C) * t)
+            + (8.0f * B + 24.0f * C));
+        return (t / 6.0f);
+    }
+    return 0.0f;
+}
+
 //-----------------------------------------------------------------------------
 // Filter
-// When downscaling best to adhere scales of 0.5f and 0.25f, other scales produce some
-// artifacting.
 //-----------------------------------------------------------------------------
 static bool
 Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
@@ -4147,15 +4230,40 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
 
     switch (filtertype)
     {
-    case FILTER_POINT:
+    case FILTER_BOX:
     {
         filter_func = BoxFilter;
         filterwidth = BOX_SUPPORT;
     } break;
-    case FILTER_LINEAR:
+    case FILTER_TRIANGLE:
     {
         filter_func = TriangleFilter;
         filterwidth = TRIANGLE_SUPPORT;
+    } break;
+    case FILTER_BELL:
+    {
+        filter_func = BellFilter;
+        filterwidth = BELL_SUPPORT;
+    } break;
+    case FILTER_BSPLINE:
+    {
+        filter_func = BSplineFilter;
+        filterwidth = B_SPLINE_SUPPORT;
+    } break;
+    case FILTER_CUBIC:
+    {
+        filter_func = CubicFilter;
+        filterwidth = CUBIC_SUPPORT;
+    } break;
+    case FILTER_LANCZOS:
+    {
+        filter_func = Lanczos3Filter;
+        filterwidth = LANCZOS3_SUPPORT;
+    } break;
+    case FILTER_MITCHELL:
+    {
+        filter_func = MitchellFilter;
+        filterwidth = MITCHELL_SUPPORT;
     } break;
     }
 
@@ -4605,22 +4713,20 @@ Blit_Nbit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     for (size_t mask = bmask; (mask & 0x01) != 1; mask >>= 1) bshift++;
     for (size_t mask = amask; (mask & 0x01) != 1; mask >>= 1) ashift++;
 
-    if (srcformat == PIXELTYPE_LUMINANCE || srcbytes == 2 || srcbytes == 3 || srcbytes == 4)
-    {
+    if (srcformat == PIXELTYPE_LUMINANCE || srcbytes == 2 || srcbytes == 3 ||
+        srcbytes == 4) {
+        
         float fmod = 1.0f;
         float amod = 1.0f;
 
-        if (srcbytes == 3 || srcbytes == 4)
-        {
-            if (dstformat == PIXELTYPE_XBGR1555)
-            {
+        if (srcbytes == 3 || srcbytes == 4) {
+            if (dstformat == PIXELTYPE_XBGR1555) {
                 fmod = 31.0f / 255.0f;
                 amod = 1.0f;
             }
         }
 
-        if (srcbytes == 2)
-        {
+        if (srcbytes == 2) {
             fmod = 255.0f / 31.0f;
             amod = 255.0f;
 
@@ -5159,7 +5265,6 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         dstimage.data = (uint8_t*)malloc(srcysize * srcpitch);
 
         if (dstimage.data == NULL) {
-
             result = false;
             fprintf(stderr, "SaveImage: Out of memory.\n");
         } else {
@@ -5183,8 +5288,8 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             }
 
             // convert to dstformat
-            if (dstformat != psrcimage->pixeltype)
-            {
+            if (dstformat != psrcimage->pixeltype) {
+
                 uint8_t* tmpptr = (uint8_t*)malloc(srcysize * dstpitch);
 
                 Blit_Nbit_Nbit(tmpptr, srcxsize, srcysize, dstformat, pdstimage->data,
@@ -5448,8 +5553,8 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
     uint8_t depth = 0;
     file_format_t format = FILEFORMAT_NONE;
 
-    if (pdstimage != NULL)
-    {
+    if (pdstimage != NULL) {
+
         rgba_t pngcolorkey = { 0, 0, 0, 0 };
 
         if ((result = LoadFromMemoryPNG(&srcimage.data, &srcpalette, psrc,
@@ -5491,8 +5596,8 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
 
         } else { fprintf(stderr, "LoadImage, Unsupported image format\n"); }
 
-        if (result == true && psrcinfo != NULL)
-        {
+        if (result == true && psrcinfo != NULL) {
+
             psrcinfo->xsize = srcimage.xsize;
             psrcinfo->ysize = srcimage.ysize;
             psrcinfo->pixeltype = srcimage.pixeltype;
@@ -5502,8 +5607,8 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
 
         // expand packed type
         if ((format == FILEFORMAT_PNG || format == FILEFORMAT_BMP ||
-             format == FILEFORMAT_PCX) && depth <= 4 && result == true)
-        {
+             format == FILEFORMAT_PCX) && depth <= 4 && result == true) {
+
             uint32_t x = 0;
             uint32_t y = 0;
             uint8_t* pixels = (uint8_t*)malloc(srcimage.xsize * srcimage.ysize);
@@ -5554,8 +5659,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
 
             pixbuf = pixels;
 
-            if (srcimage.pixeltype == PIXELTYPE_LUMINANCE)
-            {
+            if (srcimage.pixeltype == PIXELTYPE_LUMINANCE) {
                 for (unsigned int i = 0; i < srcimage.xsize * srcimage.ysize; ++i)
                 {
                     *pixbuf++ *= scalebit[depth-1];
@@ -5687,6 +5791,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
 
         // copy to destination
         if (result == true) {
+
             uint8_t* bufdst = pdstimage->data + (dstyorigin * dstpitch) +
                 (dstxorigin * dstbytes);
             uint8_t* bufsrc = psrcimage->data + (srcyorigin * srcpitch) +
