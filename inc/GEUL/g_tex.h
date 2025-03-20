@@ -61,8 +61,13 @@ enum pixel_t
 enum filter_t
 {
     FILTER_NONE = 0,
-    FILTER_POINT,
-    FILTER_LINEAR,
+    FILTER_BOX,
+    FILTER_TRIANGLE,
+    FILTER_BELL,
+    FILTER_BSPLINE,
+    FILTER_CUBIC,
+    FILTER_LANCZOS,
+    FILTER_MITCHELL,
     FILTER_COUNT
 };
 
