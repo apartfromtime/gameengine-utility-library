@@ -253,7 +253,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
 
             if (filtertype == PNG_FILTER_ADAPTIVE && srcdepth >= 8)
             {
-                uint32_t sum[2] = { UINT32_MAX };           // FIXME: overflow?
+                uint32_t sum[2] = { UINT32_MAX };
 
                 for (int fltr = PNG_FILTER_NONE; fltr < PNG_FILTER_COUNT - 1; ++fltr)
                 {
