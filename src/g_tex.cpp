@@ -3324,28 +3324,6 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 //-----------------------------------------------------------------------------
 
 
-typedef struct _pcx_v5_info_s
-{
-    uint8_t  identifier;         // PCX Id Number (Always 0x0A)
-    uint8_t  version;            // Version Number
-    uint8_t  encoding;           // Encoding Format
-    uint8_t  bitsPerPixel;       // Bits Per Pixel
-    uint16_t xMin;               // Left of image
-    uint16_t yMin;               // Top of image
-    uint16_t xMax;               // Right of image
-    uint16_t yMax;               // Bottom of image
-    uint16_t horzRes;            // Horizontal Resolution
-    uint16_t vertRes;            // Vertical Resolution
-    uint8_t  palette[48];        // 16-Color EGA Palette
-    uint8_t  reserved1;          // Reserved (Always 0)
-    uint8_t  numBitPlanes;       // Number of Bit Planes
-    uint16_t bytesPerLine;       // Bytes Per Scan-line
-    uint16_t paletteType;        // Palette Type
-    uint16_t horzScreenSize;     // Horizontal Screen Size
-    uint16_t vertScreenSize;     // Vertical Screen Size
-    uint8_t  reserved2[54];      // Reserved (Always 0)
-} pcx_v5_info_t;
-
 // default 64 color ega palette
 static rgba_t ega_palette[16] = {
     {   0,   0,   0, 255 },
@@ -3588,47 +3566,44 @@ GetInfoFromMemoryPCX(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
     uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
 
-    pcx_v5_info_t pcx = {};
-
-    pcx.identifier      = *srcbuf++;
-    pcx.version         = *srcbuf++;
-    pcx.encoding        = *srcbuf++;
-    pcx.bitsPerPixel    = *srcbuf++;
-    pcx.xMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.yMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.xMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.yMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.horzRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.vertRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint8_t  identifier      = *srcbuf++;
+    uint8_t  version         = *srcbuf++;
+    uint8_t  encoding        = *srcbuf++;
+    uint8_t  bitsPerPixel    = *srcbuf++;
+    uint16_t xMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t yMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t xMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t yMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t horzRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t vertRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
     srcbuf += 49;           // 16-Color EGA Palette + Reserved1 (Always 0)
-    pcx.numBitPlanes    = *srcbuf++;
-    pcx.bytesPerLine    = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.paletteType     = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.horzScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.vertScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint8_t  numBitPlanes    = *srcbuf++;
+    uint16_t bytesPerLine    = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t paletteType     = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t horzScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t vertScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
     srcbuf += 54;           // Reserved2 (Always 0)
 
-    if (pcx.identifier != 0x0A) {
+    if (identifier != 0x0A) {
         return false;
     }
 
-    if (pcx.encoding != 1) {
+    if (encoding != 1) {
         return false;
     }
 
-    if (pcx.version != 0 && pcx.version != 2 && pcx.version != 3 &&
-        pcx.version != 4 && pcx.version != 5) {
+    if (version != 0 && version != 2 && version != 3 && version != 4 && version != 5) {
         return false;
     }
 
-    if (pcx.bitsPerPixel != 1 && pcx.bitsPerPixel != 2 &&
-        pcx.bitsPerPixel != 4 && pcx.bitsPerPixel != 8) {
+    if (bitsPerPixel != 1 && bitsPerPixel != 2 && bitsPerPixel != 4 &&
+        bitsPerPixel != 8) {
         return false;
     }
 
-    uint32_t xsize = (pcx.xMax - pcx.xMin) + 1;
-    uint32_t ysize = (pcx.yMax - pcx.yMin) + 1;
-    uint8_t depth = pcx.bitsPerPixel * pcx.numBitPlanes;
+    uint32_t xsize = (xMax - xMin) + 1;
+    uint32_t ysize = (yMax - yMin) + 1;
+    uint8_t depth = bitsPerPixel * numBitPlanes;
 
     if (srcxsize != NULL) { *srcxsize = xsize; }
     if (srcysize != NULL) { *srcysize = ysize; }
@@ -3653,57 +3628,55 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint8_t* srcbuf = psrc;
     uint8_t* srcend = psrc + psrcsize;
 
-    pcx_v5_info_t pcx = {};
-
-    pcx.identifier      = *srcbuf++;
-    pcx.version         = *srcbuf++;
-    pcx.encoding        = *srcbuf++;
-    pcx.bitsPerPixel    = *srcbuf++;
-    pcx.xMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.yMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.xMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.yMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.horzRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.vertRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint8_t  identifier      = *srcbuf++;
+    uint8_t  version         = *srcbuf++;
+    uint8_t  encoding        = *srcbuf++;
+    uint8_t  bitsPerPixel    = *srcbuf++;
+    uint16_t xMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t yMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t xMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t yMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t horzRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t vertRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
 
     uint8_t* egaptr = srcbuf;           // set pointer to 16-Color EGA Palette
     srcbuf += 49;           // 16-Color EGA Palette + Reserved1 (Always 0)
 
-    pcx.numBitPlanes    = *srcbuf++;
-    pcx.bytesPerLine    = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.paletteType     = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.horzScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
-    pcx.vertScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint8_t  numBitPlanes    = *srcbuf++;
+    uint16_t bytesPerLine    = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t paletteType     = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t horzScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
+    uint16_t vertScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
     srcbuf += 54;           // Reserved2 (Always 0)
 
-    if (pcx.identifier != 0x0A) {
-        fprintf(stderr, "PCX, Invalid manufacturer code: %d.\n", pcx.identifier);
+    if (identifier != 0x0A) {
+        fprintf(stderr, "PCX, Invalid manufacturer code: %d.\n", identifier);
         return false;
     }
 
-    if (pcx.encoding != 1) {
-        fprintf(stderr, "PCX, Invalid encoding value: %d.\n", pcx.encoding);
+    if (encoding != 1) {
+        fprintf(stderr, "PCX, Invalid encoding value: %d.\n", encoding);
         return false;
     }
 
-    if (pcx.version != 5) {
-        fprintf(stderr, "PCX, Version mismatch: %d.\n", pcx.version);
+    if (version != 5) {
+        fprintf(stderr, "PCX, Version mismatch: %d.\n", version);
         return false;
     }
 
-    if (pcx.bitsPerPixel != 1 && pcx.bitsPerPixel != 2 &&
-        pcx.bitsPerPixel != 4 && pcx.bitsPerPixel != 8) {
-        fprintf(stderr, "PCX, Unsupported depth: %d.\n", pcx.bitsPerPixel);
+    if (bitsPerPixel != 1 && bitsPerPixel != 2 && bitsPerPixel != 4 &&
+        bitsPerPixel != 8) {
+        fprintf(stderr, "PCX, Unsupported depth: %d.\n", bitsPerPixel);
         return false;
     }
 
-    uint32_t ncolorplanes = pcx.numBitPlanes;
-    uint32_t xsize = (pcx.xMax - pcx.xMin) + 1;
-    uint32_t ysize = (pcx.yMax - pcx.yMin) + 1;
-    uint32_t bytesperscanline = pcx.bytesPerLine;
-    uint32_t pitch = WidthInBytes(xsize, pcx.bitsPerPixel);
+    uint32_t ncolorplanes = numBitPlanes;
+    uint32_t xsize = (xMax - xMin) + 1;
+    uint32_t ysize = (yMax - yMin) + 1;
+    uint32_t bytesperscanline = bytesPerLine;
+    uint32_t pitch = WidthInBytes(xsize, bitsPerPixel);
     uint32_t padbytes = bytesperscanline - pitch;
-    uint32_t totalbytes = pcx.numBitPlanes * pitch;
+    uint32_t totalbytes = numBitPlanes * pitch;
     uint32_t rlecount = 0;
     uint32_t subtotal = 0;
     uint32_t colorplane = 0;
@@ -3722,7 +3695,7 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     *ppdst = pixels;
     if (srcxsize != NULL) { *srcxsize = xsize; }
     if (srcysize != NULL) { *srcysize = ysize; }
-    if (srcdepth != NULL) { *srcdepth = pcx.bitsPerPixel * pcx.numBitPlanes; }
+    if (srcdepth != NULL) { *srcdepth = bitsPerPixel * numBitPlanes; }
 
     uint32_t y = 0;
 
@@ -3762,12 +3735,12 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     }
 
     // palette
-    if (pcx.numBitPlanes == 1) {
+    if (numBitPlanes == 1) {
 
         uint32_t palnum = 0;
         uint8_t* palptr = NULL;
 
-        switch (pcx.bitsPerPixel)
+        switch (bitsPerPixel)
         {
         case 1:
         case 2:
@@ -4114,7 +4087,7 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
             {
                 pixelW = 0.0f;
 
-                for (int j = 0; j < filter[i].size; ++j)
+                for (uint32_t j = 0; j < filter[i].size; ++j)
                 {
                     pixelW += raster[((int)filter[i].info[j].pixelN *
                         srcbytes) + bpp] * filter[i].info[j].pixelW;
@@ -4245,7 +4218,7 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
             {
                 pixelW = 0.0f;
 
-                for (int j = 0; j < filter[i].size; ++j)
+                for (uint32_t j = 0; j < filter[i].size; ++j)
                 {
                     pixelW += raster[((int)filter[i].info[j].pixelN *
                         dstbytes) + bpp] * filter[i].info[j].pixelW;
