@@ -887,9 +887,9 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
     uint32_t interlace = 0;
     uint32_t gamma = 0;
     uint32_t palnum = 0;
-    uint8_t colorkey[3] = {};
-    uint8_t bytesperpixel = 0;
-    uint8_t sampledepth = 8;
+    uint8_t  colorkey[3] = {};
+    uint8_t  bytesperpixel = 0;
+    uint8_t  sampledepth = 8;
 
     // A valid PNG image must contain an IHDR chunk, one or more IDAT chunks, and an
     // IEND chunk.
@@ -2216,7 +2216,7 @@ GetInfoFromMemoryTGA(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
     uint16_t width              = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint16_t height             = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint8_t  pixel_size         = *srcbuf++;
-    uint8_t image_descriptor    = *srcbuf++;
+    uint8_t  image_descriptor   = *srcbuf++;
 
     if (colormap_type == 1) {
         if (image_type != TGA_MAPPED &&
@@ -2240,15 +2240,10 @@ GetInfoFromMemoryTGA(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
         return false;
     }
 
-    uint32_t xsize = width;
-    uint32_t ysize = height;
-    uint8_t  depth = pixel_size;
-    uint8_t  colormap = colormap_type;
-
-    if (srcxsize != NULL) { *srcxsize = xsize; }
-    if (srcysize != NULL) { *srcysize = ysize; }
-    if (srcdepth != NULL) { *srcdepth = depth; }
-    if (srccolormap != NULL) { *srccolormap = colormap; }
+    if (srcxsize != NULL) { *srcxsize = width; }
+    if (srcysize != NULL) { *srcysize = height; }
+    if (srcdepth != NULL) { *srcdepth = pixel_size; }
+    if (srccolormap != NULL) { *srccolormap = colormap_type; }
 
     return true;
 }
@@ -2919,8 +2914,8 @@ GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
 
     // info struct
     srcbuf += 4; // info size
-    int32_t  width       = ReadI32FromLE(srcbuf); srcbuf += 4;
-    int32_t  height      = ReadI32FromLE(srcbuf); srcbuf += 4;
+    int32_t  xsize       = ReadI32FromLE(srcbuf); srcbuf += 4;
+    int32_t  ysize       = ReadI32FromLE(srcbuf); srcbuf += 4;
     uint16_t planes      = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint16_t bits        = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint32_t compression = ReadU32FromLE(srcbuf); srcbuf += 4;
@@ -2930,8 +2925,8 @@ GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
         return false;
     }
 
-    if (srcxsize != NULL) { *srcxsize = width; }
-    if (srcysize != NULL) { *srcysize = ABS(height); }
+    if (srcxsize != NULL) { *srcxsize = xsize; }
+    if (srcysize != NULL) { *srcysize = ABS(ysize); }
     if (srcdepth != NULL) { *srcdepth = bits & 0xFF; }
 
     return true;
@@ -3523,13 +3518,9 @@ GetInfoFromMemoryPCX(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
         return false;
     }
 
-    uint32_t xsize = (xMax - xMin) + 1;
-    uint32_t ysize = (yMax - yMin) + 1;
-    uint8_t depth = bitsPerPixel * numBitPlanes;
-
-    if (srcxsize != NULL) { *srcxsize = xsize; }
-    if (srcysize != NULL) { *srcysize = ysize; }
-    if (srcdepth != NULL) { *srcdepth = depth; }
+    if (srcxsize != NULL) { *srcxsize = (xMax - xMin) + 1; }
+    if (srcysize != NULL) { *srcysize = (yMax - yMin) + 1; }
+    if (srcdepth != NULL) { *srcdepth = (bitsPerPixel * numBitPlanes); }
 
     return true;
 }
