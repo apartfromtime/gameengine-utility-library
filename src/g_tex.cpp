@@ -4166,6 +4166,28 @@ Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
     return result;
 }
 
+static uint8_t
+GetBytesForPixelFormat(pixel_t format)
+{
+    uint8_t bytes = 1;
+
+    switch (format)
+    {
+    case PIXELTYPE_RGBA:
+    case PIXELTYPE_ABGR:
+    case PIXELTYPE_BGRA:
+    { bytes++; }
+    case PIXELTYPE_RGB:
+    case PIXELTYPE_BGR:
+    { bytes++; }
+    case PIXELTYPE_XBGR1555:
+    case PIXELTYPE_LUMINANCE_ALPHA:
+    { bytes++; }
+    }
+
+    return bytes;
+}
+
 void
 GetMaskForPixelFormat(pixel_t format, uint32_t& rmask, uint32_t& gmask,
     uint32_t& bmask, uint32_t& amask)
@@ -4293,37 +4315,8 @@ Blit_Nbit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
     uint8_t b = 0;
     uint8_t a = 255;
     uint8_t v = 0;
-
-    uint8_t dstbytes = 1;
-    uint8_t srcbytes = 1;
-
-    switch (dstformat)
-    {
-    case PIXELTYPE_RGBA:
-    case PIXELTYPE_ABGR:
-    case PIXELTYPE_BGRA:
-    { dstbytes++; }
-    case PIXELTYPE_RGB:
-    case PIXELTYPE_BGR:
-    { dstbytes++; }
-    case PIXELTYPE_XBGR1555:
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    { dstbytes++; }
-    }
-
-    switch (srcformat)
-    {
-    case PIXELTYPE_RGBA:
-    case PIXELTYPE_ABGR:
-    case PIXELTYPE_BGRA:
-    { srcbytes++; }
-    case PIXELTYPE_RGB:
-    case PIXELTYPE_BGR:
-    { srcbytes++; }
-    case PIXELTYPE_XBGR1555:
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    { srcbytes++; }
-    }
+    uint8_t dstbytes = GetBytesForPixelFormat(dstformat);
+    uint8_t srcbytes = GetBytesForPixelFormat(srcformat);
 
     dstpitch = dstxsize * dstbytes;
     srcpitch = srcxsize * srcbytes;
@@ -4351,7 +4344,6 @@ Blit_Nbit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
         if (srcbytes == 2) {
             fmod = 255.0f / 31.0f;
             amod = 255.0f;
-
             if (srcformat == PIXELTYPE_LUMINANCE_ALPHA) {
                 fmod = 1.0f;
                 amod = 1.0f;
@@ -4439,9 +4431,7 @@ Blit_Nbit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
             bufdst += dstpitch;
             bufsrc += srcpitch;
         }
-    }
-    else
-    {
+    } else {
         float fmod = 31.0f / 255.0f;
         float amod = 1.0f;
 
@@ -4543,22 +4533,8 @@ FastFill(image_t* pimage, palette_t* ppalette, rgba_t dst, rgba_t src)
         return;
     }
 
-    bytes = 1;
-    pitch = pimage->xsize;
-
-    switch (pimage->pixeltype)
-    {
-    case PIXELTYPE_RGBA:
-    case PIXELTYPE_ABGR:
-    case PIXELTYPE_BGRA:
-    { pitch += pimage->xsize; bytes++; }
-    case PIXELTYPE_RGB:
-    case PIXELTYPE_BGR:
-    { pitch += pimage->xsize; bytes++; }
-    case PIXELTYPE_XBGR1555:
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    { pitch += pimage->xsize; bytes++; }
-    }
+    bytes = GetBytesForPixelFormat(pimage->pixeltype);
+    pitch = pimage->xsize * bytes;
 
     switch (pimage->pixeltype)
     {
@@ -4795,19 +4771,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             }
         }
 
-        switch (dstformat)
-        {
-        case PIXELTYPE_RGBA:
-        case PIXELTYPE_ABGR:
-        case PIXELTYPE_BGRA:
-        { depth += 8; }
-        case PIXELTYPE_RGB:
-        case PIXELTYPE_BGR:
-        { depth += 8; }
-        case PIXELTYPE_XBGR1555:
-        case PIXELTYPE_LUMINANCE_ALPHA:
-        { depth += 8; }
-        }
+        depth *= GetBytesForPixelFormat(dstformat);
 
         // src stuff
         rect_t srcrect = {};
@@ -4821,22 +4785,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
             srcrect = *psrcrect;
         }
 
-        uint8_t srcbytes = 1;
-
-        switch (psrcimage->pixeltype)
-        {
-        case PIXELTYPE_RGBA:
-        case PIXELTYPE_ABGR:
-        case PIXELTYPE_BGRA:
-        { srcbytes++; }
-        case PIXELTYPE_RGB:
-        case PIXELTYPE_BGR:
-        { srcbytes++; }
-        case PIXELTYPE_XBGR1555:
-        case PIXELTYPE_LUMINANCE_ALPHA:
-        { srcbytes++; }
-        }
-
+        uint8_t srcbytes = GetBytesForPixelFormat(psrcimage->pixeltype);
         uint32_t srcxorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[0]),
             psrcimage->xsize));
         uint32_t srcyorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[1]),
@@ -5007,22 +4956,16 @@ GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
         else if (depth == 16) { pixeltype = PIXELTYPE_LUMINANCE_ALPHA; }
         else if (depth <=  8 && colormap == 0) { pixeltype = PIXELTYPE_LUMINANCE; }
         else if (depth <=  8 && colormap == 1) { pixeltype = PIXELTYPE_COLOUR_INDEX; }
-
         format = FILEFORMAT_PNG;
-
     } else if ((result = GetInfoFromMemoryBMP(&xsize, &ysize, &depth, psrc,
         psrcsize)) == true) {
-        
         pixeltype = (depth == 32) ? PIXELTYPE_BGRA :
             (depth == 24) ? PIXELTYPE_BGR : PIXELTYPE_COLOUR_INDEX;
         format = FILEFORMAT_BMP;
-
     } else if ((result = GetInfoFromMemoryPCX(&xsize, &ysize, &depth, psrc,
         psrcsize)) == true) {
-        
         pixeltype = (depth <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;        
         format = FILEFORMAT_PCX;
-
     } else if ((result = GetInfoFromMemoryTGA(&colormap, &xsize, &ysize,
         &depth, psrc, psrcsize)) == true) {
         if (depth == 32) { pixeltype = PIXELTYPE_BGRA; }
@@ -5030,9 +4973,7 @@ GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
         else if (depth == 16) { pixeltype = PIXELTYPE_XBGR1555; }
         else if (depth ==  8 && colormap == 0) { pixeltype = PIXELTYPE_LUMINANCE; }
         else if (depth ==  8 && colormap == 1) { pixeltype = PIXELTYPE_COLOUR_INDEX; }
-        
         format = FILEFORMAT_TGA;
-
     } else { fprintf(stderr, "GetImageInfo, Unsupported image format\n"); }
 
     if (psrcinfo != NULL) {
@@ -5166,7 +5107,6 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         } else { fprintf(stderr, "LoadImage, Unsupported image format\n"); }
 
         if (result == true && psrcinfo != NULL) {
-
             psrcinfo->xsize = srcimage.xsize;
             psrcinfo->ysize = srcimage.ysize;
             psrcinfo->pixeltype = srcimage.pixeltype;
@@ -5252,28 +5192,11 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             dstrect = *pdstrect;
         }
 
-        uint8_t dstbytes = 1;
-
-        switch (dstformat)
-        {
-        case PIXELTYPE_UNKNOWN:
-        case PIXELTYPE_RGBA:
-        case PIXELTYPE_ABGR:
-        case PIXELTYPE_BGRA:
-        { dstbytes++; }
-        case PIXELTYPE_RGB:
-        case PIXELTYPE_BGR:
-        { dstbytes++; }
-        case PIXELTYPE_XBGR1555:
-        case PIXELTYPE_LUMINANCE_ALPHA:
-        { dstbytes++; }
-        }
-
+        uint8_t dstbytes = GetBytesForPixelFormat(dstformat);
         uint32_t dstxorigin = MAX(0, ABS(dstrect.min[0]));
         uint32_t dstyorigin = MAX(0, ABS(dstrect.min[1]));
         uint32_t dstxextent = ABS(dstrect.max[0]);
         uint32_t dstyextent = ABS(dstrect.max[1]);
-
         uint32_t dstxsize = dstxextent - dstxorigin;
         uint32_t dstysize = dstyextent - dstyorigin;
         uint32_t dstpitch = dstxextent * dstbytes;
@@ -5300,29 +5223,13 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             srcrect = *psrcrect;
         }
 
-        uint8_t srcbytes = 1;
-
-        switch (srcimage.pixeltype)
-        {
-        case PIXELTYPE_RGBA:
-        case PIXELTYPE_ABGR:
-        case PIXELTYPE_BGRA:
-        { srcbytes++; }
-        case PIXELTYPE_RGB:
-        case PIXELTYPE_BGR:
-        { srcbytes++; }
-        case PIXELTYPE_XBGR1555:
-        case PIXELTYPE_LUMINANCE_ALPHA:
-        { srcbytes++; }
-        }
-
+        uint8_t srcbytes = GetBytesForPixelFormat(srcimage.pixeltype);
         uint32_t srcxorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[0]),
             psrcimage->xsize));
         uint32_t srcyorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[1]),
             psrcimage->ysize));
         uint32_t srcxextent = psrcimage->xsize;
         uint32_t srcyextent = psrcimage->ysize;
-
         uint32_t srcxsize = srcxextent - srcxorigin;
         uint32_t srcysize = srcyextent - srcyorigin;
         uint32_t srcpitch = srcxextent * srcbytes;
