@@ -26,7 +26,6 @@
 #include "..\inc\GEUL\g_geul.h"
 
 #pragma warning (disable : 4244)            // conversion from <type> to <type>
-#pragma warning (disable : 4996)            // deprecation warning
 
 // returns width in bytes, depth must be bits per pixel
 static uint32_t
@@ -2933,7 +2932,7 @@ GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
 
     if (srcxsize != NULL) { *srcxsize = width; }
     if (srcysize != NULL) { *srcysize = ABS(height); }
-    if (srcdepth != NULL) { *srcdepth = bits; }
+    if (srcdepth != NULL) { *srcdepth = bits & 0xFF; }
 
     return true;
 }
@@ -4901,7 +4900,9 @@ SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec
     }
 
     // open file
-    FILE* hFile = fopen(pdstfile, "wb");
+    FILE* hFile = NULL;
+    
+    fopen_s(&hFile, pdstfile, "wb");
 
     uint32_t dstsize = 0;
     uint8_t* rawdst = NULL;
@@ -4968,7 +4969,7 @@ GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
         format = FILEFORMAT_BMP;
     } else if ((result = GetInfoFromMemoryPCX(&xsize, &ysize, &depth, psrc,
         psrcsize)) == true) {
-        pixeltype = (depth <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;        
+        pixeltype = (depth <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;
         format = FILEFORMAT_PCX;
     } else if ((result = GetInfoFromMemoryTGA(&colormap, &xsize, &ysize,
         &depth, psrc, psrcsize)) == true) {
@@ -5004,7 +5005,10 @@ GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
     }
 
     // open file
-    FILE* hFile = fopen(psrcfile, "rb");
+    FILE* hFile = NULL;
+
+    fopen_s(&hFile, psrcfile, "rb");
+    
     long end = 0;
     long pos = 0;
 
@@ -5078,7 +5082,6 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
     if (pdstimage != NULL) {
 
         rgba_t pngcolorkey = { 0, 0, 0, 0 };
-
         if ((result = LoadFromMemoryPNG(&srcimage.data, &srcpalette, psrc,
             srcsize, &srcimage.xsize, &srcimage.ysize, &depth, NULL,
             &pngcolorkey)) == true) {
@@ -5333,7 +5336,10 @@ LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
     }
 
     // open file
-    FILE* hFile = fopen(psrcfile, "rb");
+    FILE* hFile = NULL;
+    
+    fopen_s(&hFile, psrcfile, "rb");
+    
     long end = 0;
     long pos = 0;
 
