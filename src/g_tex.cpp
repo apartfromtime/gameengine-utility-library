@@ -4598,6 +4598,10 @@ FastFill(image_t* pimage, palette_t* ppalette, rgba_t dst, rgba_t src)
         int32_t dstindex = -1;
         int32_t srcindex = -1;
 
+        if (ppalette == NULL) {
+            return;
+        }
+
         for (uint32_t i = 0; i < ppalette->size; ++i)
         {
             if (ppalette->data[i].r == dst.r &&
@@ -4620,7 +4624,7 @@ FastFill(image_t* pimage, palette_t* ppalette, rgba_t dst, rgba_t src)
             }
         }
 
-        if (dstindex == -1 || srcindex == -1 || ppalette == NULL) {
+        if (dstindex == -1 || srcindex == -1) {
             return;
         }
 

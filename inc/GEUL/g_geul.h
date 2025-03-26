@@ -26,7 +26,7 @@
 
 #define GEUL_MAJOR_VERSION      1
 #define GEUL_MINOR_VERSION      1
-#define GEUL_PATCH_VERSION      1
+#define GEUL_PATCH_VERSION      2
 
 //-----------------------------------------------------------------------------
 // Operating System and CPU.
