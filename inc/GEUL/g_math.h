@@ -75,84 +75,55 @@
 typedef unsigned char byte1_t;
 
 // BYTE2
-typedef struct _byte2
+typedef union _byte2
 {
-    union
+    struct
     {
-        struct
-        {
-            uint16_t n;
-        };
-
-        struct
-        {
-            uint8_t n0;
-            uint8_t n1;
-        };
+        uint8_t n0;
+        uint8_t n1;
     };
+    uint16_t n;
 } byte2_t;
 
 // BYTE3
-typedef struct _byte3
+typedef union _byte3
 {
-    union
+    struct
     {
-        struct
-        {
-            uint32_t n;
-        };
-
-        struct
-        {
-            uint8_t n0;
-            uint8_t n1;
-            uint8_t n2;
-            uint8_t pad;
-        };
+        uint8_t n0;
+        uint8_t n1;
+        uint8_t n2;
+        uint8_t pad;
     };
+    uint32_t n;
 } byte3_t;
 
 // BYTE4
-typedef struct _byte4
+typedef union _byte4
 {
-    union
+    struct
     {
-        struct
-        {
-            uint32_t n;
-        };
-
-        struct
-        {
-            uint8_t n0;
-            uint8_t n1;
-            uint8_t n2;
-            uint8_t n3;
-        };
+        uint8_t n0;
+        uint8_t n1;
+        uint8_t n2;
+        uint8_t n3;
     };
+    uint32_t n;
 } byte4_t;
-
-// COLOR
-typedef struct _color
-{
-    float r;
-    float g;
-    float b;
-    float a;
-} color_t;
-
-// RECTANGLE
-typedef struct _rect
-{
-    long min[2];
-    long max[2];
-} rect_t;
 
 // VECTOR2
 typedef struct _vector2
 {
     float x;
     float y;
+    float GetIndex(byte1_t index) {
+        switch (index)
+        {
+        case 0: { return x; }
+        case 1: { return y; }
+        }
+        return 0.0f;
+    }
 } vector2_t;
 
 // VECTOR3
@@ -162,6 +133,15 @@ typedef struct _vector3
     float y;
     float z;
     float pad;
+    float GetIndex(byte1_t index) {
+        switch (index)
+        {
+        case 0: { return x; }
+        case 1: { return y; }
+        case 2: { return z; }
+        }
+        return 0.0f;
+    }
 } vector3_t;
 
 // VECTOR4
@@ -171,12 +151,58 @@ typedef struct _vector4
     float y;
     float z;
     float w;
+    float GetIndex(byte1_t index) {
+        switch (index)
+        {
+        case 0: { return x; }
+        case 1: { return y; }
+        case 2: { return z; }
+        case 3: { return w; }
+        }
+        return 0.0f;
+    }
 } vector4_t;
 
 // MATRIX4
 typedef struct _matrix4_t
 {
-    float n[16];
+    vector4_t n[4];
+    vector4_t GetRow(byte1_t index) { return n[index]; }
+    vector4_t GetCol(byte1_t index) {
+        vector4_t v = { 0 };
+        switch (index)
+        {
+        case 0:
+        {
+            v.x = n[0].x;
+            v.y = n[1].x;
+            v.z = n[2].x;
+            v.w = n[3].x;
+        } break;
+        case 1:
+        {
+            v.x = n[0].y;
+            v.y = n[1].y;
+            v.z = n[2].y;
+            v.w = n[3].y;
+        } break;
+        case 2:
+        {
+            v.x = n[0].z;
+            v.y = n[1].z;
+            v.z = n[2].z;
+            v.w = n[3].z;
+        } break;
+        case 3:
+        {
+            v.x = n[0].w;
+            v.y = n[1].w;
+            v.z = n[2].w;
+            v.w = n[3].w;
+        } break;
+        }
+        return v;
+    }
 } matrix4_t;
 
 // PLANE
@@ -186,17 +212,57 @@ typedef struct _plane
     float b;
     float c;
     float d;
+    float GetIndex(byte1_t index) {
+        switch (index)
+        {
+        case 0: { return a; }
+        case 1: { return b; }
+        case 2: { return c; }
+        case 3: { return d; }
+        }
+        return 0.0f;
+    }
 } plane_t;
+
+// COLOR
+typedef struct _color
+{
+    float r;
+    float g;
+    float b;
+    float a;
+    float GetIndex(byte1_t index) {
+        switch (index)
+        {
+        case 0: { return r; }
+        case 1: { return g; }
+        case 2: { return b; }
+        case 3: { return a; }
+        }
+        return 0.0f;
+    }
+} color_t;
+
+// RECTANGLE
+typedef struct _rect
+{
+    vector2_t min;
+    vector2_t max;
+    vector2_t GetMin() { return min; }
+    vector2_t GetMax() { return max; }
+} rect_t;
 
 // VIEWPORT
 typedef struct _viewport
 {
-    uint32_t x;
-    uint32_t y;
-    uint32_t w;
-    uint32_t h;
-    float    n;
-    float    f;
+    float x;
+    float y;
+    float w;
+    float h;
+    float n;
+    float f;
+    float pad0;
+    float pad1;
 } viewport_t;
 
 
@@ -404,14 +470,15 @@ inline byte4_t BGRAColor(const color_t& color) noexcept
 //-----------------------------------------------------------------------------
 // constructs a rectangle
 //-----------------------------------------------------------------------------
-inline rect_t Rectangle(long x0 = 0, long y0 = 0, long x1 = 0, long y1 = 0)
+inline rect_t Rectangle(float x0 = 0.0f, float y0 = 0.0f, float x1 = 0.0f,
+    float y1 = 0.0f)
 {
     rect_t r = {};
 
-    r.min[0] = x0;
-    r.min[1] = y0;
-    r.max[0] = x1;
-    r.max[1] = y1;
+    r.min.x = x0;
+    r.min.y = y0;
+    r.max.x = x1;
+    r.max.y = y1;
 
     return r;
 }
@@ -421,10 +488,10 @@ inline rect_t Rectangle(long x0 = 0, long y0 = 0, long x1 = 0, long y1 = 0)
 //-----------------------------------------------------------------------------
 inline bool IntersectsRectangle(const rect_t& r0, const rect_t& r1)
 {
-    const long minX = r0.max[0] < r1.max[0] ? r0.max[0] : r1.max[0];
-    const long minY = r0.max[1] < r1.max[1] ? r0.max[1] : r1.max[1];
-    const long maxX = r0.min[0] > r1.min[1] ? r0.min[0] : r1.min[0];
-    const long maxY = r0.min[1] > r1.min[1] ? r0.min[1] : r1.min[1];
+    const float minX = r0.max.x < r1.max.x ? r0.max.x : r1.max.x;
+    const float minY = r0.max.y < r1.max.y ? r0.max.y : r1.max.y;
+    const float maxX = r0.min.x > r1.min.y ? r0.min.x : r1.min.x;
+    const float maxY = r0.min.y > r1.min.y ? r0.min.y : r1.min.y;
 
     if (minX > maxX && minY > maxY)
     {
@@ -437,10 +504,10 @@ inline bool IntersectsRectangle(const rect_t& r0, const rect_t& r1)
 //-----------------------------------------------------------------------------
 // returns true if point is outside the specified rectangle
 //-----------------------------------------------------------------------------
-inline bool ContainsRectangle(const rect_t& rect, long x, long y)
+inline bool ContainsRectangle(const rect_t& rect, float x, float y)
 {
-    if ((rect.min[0] <= x && x < rect.max[0]) &&
-        (rect.min[1] <= y && y < rect.max[1]))
+    if ((rect.min.x <= x && x < rect.max.x) &&
+        (rect.min.y <= y && y < rect.max.y))
     {
         return true;
     }
@@ -453,8 +520,8 @@ inline bool ContainsRectangle(const rect_t& rect, long x, long y)
 //-----------------------------------------------------------------------------
 inline bool OutsideRectangle(const rect_t& rect, long x, long y)
 {
-    if (x < rect.min[0] || x > rect.max[0] ||
-        y < rect.min[1] || y > rect.max[1])
+    if (x < rect.min.x || x > rect.max.x ||
+        y < rect.min.y || y > rect.max.y)
     {
         return true;
     }
@@ -467,10 +534,10 @@ inline bool OutsideRectangle(const rect_t& rect, long x, long y)
 //-----------------------------------------------------------------------------
 inline void DeflateRectangle(rect_t& rect, long h, long v)
 {
-    rect.min[0] += h >> 1;
-    rect.min[1] += v >> 1;
-    rect.max[0] -= h >> 1;
-    rect.max[1] -= v >> 1;
+    rect.min.x += h >> 1;
+    rect.min.y += v >> 1;
+    rect.max.x -= h >> 1;
+    rect.max.y -= v >> 1;
 }
 
 //-----------------------------------------------------------------------------
@@ -478,10 +545,10 @@ inline void DeflateRectangle(rect_t& rect, long h, long v)
 //-----------------------------------------------------------------------------
 inline void InflateRectangle(rect_t& rect, long h, long v)
 {
-    rect.min[0] -= h >> 1;
-    rect.min[1] -= v >> 1;
-    rect.max[0] += h >> 1;
-    rect.max[1] += v >> 1;
+    rect.min.x -= h >> 1;
+    rect.min.y -= v >> 1;
+    rect.max.x += h >> 1;
+    rect.max.y += v >> 1;
 }
 
 //-----------------------------------------------------------------------------
@@ -489,10 +556,10 @@ inline void InflateRectangle(rect_t& rect, long h, long v)
 //-----------------------------------------------------------------------------
 inline void OffsetRectangle(rect_t& rect, long x, long y)
 {
-    rect.min[0] += x;
-    rect.min[1] += y;
-    rect.max[0] += x;
-    rect.max[1] += y;
+    rect.min.x += x;
+    rect.min.y += y;
+    rect.max.x += x;
+    rect.max.y += y;
 }
 
 
@@ -740,10 +807,10 @@ inline vector4_t TransformVector4(vector4_t v, matrix4_t m)
 {
     vector4_t a = Vector4();
 
-    a.x = v.x * m.n[ 0] + v.y * m.n[ 4] + v.z * m.n[ 8] + v.w * m.n[12];
-    a.y = v.x * m.n[ 1] + v.y * m.n[ 5] + v.z * m.n[ 9] + v.w * m.n[13];
-    a.z = v.x * m.n[ 2] + v.y * m.n[ 6] + v.z * m.n[10] + v.w * m.n[14];
-    a.w = v.x * m.n[ 3] + v.y * m.n[ 7] + v.z * m.n[11] + v.w * m.n[15];
+    a.x = v.x * m.n[0].x + v.y * m.n[1].x + v.z * m.n[2].x + v.w * m.n[3].x;
+    a.y = v.x * m.n[0].y + v.y * m.n[1].y + v.z * m.n[2].y + v.w * m.n[3].y;
+    a.z = v.x * m.n[0].z + v.y * m.n[1].z + v.z * m.n[2].z + v.w * m.n[3].z;
+    a.w = v.x * m.n[0].w + v.y * m.n[1].w + v.z * m.n[2].w + v.w * m.n[3].w;
 
     return a;
 }
@@ -974,10 +1041,10 @@ inline vector4_t TransformVector3(vector3_t v, matrix4_t m)
 {
     vector4_t a = Vector4();
 
-    a.x = v.x * m.n[ 0] + v.y * m.n[ 4] + v.z * m.n[ 8] + m.n[12];
-    a.y = v.x * m.n[ 1] + v.y * m.n[ 5] + v.z * m.n[ 9] + m.n[13];
-    a.z = v.x * m.n[ 2] + v.y * m.n[ 6] + v.z * m.n[10] + m.n[14];
-    a.w = v.x * m.n[ 3] + v.y * m.n[ 7] + v.z * m.n[11] + m.n[15];
+    a.x = v.x * m.n[0].x + v.y * m.n[1].x + v.z * m.n[2].x + m.n[3].x;
+    a.y = v.x * m.n[0].y + v.y * m.n[1].y + v.z * m.n[2].y + m.n[3].y;
+    a.z = v.x * m.n[0].z + v.y * m.n[1].z + v.z * m.n[2].z + m.n[3].z;
+    a.w = v.x * m.n[0].w + v.y * m.n[1].w + v.z * m.n[2].w + m.n[3].w;
 
     return a;
 }
@@ -989,9 +1056,9 @@ inline vector3_t TransformVector3Coord(vector3_t v, matrix4_t m)
 {
     vector3_t a = Vector3();
 
-    a.x = v.x * m.n[ 0] + v.y * m.n[ 4] + v.z * m.n[ 8] + m.n[12];
-    a.y = v.x * m.n[ 1] + v.y * m.n[ 5] + v.z * m.n[ 9] + m.n[13];
-    a.z = v.x * m.n[ 2] + v.y * m.n[ 6] + v.z * m.n[10] + m.n[14];
+    a.x = v.x * m.n[0].x + v.y * m.n[1].x + v.z * m.n[2].x + m.n[3].x;
+    a.y = v.x * m.n[0].y + v.y * m.n[1].y + v.z * m.n[2].y + m.n[3].y;
+    a.z = v.x * m.n[0].z + v.y * m.n[1].z + v.z * m.n[2].z + m.n[3].z;
 
     return a;
 }
@@ -1003,9 +1070,9 @@ inline vector3_t TransformVector3Normal(const vector3_t v, const matrix4_t m)
 {
     vector3_t a = Vector3();
 
-    a.x = v.x * m.n[ 0] + v.y * m.n[ 4] + v.z * m.n[ 8] + m.n[12];
-    a.y = v.x * m.n[ 1] + v.y * m.n[ 5] + v.z * m.n[ 9] + m.n[13];
-    a.z = v.x * m.n[ 2] + v.y * m.n[ 6] + v.z * m.n[10] + m.n[14];
+    a.x = v.x * m.n[0].x + v.y * m.n[1].x + v.z * m.n[2].x;
+    a.y = v.x * m.n[0].y + v.y * m.n[1].y + v.z * m.n[2].y;
+    a.z = v.x * m.n[0].z + v.y * m.n[1].z + v.z * m.n[2].z;
 
     return a;	
 }
@@ -1220,10 +1287,10 @@ inline vector4_t TransformVector2(const vector2_t v, const matrix4_t m)
 {
     vector4_t a = Vector4();
 
-    a.x = v.x * m.n[ 0] + v.y * m.n[ 4];
-    a.y = v.x * m.n[ 1] + v.y * m.n[ 5];
+    a.x = v.x * m.n[0].x + v.y * m.n[1].x;
+    a.y = v.x * m.n[0].y + v.y * m.n[1].y;
     a.z = 0.0f;
-    a.w = v.x * m.n[ 3] + v.y * m.n[ 7];
+    a.w = v.x * m.n[0].w + v.y * m.n[1].w;
 
     return a;
 }
@@ -1235,8 +1302,8 @@ inline vector2_t TransformVector2Coord(const vector2_t v, const matrix4_t m)
 {
     vector2_t a = Vector2();
 
-    a.x = v.x * m.n[ 0] + v.y * m.n[ 4] + m.n[12];
-    a.y = v.x * m.n[ 1] + v.y * m.n[ 5] + m.n[13];
+    a.x = v.x * m.n[0].x + v.y * m.n[1].x + m.n[3].x;
+    a.y = v.x * m.n[0].y + v.y * m.n[1].y + m.n[3].y;
 
     return a;
 }
@@ -1248,8 +1315,8 @@ inline vector2_t TransformVector2Normal(const vector2_t v, const matrix4_t m)
 {
     vector2_t a = Vector2();
 
-    a.x = v.x * m.n[ 0] + v.y * m.n[ 4];
-    a.y = v.x * m.n[ 1] + v.y * m.n[ 5];
+    a.x = v.x * m.n[0].x + v.y * m.n[1].x;
+    a.y = v.x * m.n[0].y + v.y * m.n[1].y;
 
     return a;	
 }
@@ -1408,36 +1475,33 @@ inline plane_t TransformPlane(plane_t p, matrix4_t m)
 //-----------------------------------------------------------------------------
 
 
-#define EPSILON 0.0001
-#define FLOAT_EQ(x, v) (((v - EPSILON) < x) && (x < (v + EPSILON)))
-
 //-----------------------------------------------------------------------------
 // creates an identity matrix
 //-----------------------------------------------------------------------------
 inline matrix4_t Matrix4(
-    float _11 = 1.0f, float _12 = 0.0f, float _13 = 0.0f, float _14 = 0.0f,
-    float _21 = 0.0f, float _22 = 1.0f, float _23 = 0.0f, float _24 = 0.0f,
-    float _31 = 0.0f, float _32 = 0.0f, float _33 = 1.0f, float _34 = 0.0f,
-    float _41 = 0.0f, float _42 = 0.0f, float _43 = 0.0f, float _44 = 1.0f)
+    float _00 = 1.0f, float _01 = 0.0f, float _02 = 0.0f, float _03 = 0.0f,
+    float _10 = 0.0f, float _11 = 1.0f, float _12 = 0.0f, float _13 = 0.0f,
+    float _20 = 0.0f, float _21 = 0.0f, float _22 = 1.0f, float _23 = 0.0f,
+    float _30 = 0.0f, float _31 = 0.0f, float _32 = 0.0f, float _33 = 1.0f)
 {
-    matrix4_t m = {};
+    matrix4_t m = { 0 };
 
-    m.n[ 0] = _11;
-    m.n[ 1] = _12;
-    m.n[ 2] = _13;
-    m.n[ 3] = _14;
-    m.n[ 4] = _21;
-    m.n[ 5] = _22;
-    m.n[ 6] = _23;
-    m.n[ 7] = _24;
-    m.n[ 8] = _31;
-    m.n[ 9] = _32;
-    m.n[10] = _33;
-    m.n[11] = _34;
-    m.n[12] = _41;
-    m.n[13] = _42;
-    m.n[14] = _43;
-    m.n[15] = _44;
+    m.n[0].x = _00;
+    m.n[0].y = _01;
+    m.n[0].z = _02;
+    m.n[0].w = _03;
+    m.n[1].x = _10;
+    m.n[1].y = _11;
+    m.n[1].z = _12;
+    m.n[1].w = _13;
+    m.n[2].x = _20;
+    m.n[2].y = _21;
+    m.n[2].z = _22;
+    m.n[2].w = _23;
+    m.n[3].x = _30;
+    m.n[3].y = _31;
+    m.n[3].z = _32;
+    m.n[3].w = _33;
 
     return m;
 }
@@ -1447,18 +1511,18 @@ inline matrix4_t Matrix4(
 //-----------------------------------------------------------------------------
 inline float DeterminantMatrix4(const matrix4_t m)
 {
-    const float a0 = (m.n[ 0] * m.n[ 5]) - (m.n[ 4] * m.n[ 1]);
-    const float a1 = (m.n[ 0] * m.n[ 6]) - (m.n[ 4] * m.n[ 2]);
-    const float a2 = (m.n[ 0] * m.n[ 7]) - (m.n[ 4] * m.n[ 3]);
-    const float a3 = (m.n[ 1] * m.n[ 6]) - (m.n[ 5] * m.n[ 2]);
-    const float a4 = (m.n[ 1] * m.n[ 7]) - (m.n[ 5] * m.n[ 3]);
-    const float a5 = (m.n[ 2] * m.n[ 7]) - (m.n[ 6] * m.n[ 3]);
-    const float b0 = (m.n[ 8] * m.n[13]) - (m.n[12] * m.n[ 9]);
-    const float b1 = (m.n[ 8] * m.n[14]) - (m.n[12] * m.n[10]);
-    const float b2 = (m.n[ 8] * m.n[15]) - (m.n[12] * m.n[11]);
-    const float b3 = (m.n[ 9] * m.n[14]) - (m.n[13] * m.n[10]);
-    const float b4 = (m.n[ 9] * m.n[15]) - (m.n[13] * m.n[11]);
-    const float b5 = (m.n[10] * m.n[15]) - (m.n[14] * m.n[11]);
+    const float a0 = (m.n[0].x * m.n[1].y) - (m.n[1].x * m.n[0].y);
+    const float a1 = (m.n[0].x * m.n[1].z) - (m.n[1].x * m.n[0].z);
+    const float a2 = (m.n[0].x * m.n[1].w) - (m.n[1].x * m.n[0].w);
+    const float a3 = (m.n[0].y * m.n[1].z) - (m.n[1].y * m.n[0].z);
+    const float a4 = (m.n[0].y * m.n[1].w) - (m.n[1].y * m.n[0].w);
+    const float a5 = (m.n[0].z * m.n[1].w) - (m.n[1].z * m.n[0].w);
+    const float b0 = (m.n[2].x * m.n[3].y) - (m.n[3].x * m.n[2].y);
+    const float b1 = (m.n[2].x * m.n[3].z) - (m.n[3].x * m.n[2].z);
+    const float b2 = (m.n[2].x * m.n[3].w) - (m.n[3].x * m.n[2].w);
+    const float b3 = (m.n[2].y * m.n[3].z) - (m.n[3].y * m.n[2].z);
+    const float b4 = (m.n[2].y * m.n[3].w) - (m.n[3].y * m.n[2].w);
+    const float b5 = (m.n[2].z * m.n[3].w) - (m.n[3].z * m.n[2].w);
 
     const float d = (a0 * b5) - (a1 * b4) + (a2 * b3) + (a3 * b2) - (a4 * b1) +
         (a5 * b0);
@@ -1471,18 +1535,18 @@ inline float DeterminantMatrix4(const matrix4_t m)
 //-----------------------------------------------------------------------------
 inline matrix4_t InverseMatrix4(const matrix4_t m)
 {
-    const float a0 = (m.n[ 0] * m.n[ 5]) - (m.n[ 4] * m.n[ 1]);
-    const float a1 = (m.n[ 0] * m.n[ 6]) - (m.n[ 4] * m.n[ 2]);
-    const float a2 = (m.n[ 0] * m.n[ 7]) - (m.n[ 4] * m.n[ 3]);
-    const float a3 = (m.n[ 1] * m.n[ 6]) - (m.n[ 5] * m.n[ 2]);
-    const float a4 = (m.n[ 1] * m.n[ 7]) - (m.n[ 5] * m.n[ 3]);
-    const float a5 = (m.n[ 2] * m.n[ 7]) - (m.n[ 6] * m.n[ 3]);
-    const float b0 = (m.n[ 8] * m.n[13]) - (m.n[12] * m.n[ 9]);
-    const float b1 = (m.n[ 8] * m.n[14]) - (m.n[12] * m.n[10]);
-    const float b2 = (m.n[ 8] * m.n[15]) - (m.n[12] * m.n[11]);
-    const float b3 = (m.n[ 9] * m.n[14]) - (m.n[13] * m.n[10]);
-    const float b4 = (m.n[ 9] * m.n[15]) - (m.n[13] * m.n[11]);
-    const float b5 = (m.n[10] * m.n[15]) - (m.n[14] * m.n[11]);
+    const float a0 = (m.n[0].x * m.n[1].y) - (m.n[1].x * m.n[0].y);
+    const float a1 = (m.n[0].x * m.n[1].z) - (m.n[1].x * m.n[0].z);
+    const float a2 = (m.n[0].x * m.n[1].w) - (m.n[1].x * m.n[0].w);
+    const float a3 = (m.n[0].y * m.n[1].z) - (m.n[1].y * m.n[0].z);
+    const float a4 = (m.n[0].y * m.n[1].w) - (m.n[1].y * m.n[0].w);
+    const float a5 = (m.n[0].z * m.n[1].w) - (m.n[1].z * m.n[0].w);
+    const float b0 = (m.n[2].x * m.n[3].y) - (m.n[3].x * m.n[2].y);
+    const float b1 = (m.n[2].x * m.n[3].z) - (m.n[3].x * m.n[2].z);
+    const float b2 = (m.n[2].x * m.n[3].w) - (m.n[3].x * m.n[2].w);
+    const float b3 = (m.n[2].y * m.n[3].z) - (m.n[3].y * m.n[2].z);
+    const float b4 = (m.n[2].y * m.n[3].w) - (m.n[3].y * m.n[2].w);
+    const float b5 = (m.n[2].z * m.n[3].w) - (m.n[3].z * m.n[2].w);
 
     const float d = (a0 * b5) - (a1 * b4) + (a2 * b3) + (a3 * b2) - (a4 * b1) +
         (a5 * b0);
@@ -1495,25 +1559,25 @@ inline matrix4_t InverseMatrix4(const matrix4_t m)
     const float id = 1.0f / d;
 
     matrix4_t a = Matrix4();
-    a.n[ 0] = ((m.n[ 5] * b5) - (m.n[ 6] * b4) + (m.n[ 7] * b3)) * id;
-    a.n[ 4] = ((m.n[ 4] * b5) + (m.n[ 6] * b2) - (m.n[ 7] * b1)) * id;
-    a.n[ 8] = ((m.n[ 4] * b4) - (m.n[ 5] * b2) + (m.n[ 7] * b0)) * id;
-    a.n[12] = ((m.n[ 4] * b3) + (m.n[ 5] * b1) - (m.n[ 6] * b0)) * id;
+    a.n[0].x = ((m.n[1].y * b5) - (m.n[1].z * b4) + (m.n[1].w * b3)) * id;
+    a.n[1].x = ((m.n[1].x * b5) + (m.n[1].z * b2) - (m.n[1].w * b1)) * id;
+    a.n[2].x = ((m.n[1].x * b4) - (m.n[1].y * b2) + (m.n[1].w * b0)) * id;
+    a.n[3].x = ((m.n[1].x * b3) + (m.n[1].y * b1) - (m.n[1].z * b0)) * id;
 
-    a.n[ 1] = ((m.n[ 1] * b5) + (m.n[ 2] * b4) - (m.n[ 3] * b3)) * id;
-    a.n[ 5] = ((m.n[ 0] * b5) - (m.n[ 2] * b2) + (m.n[ 3] * b1)) * id;
-    a.n[ 9] = ((m.n[ 0] * b4) + (m.n[ 1] * b2) - (m.n[ 3] * b0)) * id;
-    a.n[13] = ((m.n[ 0] * b3) - (m.n[ 1] * b1) + (m.n[11] * b0)) * id;
+    a.n[0].y = ((m.n[0].y * b5) + (m.n[0].z * b4) - (m.n[0].w * b3)) * id;
+    a.n[1].y = ((m.n[0].x * b5) - (m.n[0].z * b2) + (m.n[0].w * b1)) * id;
+    a.n[2].y = ((m.n[0].x * b4) + (m.n[0].y * b2) - (m.n[0].w * b0)) * id;
+    a.n[3].y = ((m.n[0].x * b3) - (m.n[0].y * b1) + (m.n[2].w * b0)) * id;
 
-    a.n[ 2] = ((m.n[13] * a5) - (m.n[14] * a4) + (m.n[15] * a3)) * id;
-    a.n[ 6] = ((m.n[12] * a5) + (m.n[14] * a2) - (m.n[15] * a1)) * id;
-    a.n[10] = ((m.n[12] * a4) - (m.n[13] * a2) + (m.n[15] * a0)) * id;
-    a.n[14] = ((m.n[12] * a3) + (m.n[13] * a1) - (m.n[14] * a0)) * id;
+    a.n[0].z = ((m.n[3].y * a5) - (m.n[3].z * a4) + (m.n[3].w * a3)) * id;
+    a.n[1].z = ((m.n[3].x * a5) + (m.n[3].z * a2) - (m.n[3].w * a1)) * id;
+    a.n[2].z = ((m.n[3].x * a4) - (m.n[3].y * a2) + (m.n[3].w * a0)) * id;
+    a.n[3].z = ((m.n[3].x * a3) + (m.n[3].y * a1) - (m.n[3].z * a0)) * id;
 
-    a.n[ 3] = ((m.n[ 9] * a5) + (m.n[10] * a4) - (m.n[11] * a3)) * id;
-    a.n[ 7] = ((m.n[ 8] * a5) - (m.n[10] * a2) + (m.n[11] * a1)) * id;
-    a.n[11] = ((m.n[ 8] * a4) + (m.n[ 9] * a2) - (m.n[11] * a0)) * id;
-    a.n[15] = ((m.n[ 8] * a3) - (m.n[ 9] * a1) + (m.n[10] * a0)) * id;
+    a.n[0].w = ((m.n[2].y * a5) + (m.n[2].z * a4) - (m.n[2].w * a3)) * id;
+    a.n[1].w = ((m.n[2].x * a5) - (m.n[2].z * a2) + (m.n[2].w * a1)) * id;
+    a.n[2].w = ((m.n[2].x * a4) + (m.n[2].y * a2) - (m.n[2].w * a0)) * id;
+    a.n[3].w = ((m.n[2].x * a3) - (m.n[2].y * a1) + (m.n[2].z * a0)) * id;
 
     return a;
 }
@@ -1525,41 +1589,41 @@ inline matrix4_t MultiplyMatrix4(const matrix4_t a, const matrix4_t b)
 {
     matrix4_t m = Matrix4();
 
-    m.n[ 0] = a.n[ 0] * b.n[ 0] + a.n[ 1] * b.n[ 4] + a.n[ 2] * b.n[ 8] +
-              a.n[ 3] * b.n[12];
-    m.n[ 1] = a.n[ 0] * b.n[ 1] + a.n[ 1] * b.n[ 5] + a.n[ 2] * b.n[ 9] +
-              a.n[ 3] * b.n[13];
-    m.n[ 2] = a.n[ 0] * b.n[ 2] + a.n[ 1] * b.n[ 6] + a.n[ 2] * b.n[10] +
-              a.n[ 3] * b.n[14];
-    m.n[ 3] = a.n[ 0] * b.n[ 3] + a.n[ 1] * b.n[ 7] + a.n[ 2] * b.n[11] +
-              a.n[ 3] * b.n[15];
+    m.n[0].x = a.n[0].x * b.n[0].x + a.n[0].y * b.n[1].x + a.n[0].z * b.n[2].x +
+               a.n[0].w * b.n[3].x;
+    m.n[0].y = a.n[0].x * b.n[0].y + a.n[0].y * b.n[1].y + a.n[0].z * b.n[2].y +
+               a.n[0].w * b.n[3].y;
+    m.n[0].z = a.n[0].x * b.n[0].z + a.n[0].y * b.n[1].z + a.n[0].z * b.n[2].z +
+               a.n[0].w * b.n[3].z;
+    m.n[0].w = a.n[0].x * b.n[0].w + a.n[0].y * b.n[1].w + a.n[0].z * b.n[2].w +
+               a.n[0].w * b.n[3].w;
 
-    m.n[ 4] = a.n[ 4] * b.n[ 0] + a.n[ 5] * b.n[ 4] + a.n[ 6] * b.n[ 8] +
-              a.n[ 7] * b.n[12];
-    m.n[ 5] = a.n[ 4] * b.n[ 1] + a.n[ 5] * b.n[ 5] + a.n[ 6] * b.n[ 9] +
-              a.n[ 7] * b.n[13];
-    m.n[ 6] = a.n[ 4] * b.n[ 2] + a.n[ 5] * b.n[ 6] + a.n[ 6] * b.n[10] +
-              a.n[ 7] * b.n[14];
-    m.n[ 7] = a.n[ 4] * b.n[ 3] + a.n[ 5] * b.n[ 7] + a.n[ 6] * b.n[11] +
-              a.n[ 7] * b.n[15];
+    m.n[1].x = a.n[1].x * b.n[0].x + a.n[1].y * b.n[1].x + a.n[1].z * b.n[2].x +
+               a.n[1].w * b.n[3].x;
+    m.n[1].y = a.n[1].x * b.n[0].y + a.n[1].y * b.n[1].y + a.n[1].z * b.n[2].y +
+               a.n[1].w * b.n[3].y;
+    m.n[1].z = a.n[1].x * b.n[0].z + a.n[1].y * b.n[1].z + a.n[1].z * b.n[2].z +
+               a.n[1].w * b.n[3].z;
+    m.n[1].w = a.n[1].x * b.n[0].w + a.n[1].y * b.n[1].w + a.n[1].z * b.n[2].w +
+               a.n[1].w * b.n[3].w;
 
-    m.n[ 8] = a.n[ 8] * b.n[ 0] + a.n[ 9] * b.n[ 4] + a.n[10] * b.n[ 8] +
-              a.n[11] * b.n[12];
-    m.n[ 9] = a.n[ 8] * b.n[ 1] + a.n[ 9] * b.n[ 5] + a.n[10] * b.n[ 9] +
-              a.n[11] * b.n[13];
-    m.n[10] = a.n[ 8] * b.n[ 2] + a.n[ 9] * b.n[ 6] + a.n[10] * b.n[10] +
-              a.n[11] * b.n[14];
-    m.n[11] = a.n[ 8] * b.n[ 3] + a.n[ 9] * b.n[ 7] + a.n[10] * b.n[11] +
-              a.n[11] * b.n[15];
+    m.n[2].x = a.n[2].x * b.n[0].x + a.n[2].y * b.n[1].x + a.n[2].z * b.n[2].x +
+               a.n[2].w * b.n[3].x;
+    m.n[2].y = a.n[2].x * b.n[0].y + a.n[2].y * b.n[1].y + a.n[2].z * b.n[2].y +
+               a.n[2].w * b.n[3].y;
+    m.n[2].z = a.n[2].x * b.n[0].z + a.n[2].y * b.n[1].z + a.n[2].z * b.n[2].z +
+               a.n[2].w * b.n[3].z;
+    m.n[2].w = a.n[2].x * b.n[0].w + a.n[2].y * b.n[1].w + a.n[2].z * b.n[2].w +
+               a.n[2].w * b.n[3].w;
 
-    m.n[12] = a.n[12] * b.n[ 0] + a.n[13] * b.n[ 4] + a.n[14] * b.n[ 8] +
-              a.n[15] * b.n[12];
-    m.n[13] = a.n[12] * b.n[ 1] + a.n[13] * b.n[ 5] + a.n[14] * b.n[ 9] +
-              a.n[15] * b.n[13];
-    m.n[14] = a.n[12] * b.n[ 2] + a.n[13] * b.n[ 6] + a.n[14] * b.n[10] +
-              a.n[15] * b.n[14];
-    m.n[15] = a.n[12] * b.n[ 3] + a.n[13] * b.n[ 7] + a.n[14] * b.n[11] +
-              a.n[15] * b.n[15];
+    m.n[3].x = a.n[3].x * b.n[0].x + a.n[3].y * b.n[1].x + a.n[3].z * b.n[2].x +
+               a.n[3].w * b.n[3].x;
+    m.n[3].y = a.n[3].x * b.n[0].y + a.n[3].y * b.n[1].y + a.n[3].z * b.n[2].y +
+               a.n[3].w * b.n[3].y;
+    m.n[3].z = a.n[3].x * b.n[0].z + a.n[3].y * b.n[1].z + a.n[3].z * b.n[2].z +
+               a.n[3].w * b.n[3].z;
+    m.n[3].w = a.n[3].x * b.n[0].w + a.n[3].y * b.n[1].w + a.n[3].z * b.n[2].w +
+               a.n[3].w * b.n[3].w;
 
     return m;
 }
@@ -1802,10 +1866,10 @@ inline matrix4_t RotationXMatrix4(float angle)
 {
     matrix4_t m = Matrix4();
 
-    m.n[ 5] =  cosf(angle);
-    m.n[ 6] =  sinf(angle);
-    m.n[ 9] = -m.n[6];
-    m.n[10] =  m.n[5];
+    m.n[1].y =  cosf(angle);
+    m.n[1].z =  sinf(angle);
+    m.n[2].y = -m.n[1].z;
+    m.n[2].z =  m.n[1].y;
 
     return m;
 }
@@ -1817,10 +1881,10 @@ inline matrix4_t RotationYMatrix4(float angle)
 {
     matrix4_t m = Matrix4();
 
-    m.n[ 0] =  cosf(angle);
-    m.n[ 2] = -sinf(angle);
-    m.n[ 8] = -m.n[2];
-    m.n[10] =  m.n[0];
+    m.n[0].x =  cosf(angle);
+    m.n[0].z = -sinf(angle);
+    m.n[2].x = -m.n[0].z;
+    m.n[2].z =  m.n[0].x;
 
     return m;
 }
@@ -1832,10 +1896,10 @@ inline matrix4_t RotationZMatrix4(float angle)
 {
     matrix4_t m = Matrix4();
 
-    m.n[ 0] =  cosf(angle);
-    m.n[ 1] =  sinf(angle);
-    m.n[ 4] = -m.n[1];
-    m.n[ 5] =  m.n[0];
+    m.n[0].x =  cosf(angle);
+    m.n[0].y =  sinf(angle);
+    m.n[1].x = -m.n[0].y;
+    m.n[1].y =  m.n[0].x;
 
     return m;
 }
@@ -1857,9 +1921,9 @@ inline matrix4_t ScalingMatrix4(float x, float y, float z)
 {
     matrix4_t m = Matrix4();
 
-    m.n[ 0] = x;
-    m.n[ 5] = y;
-    m.n[10] = z;
+    m.n[0].x = x;
+    m.n[1].y = y;
+    m.n[2].z = z;
 
     return m;
 }
@@ -1871,9 +1935,9 @@ inline matrix4_t TranslationMatrix4(float x, float y, float z)
 {
     matrix4_t m = Matrix4();
 
-    m.n[12] = x;
-    m.n[13] = y;
-    m.n[14] = z;
+    m.n[3].x = x;
+    m.n[3].y = y;
+    m.n[3].z = z;
 
     return m;
 }
@@ -1885,22 +1949,22 @@ inline matrix4_t TransposeMatrix4(const matrix4_t m)
 {
     matrix4_t a = Matrix4();
 
-    a.n[ 0] = m.n[ 0];
-    a.n[ 1] = m.n[ 4];
-    a.n[ 2] = m.n[ 8];
-    a.n[ 3] = m.n[12];
-    a.n[ 4] = m.n[ 1];
-    a.n[ 5] = m.n[ 5];
-    a.n[ 6] = m.n[ 9];
-    a.n[ 7] = m.n[13];
-    a.n[ 8] = m.n[ 2];
-    a.n[ 9] = m.n[ 6];
-    a.n[10] = m.n[10];
-    a.n[11] = m.n[14];
-    a.n[12] = m.n[ 3];
-    a.n[13] = m.n[ 7];
-    a.n[14] = m.n[11];
-    a.n[15] = m.n[15];
+    a.n[0].x = m.n[0].x;
+    a.n[0].y = m.n[1].x;
+    a.n[0].z = m.n[2].x;
+    a.n[0].w = m.n[3].x;
+    a.n[1].x = m.n[0].y;
+    a.n[1].y = m.n[1].y;
+    a.n[1].z = m.n[2].y;
+    a.n[1].w = m.n[3].y;
+    a.n[2].x = m.n[0].z;
+    a.n[2].y = m.n[1].z;
+    a.n[2].z = m.n[2].z;
+    a.n[2].w = m.n[3].z;
+    a.n[3].x = m.n[0].w;
+    a.n[3].y = m.n[1].w;
+    a.n[3].z = m.n[2].w;
+    a.n[3].w = m.n[3].w;
 
     return a;
 }
@@ -1965,8 +2029,8 @@ inline matrix4_t Transformation3DMatrix4(const vector3_t scalingCenter,
 //-----------------------------------------------------------------------------
 // constructs a viewport
 //-----------------------------------------------------------------------------
-inline viewport_t Viewport3d(uint32_t x = 0, uint32_t y = 0, uint32_t w = 0,
-    uint32_t h = 0, float n = 0.0f, float f = 0.0f)
+inline viewport_t Viewport3d(float x = 0.0f, float y = 0.0f, float w = 0.0f,
+    float h = 0.0f, float n = 0.0f, float f = 0.0f)
 {
     viewport_t v = {};
 
