@@ -4771,21 +4771,21 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         rect_t srcrect = {};
 
         if (psrcrect == NULL) {
-            srcrect.min[0] = 0;
-            srcrect.min[1] = 0;
-            srcrect.max[0] = psrcimage->xsize;
-            srcrect.max[1] = psrcimage->ysize;
+            srcrect.min.x = 0;
+            srcrect.min.y = 0;
+            srcrect.max.x = psrcimage->xsize;
+            srcrect.max.y = psrcimage->ysize;
         } else {
             srcrect = *psrcrect;
         }
 
         uint8_t srcbytes = GetBytesForPixelFormat(psrcimage->pixeltype);
-        uint32_t srcxorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[0]),
+        uint32_t srcxorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min.x),
             psrcimage->xsize));
-        uint32_t srcyorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[1]),
+        uint32_t srcyorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min.y),
             psrcimage->ysize));
-        uint32_t srcxextent = MIN((uint32_t)ABS(srcrect.max[0]), psrcimage->xsize);
-        uint32_t srcyextent = MIN((uint32_t)ABS(srcrect.max[1]), psrcimage->ysize);
+        uint32_t srcxextent = MIN((uint32_t)ABS(srcrect.max.x), psrcimage->xsize);
+        uint32_t srcyextent = MIN((uint32_t)ABS(srcrect.max.y), psrcimage->ysize);
         uint32_t srcpitch = srcxextent * srcbytes;
         uint32_t srcxsize = srcxextent - srcxorigin;
         uint32_t srcysize = srcyextent - srcyorigin;
@@ -5182,19 +5182,20 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         rect_t dstrect = {};
 
         if (pdstrect == NULL) {
-            dstrect.min[0] = 0;
-            dstrect.min[1] = 0;
-            dstrect.max[0] = psrcimage->xsize;
-            dstrect.max[1] = psrcimage->ysize;
+            dstrect.min.x = 0;
+            dstrect.min.y = 0;
+            dstrect.max.x = psrcimage->xsize;
+            dstrect.max.y = psrcimage->ysize;
         } else {
             dstrect = *pdstrect;
         }
 
+        dstformat = (dstformat == PIXELTYPE_UNKNOWN) ? PIXELTYPE_RGBA : dstformat;
         uint8_t dstbytes = GetBytesForPixelFormat(dstformat);
-        uint32_t dstxorigin = MAX(0, ABS(dstrect.min[0]));
-        uint32_t dstyorigin = MAX(0, ABS(dstrect.min[1]));
-        uint32_t dstxextent = ABS(dstrect.max[0]);
-        uint32_t dstyextent = ABS(dstrect.max[1]);
+        uint32_t dstxorigin = MAX(0, ABS(dstrect.min.x));
+        uint32_t dstyorigin = MAX(0, ABS(dstrect.min.y));
+        uint32_t dstxextent = ABS(dstrect.max.x);
+        uint32_t dstyextent = ABS(dstrect.max.y);
         uint32_t dstxsize = dstxextent - dstxorigin;
         uint32_t dstysize = dstyextent - dstyorigin;
         uint32_t dstpitch = dstxextent * dstbytes;
@@ -5206,25 +5207,24 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
 
         pdstimage->xsize = dstxextent;
         pdstimage->ysize = dstyextent;
-        pdstimage->pixeltype = (dstformat == PIXELTYPE_UNKNOWN) ? PIXELTYPE_RGBA :
-            dstformat;
+        pdstimage->pixeltype = dstformat;
 
         // src stuff
         rect_t srcrect = {};
 
         if (psrcrect == NULL) {
-            srcrect.min[0] = 0;
-            srcrect.min[1] = 0;
-            srcrect.max[0] = psrcimage->xsize;
-            srcrect.max[1] = psrcimage->ysize;
+            srcrect.min.x = 0;
+            srcrect.min.y = 0;
+            srcrect.max.x = psrcimage->xsize;
+            srcrect.max.y = psrcimage->ysize;
         } else {
             srcrect = *psrcrect;
         }
 
         uint8_t srcbytes = GetBytesForPixelFormat(srcimage.pixeltype);
-        uint32_t srcxorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[0]),
+        uint32_t srcxorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min.x),
             psrcimage->xsize));
-        uint32_t srcyorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min[1]),
+        uint32_t srcyorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min.y),
             psrcimage->ysize));
         uint32_t srcxextent = psrcimage->xsize;
         uint32_t srcyextent = psrcimage->ysize;
