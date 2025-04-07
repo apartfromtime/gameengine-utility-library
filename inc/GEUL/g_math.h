@@ -2008,7 +2008,7 @@ inline matrix4_t Transformation3DMatrix4(const vector3_t scalingCenter,
 
     matrix4_t s = MultiplyMatrix4(InverseMatrix4(
         TranslationMatrix4(scalingCenter.x, scalingCenter.y, scalingCenter.z)),
-        ScalingMatrix4(scale.x, scale.y, 0.0f));
+        ScalingMatrix4(scale.x, scale.y, scale.z));
     s = MultiplyMatrix4(s, TranslationMatrix4(scalingCenter.x, scalingCenter.y,
 		scalingCenter.z));
 
