@@ -3768,7 +3768,7 @@ CubicFilter(float t)
 static float
 Sinc(float x)
 {
-    x *= M_PI;
+    x *= G_PI;
     if (x != 0.0f) return (sinf(x) / x);
     return 1.0f;
 }

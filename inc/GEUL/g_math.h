@@ -45,13 +45,13 @@
 #include <float.h>
 #include <math.h>
 
-#ifndef M_PI
-#define M_PI        3.14159265f
-#endif
+#ifndef G_PI
+#define G_PI        3.14159265f
+#endif // #ifndef G_PI
 
-#ifndef H_PI
-#define H_PI        1.57079633f
-#endif
+#ifndef G_PIHALF
+#define G_PIHALF    1.57079633f
+#endif // #ifndef G_PIHALF
 
 #define FLOOR(a)            ((a)>0?(int32_t)(a):-(int32_t)(-a))
 #define ROUND(a)            (fabs(ceil(a)-a) <= 0.5 ? ceil(a) : floor(a))
@@ -60,8 +60,8 @@
 #define SIGN(x)             (x >= 0 ? 1 : -1)
 #define MIN(a, b)           (a < b ? a : b)
 #define MAX(a, b)           (a > b ? a : b)
-#define DEG2RAD(x)          (x * (( float )(M_PI) / 180.0f))
-#define RAD2DEG(x)          (x * (180.0f / ( float )(M_PI)))
+#define DEG2RAD(x)          (x * (( float )(G_PI) / 180.0f))
+#define RAD2DEG(x)          (x * (180.0f / ( float )(G_PI)))
 
 
 //-----------------------------------------------------------------------------
@@ -1634,20 +1634,36 @@ inline matrix4_t MultiplyMatrix4(const matrix4_t a, const matrix4_t b)
 inline matrix4_t LookAtLHMatrix4(const vector3_t eye, const vector3_t at,
 	const vector3_t up)
 {
-    vector3_t xa = Vector3();
-    vector3_t ya = Vector3();
-    vector3_t za = Vector3();
+    matrix4_t m = Matrix4();
+    vector3_t x = Vector3();
+    vector3_t y = Vector3();
+    vector3_t z = Vector3();
 
-    za = NormalizeVector3(SubtractVector3(at, eye));
-    xa = NormalizeVector3(CrossVector3(up, za));
-    ya = CrossVector3(za, xa);
+    z = NormalizeVector3(SubtractVector3(at, eye));
+    x = NormalizeVector3(CrossVector3(up, z));
+    y = CrossVector3(z, x);
 
-    return Matrix4(
-                    xa.x,                 ya.x,                 za.x,     0.0f,
-                    xa.y,                 ya.y,                 za.y,     0.0f,
-                    xa.z,                 ya.z,                 za.z,     0.0f,
-        -DotVector3(xa, eye), -DotVector3(ya, eye), -DotVector3(za, eye), 1.0f
-    );
+    m.n[0].x = x.x;
+    m.n[0].y = y.x;
+    m.n[0].z = z.x;
+    m.n[0].w = 0.0f;
+
+    m.n[1].x = x.y;
+    m.n[1].y = y.y;
+    m.n[1].z = z.y;
+    m.n[1].w = 0.0f;
+
+    m.n[2].x = x.z;
+    m.n[2].y = y.z;
+    m.n[2].z = z.z;
+    m.n[2].w = 0.0f;
+
+    m.n[3].x = -DotVector3(x, eye);
+    m.n[3].y = -DotVector3(y, eye);
+    m.n[3].z = -DotVector3(z, eye);
+    m.n[3].w = 1.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
@@ -1656,174 +1672,216 @@ inline matrix4_t LookAtLHMatrix4(const vector3_t eye, const vector3_t at,
 inline matrix4_t LookAtRHMatrix4(const vector3_t eye, const vector3_t at,
 	const vector3_t up)
 {
-    vector3_t xa = Vector3();
-    vector3_t ya = Vector3();
-    vector3_t za = Vector3();
+    matrix4_t m = Matrix4();
+    vector3_t x = Vector3();
+    vector3_t y = Vector3();
+    vector3_t z = Vector3();
 
-    za = NormalizeVector3(SubtractVector3(eye, at));
-    xa = NormalizeVector3(CrossVector3(up, za));
-    ya = CrossVector3(za, xa);
+    z = NormalizeVector3(SubtractVector3(eye, at));
+    x = NormalizeVector3(CrossVector3(up, z));
+    y = CrossVector3(z, x);
 
-    return Matrix4(
-                    xa.x,                 ya.x,                 za.x,     0.0f,
-                    xa.y,                 ya.y,                 za.y,     0.0f,
-                    xa.z,                 ya.z,                 za.z,     0.0f,
-        -DotVector3(xa, eye), -DotVector3(ya, eye), -DotVector3(za, eye), 1.0f
-    );
+    m.n[0].x = x.x;
+    m.n[0].y = y.x;
+    m.n[0].z = z.x;
+    m.n[0].w = 0.0f;
+
+    m.n[1].x = x.y;
+    m.n[1].y = y.y;
+    m.n[1].z = z.y;
+    m.n[1].w = 0.0f;
+
+    m.n[2].x = x.z;
+    m.n[2].y = y.z;
+    m.n[2].z = z.z;
+    m.n[2].w = 0.0f;
+
+    m.n[3].x = -DotVector3(x, eye);
+    m.n[3].y = -DotVector3(y, eye);
+    m.n[3].z = -DotVector3(z, eye);
+    m.n[3].w = 1.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
 // builds a left-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t OrthographicLHMatrix4(float w, float h, float zn, float zf)
+inline matrix4_t OrthographicLHMatrix4(float w, float h, float n, float f)
 {
-    return Matrix4(
-        2.0f / w, 0.0f,     0.0f,             0.0f,
-        0.0f,     2.0f / h, 0.0f,             0.0f,
-        0.0f,     0.0f,     1.0f / (zf - zn), 0.0f,
-        0.0f,     0.0f,       zn / (zn - zf), 1.0f
-    );
+    matrix4_t m = Matrix4();
+
+    m.n[0].x = 2.0f / w;
+    m.n[1].y = 2.0f / h;
+    m.n[2].z = 1.0f / (f - n);
+    m.n[3].z = n / (n - f);
+    m.n[3].w = 1.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
 // builds a left-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t OrthographicRHMatrix4(float w, float h, float zn, float zf)
+inline matrix4_t OrthographicRHMatrix4(float w, float h, float n, float f)
 {
-    return Matrix4(
-        2.0f / w, 0.0f,     0.0f,             0.0f,
-        0.0f,     2.0f / h, 0.0f,             0.0f,
-        0.0f,     0.0f,     1.0f / (zn - zf), 0.0f,
-        0.0f,     0.0f,       zn / (zf - zn), 1.0f
-    );
+    matrix4_t m = Matrix4();
+
+    m.n[0].x = 2.0f / w;
+    m.n[1].y = 2.0f / h;
+    m.n[2].z = 1.0f / (n - f);
+    m.n[3].z = n / (f - n);
+    m.n[3].w = 1.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
 // builds a customized, left-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t OrthographicOffCenterLHMatrix4(float l, float r, float t, float b,
-    float zn, float zf)
+inline matrix4_t OrthographicOffCenterLHMatrix4(float l, float r, float b, float t,
+    float n, float f)
 {
-    return Matrix4(
-        2.0f / (r - l),     0.0f,            0.0f,             0.0f,
-        0.0f,               2.0f / (t - b),  0.0f,             0.0f,
-        0.0f,               0.0f,            1.0f / (zf - zn), 0.0f,
-        (l + r) / (l - r), (t + b) / (b - t),  zn / (zn - zf), 1.0f
-    );
+    matrix4_t m = Matrix4();
+
+    m.n[0].x = 2.0f / (r - l);
+    m.n[1].y = 2.0f / (t - b);
+    m.n[2].z = 1.0f / (f - n);
+    m.n[3].x = (l + r) / (l - r);
+    m.n[3].y = (b + t) / (b - t);
+    m.n[3].z = n / (n - f);
+    m.n[3].w = 1.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
 // builds a customized, right-handed orthographic projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t OrthographicOffCenterRHMatrix4(float l, float r, float t, float b,
-    float zn, float zf)
+inline matrix4_t OrthographicOffCenterRHMatrix4(float l, float r, float b, float t,
+    float n, float f)
 {
-    return Matrix4(
-        2.0f / (r - l),     0.0f,            0.0f,             0.0f,
-        0.0f,               2.0f / (t - b),  0.0f,             0.0f,
-        0.0f,               0.0f,            1.0f / (zn - zf), 0.0f,
-        (l + r) / (l - r), (t + b) / (b - t),  zn / (zf - zn), 1.0f
-    );
+    matrix4_t m = Matrix4();
+
+    m.n[0].x = 2.0f / (r - l);
+    m.n[1].y = 2.0f / (t - b);
+    m.n[2].z = 1.0f / (n - f);
+    m.n[3].x = (l + r) / (l - r);
+    m.n[3].y = (b + t) / (b - t);
+    m.n[3].z = n / (n - f);
+    m.n[3].w = 1.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
 // builds a left-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveLHMatrix4(float w, float h, float zn, float zf)
+inline matrix4_t PerspectiveLHMatrix4(float w, float h, float n, float f)
 {
-    return Matrix4(
-        2.0f / w, 0.0f,     0.0f,                 0.0f,
-        0.0f,     2.0f / h, 0.0f,                 0.0f,
-        0.0f,     0.0f,     zf / (zf - zn),       1.0f,
-        0.0f,     0.0f,   (-zn * zf) / (zf - zn), 0.0f
-    );
+    matrix4_t m = Matrix4();
+
+    m.n[0].x = 2.0f / w;
+    m.n[1].y = 2.0f / h;
+    m.n[2].z = f / (f - n);
+    m.n[2].w = 1.0f;
+    m.n[3].z = (n * f) / (n - f);
+    m.n[3].w = 0.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
 // builds a right-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveRHMatrix4(float w, float h, float zn, float zf)
+inline matrix4_t PerspectiveRHMatrix4(float w, float h, float n, float f)
 {
-    return Matrix4(
-        2.0f / w, 0.0f,     0.0f,                 0.0f,
-        0.0f,     2.0f / h, 0.0f,                 0.0f,
-        0.0f,     0.0f,     zf / (zn - zf),       1.0f,
-        0.0f,     0.0f,   (-zn * zf) / (zn - zf), 0.0f
-    );
+    matrix4_t m = Matrix4();
+
+    m.n[0].x = 2.0f / w;
+    m.n[1].y = 2.0f / h;
+    m.n[2].z = f / (n - f);
+    m.n[2].w = -1.0f;
+    m.n[3].z = (n * f) / (n - f);
+    m.n[3].w = 0.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
 // builds a left-handed perspective projection matrix based on a field of view
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveFovLHMatrix4(float fovy, float aspect, float zn, float zf)
+inline matrix4_t PerspectiveFovLHMatrix4(float fovy, float aspect, float n, float f)
 {
-    const float yScale = tanf((H_PI - (fovy / 2.0f)));
-    const float xScale = yScale / aspect;
+    matrix4_t m = Matrix4();
+    const float cotangent = tanf((G_PIHALF - (fovy / 2.0f)));
 
-    return Matrix4(
-        xScale, 0.0f,   0.0f,                 0.0f,
-        0.0f,   yScale, 0.0f,                 0.0f,
-        0.0f,   0.0f,   zf / (zf - zn),       1.0f,
-        0.0f,   0.0f, (-zn * zf) / (zf - zn), 0.0f
-    );
+    m.n[0].x = cotangent / aspect;
+    m.n[1].y = cotangent;
+    m.n[2].z = f / (f - n);
+    m.n[2].w = 1.0f;
+    m.n[3].z = (n * f) / (n - f);
+    m.n[3].w = 0.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
 // builds a right-handed perspective projection matrix based on a field of view
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveFovRHMatrix4(float fovy, float aspect, float zn, float zf)
+inline matrix4_t PerspectiveFovRHMatrix4(float fovy, float aspect, float n, float f)
 {
-    const float yScale = tanf((H_PI - (fovy / 2.0f)));
-    const float xScale = yScale / aspect;
+    matrix4_t m = Matrix4();
+    const float cotangent = tanf((G_PIHALF - (fovy / 2.0f)));
 
-    return Matrix4(
-        xScale, 0.0f,   0.0f,                 0.0f,
-        0.0f,   yScale, 0.0f,                 0.0f,
-        0.0f,   0.0f,   zf / (zn - zf),       1.0f,
-        0.0f,   0.0f, (-zn * zf) / (zn - zf), 0.0f
-    );
+    m.n[0].x = cotangent / aspect;
+    m.n[1].y = cotangent;
+    m.n[2].z = f / (n - f);
+    m.n[2].w = -1.0f;
+    m.n[3].z = (n * f) / (n - f);
+    m.n[3].w = 0.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
 // builds a customized, left-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveOffCenterLHMatrix4(float l, float r, float t, float b,
+inline matrix4_t PerspectiveOffCenterLHMatrix4(float l, float r, float b, float t,
     float n, float f)
 {
-    float xScale = (2.0f * n) / (r - l);
-    float yScale = (2.0f * n) / (b - t);
-    float ta = (l + r) / (r - l);
-    float tb = (t + b) / (b - t);
-    float tc = f / (f - n);
-    float td = (-n * f) / (f - n);
+    matrix4_t m = Matrix4();
 
-    return Matrix4(
-        xScale,   0.0f, 0.0f,   0.0f,
-          0.0f, yScale, 0.0f,   0.0f,
-            ta,     tb,   tc,   1.0f,
-          0.0f,   0.0f,   td,   0.0f
-    );
+    m.n[0].x = (2.0f * n) / (r - l);
+    m.n[1].y = (2.0f * n) / (t - b);
+    m.n[2].x = (l + r) / (l - r);
+    m.n[2].y = (b + t) / (b - t);
+    m.n[2].z = f / (f - n);
+    m.n[2].w = 1.0f;
+    m.n[3].z = (n * f) / (n - f);
+    m.n[3].w = 0.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
 // builds a customized, right-handed perspective projection matrix
 //-----------------------------------------------------------------------------
-inline matrix4_t PerspectiveOffCenterRHMatrix4(float l, float r, float t, float b,
+inline matrix4_t PerspectiveOffCenterRHMatrix4(float l, float r, float b, float t,
     float n, float f)
 {
-    float xScale = (2.0f * n) / (r - l);
-    float yScale = (2.0f * n) / (b - t);
-    float ta = (l + r) / (r - l);
-    float tb = (t + b) / (b - t);
-    float tc = f / (n - f);
-    float td = (-n * f) / (n - f);
+    matrix4_t m = Matrix4();
 
-    return Matrix4(
-        xScale,   0.0f, 0.0f,   0.0f,
-          0.0f, yScale, 0.0f,   0.0f,
-            ta,     tb,    tc,  1.0f,
-          0.0f,   0.0f,    td,  0.0f
-    );
+    m.n[0].x = (2.0f * n) / (r - l);
+    m.n[1].y = (2.0f * n) / (t - b);
+    m.n[2].x = (l + r) / (l - r);
+    m.n[2].y = (b + t) / (b - t);
+    m.n[2].z = f / (n - f);
+    m.n[2].w = -1.0f;
+    m.n[3].z = (n * f) / (n - f);
+    m.n[3].w = 0.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
@@ -1831,16 +1889,23 @@ inline matrix4_t PerspectiveOffCenterRHMatrix4(float l, float r, float t, float 
 //-----------------------------------------------------------------------------
 inline matrix4_t ReflectMatrix4(const plane_t plane)
 {
+    matrix4_t m = Matrix4();
     const plane_t p = NormalizePlane(plane);
 
-    const float ta = -2.0f * p.a;
-    const float tb = -2.0f * p.b;
-    const float tc = -2.0f * p.c;
+    m.n[0].x = -2.0f * p.a * p.a + 1;
+    m.n[0].y = -2.0f * p.b * p.a;
+    m.n[0].z = -2.0f * p.c * p.a;
 
-    return Matrix4(ta * p.a + 1, tb * p.a,     tc * p.a,     0,
-                   ta * p.b,     tb * p.b + 1, tc * p.b,     0,
-                   ta * p.c,     tb * p.c,     tc * p.c + 1, 0,
-                   ta * p.d,     tb * p.d,     tc * p.d,     1);
+    m.n[1].x = -2.0f * p.a * p.b;
+    m.n[1].y = -2.0f * p.b * p.b + 1;
+    m.n[1].z = -2.0f * p.c * p.b;
+
+    m.n[2].x = -2.0f * p.a * p.c;
+    m.n[2].y = -2.0f * p.b * p.c;
+    m.n[2].z = -2.0f * p.c * p.c + 1;
+    m.n[2].w = 1.0f;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
@@ -1848,15 +1913,24 @@ inline matrix4_t ReflectMatrix4(const plane_t plane)
 //-----------------------------------------------------------------------------
 inline matrix4_t RotationAxisAngleMatrix4(const vector3_t v, float angle)
 {
-    const float ct = sinf(H_PI - angle);
-    const float st = sinf(angle);
-    const float om = (1.0f - ct);
+    matrix4_t m = Matrix4();
+    const float cosine = sinf(G_PIHALF - angle);
+    const float sine = sinf(angle);
+    const float oneMinusCosine = (1.0f - cosine);
 
-    return Matrix4(
-        v.x * v.x * om + ct, v.x * v.y * om + v.z * st, v.x * v.z * om - v.y * st, 0.0f,
-        v.x * v.y * om - v.z * st, v.y * v.y * om + ct, v.y * v.z * om + v.x * st, 0.0f,
-        v.x * v.z * om + v.y * st, v.y * v.z * om - v.x * st, v.z * v.z * om + ct, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f);
+    m.n[0].x = v.x * v.x * oneMinusCosine + cosine;
+    m.n[0].y = v.x * v.y * oneMinusCosine + v.z * sine;
+    m.n[0].z = v.x * v.z * oneMinusCosine - v.y * sine;
+
+    m.n[1].x = v.x * v.y * oneMinusCosine - v.z * sine;
+    m.n[1].y = v.y * v.y * oneMinusCosine + cosine;
+    m.n[1].z = v.y * v.z * oneMinusCosine + v.x * sine;
+
+    m.n[2].x = v.x * v.z * oneMinusCosine + v.y * sine;
+    m.n[2].y = v.y * v.z * oneMinusCosine - v.x * sine;
+    m.n[2].z = v.z * v.z * oneMinusCosine + cosine;
+
+    return m;
 }
 
 //-----------------------------------------------------------------------------
@@ -1993,10 +2067,62 @@ inline matrix4_t Transformation2DMatrix4(const vector2_t scalingCenter,
 }
 
 //-----------------------------------------------------------------------------
+// builds a 3D transformation matrix that represents transformations in the yz
+// plane
+//-----------------------------------------------------------------------------
+inline matrix4_t TransformationX3DMatrix4(const vector3_t scalingCenter,
+    const vector3_t scale, const vector3_t rotationCenter, float angle,
+    const vector3_t translation)
+{
+    matrix4_t r = MultiplyMatrix4(InverseMatrix4(
+        TranslationMatrix4(rotationCenter.x, rotationCenter.y, rotationCenter.z)),
+        RotationXMatrix4(angle));
+    r = MultiplyMatrix4(r, TranslationMatrix4(rotationCenter.x, rotationCenter.y,
+        rotationCenter.z));
+
+    matrix4_t s = MultiplyMatrix4(InverseMatrix4(
+        TranslationMatrix4(scalingCenter.x, scalingCenter.y, scalingCenter.z)),
+        ScalingMatrix4(scale.x, scale.y, scale.z));
+    s = MultiplyMatrix4(s, TranslationMatrix4(scalingCenter.x, scalingCenter.y,
+        scalingCenter.z));
+
+    const matrix4_t t = TranslationMatrix4(translation.x, translation.y,
+        translation.z);
+
+    return MultiplyMatrix4(MultiplyMatrix4(r, s), t);
+}
+
+//-----------------------------------------------------------------------------
+// builds a 3D transformation matrix that represents transformations in the xz
+// plane
+//-----------------------------------------------------------------------------
+inline matrix4_t TransformationY3DMatrix4(const vector3_t scalingCenter,
+    const vector3_t scale, const vector3_t rotationCenter, float angle,
+    const vector3_t translation)
+{
+    matrix4_t r = MultiplyMatrix4(InverseMatrix4(
+        TranslationMatrix4(rotationCenter.x, rotationCenter.y, rotationCenter.z)),
+        RotationYMatrix4(angle));
+    r = MultiplyMatrix4(r, TranslationMatrix4(rotationCenter.x, rotationCenter.y,
+        rotationCenter.z));
+
+    matrix4_t s = MultiplyMatrix4(InverseMatrix4(
+        TranslationMatrix4(scalingCenter.x, scalingCenter.y, scalingCenter.z)),
+        ScalingMatrix4(scale.x, scale.y, scale.z));
+    s = MultiplyMatrix4(s, TranslationMatrix4(scalingCenter.x, scalingCenter.y,
+        scalingCenter.z));
+
+    const matrix4_t t = TranslationMatrix4(translation.x, translation.y,
+        translation.z);
+
+    return MultiplyMatrix4(MultiplyMatrix4(r, s), t);
+}
+
+//-----------------------------------------------------------------------------
 // builds a 3D transformation matrix that represents transformations in the xy
 // plane
 //-----------------------------------------------------------------------------
-inline matrix4_t Transformation3DMatrix4(const vector3_t scalingCenter,
+inline matrix4_t TransformationZ3DMatrix4(const vector3_t scalingCenter,
     const vector3_t scale, const vector3_t rotationCenter, float angle,
     const vector3_t translation)
 {
@@ -2004,13 +2130,13 @@ inline matrix4_t Transformation3DMatrix4(const vector3_t scalingCenter,
         TranslationMatrix4(rotationCenter.x, rotationCenter.y, rotationCenter.z)),
         RotationZMatrix4(angle));
     r = MultiplyMatrix4(r, TranslationMatrix4(rotationCenter.x, rotationCenter.y,
-		rotationCenter.z));
+        rotationCenter.z));
 
     matrix4_t s = MultiplyMatrix4(InverseMatrix4(
         TranslationMatrix4(scalingCenter.x, scalingCenter.y, scalingCenter.z)),
-        ScalingMatrix4(scale.x, scale.y, 0.0f));
+        ScalingMatrix4(scale.x, scale.y, scale.z));
     s = MultiplyMatrix4(s, TranslationMatrix4(scalingCenter.x, scalingCenter.y,
-		scalingCenter.z));
+        scalingCenter.z));
 
     const matrix4_t t = TranslationMatrix4(translation.x, translation.y,
         translation.z);
