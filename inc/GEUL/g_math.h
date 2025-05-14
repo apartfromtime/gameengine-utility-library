@@ -758,9 +758,9 @@ inline vector4_t NormalizeVector4(vector4_t a)
 {
     vector4_t v = Vector4();
 
-    if (v.x != 0.0f || v.y != 0.0f || v.z != 0.0f || v.w != 0.0f)
+    if (a.x != 0.0f || a.y != 0.0f || a.z != 0.0f || a.w != 0.0f)
     {
-        const float l = sqrtf(DotVector4(v, v));
+        const float l = sqrtf(DotVector4(a, a));
         v.x = a.x * (1.0f / l);
         v.y = a.y * (1.0f / l);
         v.z = a.z * (1.0f / l);
