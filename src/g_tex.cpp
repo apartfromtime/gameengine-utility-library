@@ -3241,7 +3241,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 //-----------------------------------------------------------------------------
 
 
-// default 64 color ega palette
+// default 16 color ega palette
 static rgba_t ega_palette[16] = {
     {   0,   0,   0, 255 },
     {   0,   0, 170, 255 },
@@ -4946,7 +4946,6 @@ GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
     if (psrcinfo != NULL) { psrcinfo->fileformat = FILEFORMAT_NONE; }
     if ((result = GetInfoFromMemoryPNG(&colormap, &xsize, &ysize, &depth, NULL,
         psrc, psrcsize)) == true) {
-
         if (depth == 32) { pixeltype = PIXELTYPE_RGBA; }
         else if (depth == 24) { pixeltype = PIXELTYPE_RGB; }
         else if (depth == 16) { pixeltype = PIXELTYPE_LUMINANCE_ALPHA; }
