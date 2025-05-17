@@ -145,12 +145,20 @@ typedef struct _vector3
 } vector3_t;
 
 // VECTOR4
-typedef struct _vector4
+typedef union _vector4
 {
-    float x;
-    float y;
-    float z;
-    float w;
+    struct {
+        float r;
+        float g;
+        float b;
+        float a;
+    };
+    struct {
+        float x;
+        float y;
+        float z;
+        float w;
+    };
     float GetIndex(byte1_t index) {
         switch (index)
         {
@@ -283,9 +291,9 @@ typedef struct _viewport
 //-----------------------------------------------------------------------------
 // creates a color
 //-----------------------------------------------------------------------------
-inline color_t Color(float r = 0.0f, float g = 0.0f, float b = 0.0f, float a = 1.0f)
+inline vector4_t Color(float r = 0.0f, float g = 0.0f, float b = 0.0f, float a = 1.0f) noexcept
 {
-    color_t c = {};
+    vector4_t c = { 0 };
 
     c.r = r;
     c.g = g;
@@ -298,9 +306,9 @@ inline color_t Color(float r = 0.0f, float g = 0.0f, float b = 0.0f, float a = 1
 //-----------------------------------------------------------------------------
 // adds two color values together to create a new color value.
 //-----------------------------------------------------------------------------
-inline color_t AddColor(const color_t c0, const color_t c1)
+inline vector4_t AddColor(const vector4_t c0, const vector4_t c1) noexcept
 {
-    color_t c = Color();
+    vector4_t c = { 0 };
 
     c.r = c0.r + c1.r;
     c.g = c0.g + c1.g;
@@ -318,9 +326,9 @@ inline color_t AddColor(const color_t c0, const color_t c1)
 //-----------------------------------------------------------------------------
 // adjusts the contrast value of a color.
 //-----------------------------------------------------------------------------
-inline color_t AdjustColorContrast(const color_t color, float contrast)
+inline vector4_t AdjustColorContrast(const vector4_t color, float contrast) noexcept
 {
-    color_t c = Color();
+    vector4_t c = { 0 };
 
     c.r = CLAMP(0.5f + (contrast * (color.r - 0.5f)), 0.0f, 1.0f);
     c.g = CLAMP(0.5f + (contrast * (color.g - 0.5f)), 0.0f, 1.0f);
@@ -333,9 +341,9 @@ inline color_t AdjustColorContrast(const color_t color, float contrast)
 //-----------------------------------------------------------------------------
 // adjusts the saturation value of a color.
 //-----------------------------------------------------------------------------
-inline color_t AdjustColorSaturation(const color_t color, float saturation)
+inline vector4_t AdjustColorSaturation(const vector4_t color, float saturation) noexcept
 {
-    color_t c = Color();
+    vector4_t c = { 0 };
 
     // Approximate values for each component's contribution to luminance.
     // Based upon the NTSC standard described in ITU-R Recommendation BT.709.
@@ -352,9 +360,9 @@ inline color_t AdjustColorSaturation(const color_t color, float saturation)
 //-----------------------------------------------------------------------------
 // uses linear interpolation to create a color value.
 //-----------------------------------------------------------------------------
-inline color_t InterpolateColor(const color_t c0, const color_t c1, float s)
+inline vector4_t InterpolateColor(const vector4_t c0, const vector4_t c1, float s) noexcept
 {
-    color_t c = Color();
+    vector4_t c = { 0 };
 
     c.r = CLAMP(c0.r + s * (c1.r - c0.r), 0.0f, 1.0f);
     c.g = CLAMP(c0.g + s * (c1.g - c0.g), 0.0f, 1.0f);
@@ -367,9 +375,9 @@ inline color_t InterpolateColor(const color_t c0, const color_t c1, float s)
 //-----------------------------------------------------------------------------
 // blends two colors.
 //-----------------------------------------------------------------------------
-inline color_t ModulateColor(const color_t c0, const color_t c1)
+inline vector4_t ModulateColor(const vector4_t c0, const vector4_t c1) noexcept
 {
-    color_t c = Color();
+    vector4_t c = { 0 };
 
     c.r = CLAMP(c0.r * c1.r, 0.0f, 1.0f);
     c.g = CLAMP(c0.g * c1.g, 0.0f, 1.0f);
@@ -382,9 +390,9 @@ inline color_t ModulateColor(const color_t c0, const color_t c1)
 //-----------------------------------------------------------------------------
 // creates the negative color value of a color value.
 //-----------------------------------------------------------------------------
-inline color_t NegateColor(const color_t c0)
+inline vector4_t NegateColor(const vector4_t c0) noexcept
 {
-    color_t c = Color();
+    vector4_t c = { 0 };
 
     c.r = CLAMP(1.0f - c0.r, 0.0f, 1.0f);
     c.g = CLAMP(1.0f - c0.g, 0.0f, 1.0f);
@@ -397,9 +405,9 @@ inline color_t NegateColor(const color_t c0)
 //-----------------------------------------------------------------------------
 // scales a color value.
 //-----------------------------------------------------------------------------
-inline color_t ScaleColor(const color_t c0, float s)
+inline vector4_t ScaleColor(const vector4_t c0, float s) noexcept
 {
-    color_t c = Color();
+    vector4_t c = { 0 };
 
     c.r = CLAMP(c0.r * s, 0.0f, 1.0f);
     c.g = CLAMP(c0.g * s, 0.0f, 1.0f);
@@ -412,9 +420,9 @@ inline color_t ScaleColor(const color_t c0, float s)
 //-----------------------------------------------------------------------------
 // subtracts two color values to create a new color value.
 //-----------------------------------------------------------------------------
-inline color_t SubtractColor(const color_t c0, const color_t c1)
+inline vector4_t SubtractColor(const vector4_t c0, const vector4_t c1)  noexcept
 {
-    color_t c = Color();
+    vector4_t c = { 0 };
 
     c.r = c0.r - c1.r;
     c.g = c0.g - c1.g;
@@ -432,10 +440,10 @@ inline color_t SubtractColor(const color_t c0, const color_t c1)
 //-----------------------------------------------------------------------------
 // returns color in rgba format.
 //-----------------------------------------------------------------------------
-inline byte4_t RGBAColor(const color_t& color) noexcept
+inline byte4_t RGBAColor(const vector4_t& color) noexcept
 {
-    byte4_t c = {};
-    
+    byte4_t c = { 0 };
+
     c.n0 = (uint8_t)(CLAMP(color.r, 0.0f, 1.0f) * 255.0f);
     c.n1 = (uint8_t)(CLAMP(color.g, 0.0f, 1.0f) * 255.0f);
     c.n2 = (uint8_t)(CLAMP(color.b, 0.0f, 1.0f) * 255.0f);
@@ -447,9 +455,9 @@ inline byte4_t RGBAColor(const color_t& color) noexcept
 //-----------------------------------------------------------------------------
 // returns color in bgra format.
 //-----------------------------------------------------------------------------
-inline byte4_t BGRAColor(const color_t& color) noexcept
+inline byte4_t BGRAColor(const vector4_t& color) noexcept
 {
-    byte4_t c = {};
+    byte4_t c = { 0 };
 
     c.n0 = (uint8_t)(CLAMP(color.b, 0.0f, 1.0f) * 255.0f);
     c.n1 = (uint8_t)(CLAMP(color.g, 0.0f, 1.0f) * 255.0f);
