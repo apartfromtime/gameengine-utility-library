@@ -1785,7 +1785,7 @@ inline matrix4_t PerspectiveLHMatrix4(float w, float h, float n, float f)
     m.n[1].y = 2.0f / h;
     m.n[2].z = f / (f - n);
     m.n[2].w = 1.0f;
-    m.n[3].z = (n * f) / (n - f);
+    m.n[3].z = (n + f) / (n - f);
     m.n[3].w = 0.0f;
 
     return m;
@@ -1802,7 +1802,7 @@ inline matrix4_t PerspectiveRHMatrix4(float w, float h, float n, float f)
     m.n[1].y = 2.0f / h;
     m.n[2].z = f / (n - f);
     m.n[2].w = -1.0f;
-    m.n[3].z = (n * f) / (n - f);
+    m.n[3].z = (n + f) / (n - f);
     m.n[3].w = 0.0f;
 
     return m;
@@ -1820,7 +1820,7 @@ inline matrix4_t PerspectiveFovLHMatrix4(float fovy, float aspect, float n, floa
     m.n[1].y = cotangent;
     m.n[2].z = f / (f - n);
     m.n[2].w = 1.0f;
-    m.n[3].z = (n * f) / (n - f);
+    m.n[3].z = (n + f) / (n - f);
     m.n[3].w = 0.0f;
 
     return m;
@@ -1838,7 +1838,7 @@ inline matrix4_t PerspectiveFovRHMatrix4(float fovy, float aspect, float n, floa
     m.n[1].y = cotangent;
     m.n[2].z = f / (n - f);
     m.n[2].w = -1.0f;
-    m.n[3].z = (n * f) / (n - f);
+    m.n[3].z = (n + f) / (n - f);
     m.n[3].w = 0.0f;
 
     return m;
@@ -1858,7 +1858,7 @@ inline matrix4_t PerspectiveOffCenterLHMatrix4(float l, float r, float b, float 
     m.n[2].y = (b + t) / (b - t);
     m.n[2].z = f / (f - n);
     m.n[2].w = 1.0f;
-    m.n[3].z = (n * f) / (n - f);
+    m.n[3].z = (n + f) / (n - f);
     m.n[3].w = 0.0f;
 
     return m;
@@ -1878,7 +1878,7 @@ inline matrix4_t PerspectiveOffCenterRHMatrix4(float l, float r, float b, float 
     m.n[2].y = (b + t) / (b - t);
     m.n[2].z = f / (n - f);
     m.n[2].w = -1.0f;
-    m.n[3].z = (n * f) / (n - f);
+    m.n[3].z = (n + f) / (n - f);
     m.n[3].w = 0.0f;
 
     return m;
