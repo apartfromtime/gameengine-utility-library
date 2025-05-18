@@ -76,7 +76,6 @@ enum encode_t
 {
     ENCODE_RGB = 0,
     ENCODE_RLE,
-    ENCODE_INTERLACE,         // png only
     ENCODE_COUNT
 };
 
