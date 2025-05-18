@@ -46,8 +46,6 @@ WidthInBytes(uint32_t width, uint32_t depth)
     return bytes;
 }
 
-static const uint32_t s_rgba_size = 4;
-
 #ifndef _PNG_H
 #define _PNG_H
 
@@ -4793,7 +4791,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         depth *= GetBytesForPixelFormat(dstformat);
 
         // src stuff
-        rect_t srcrect = {};
+        rect_t srcrect = { 0 };
 
         if (psrcrect == NULL) {
             srcrect.min.x = 0;
@@ -5203,7 +5201,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         }
 
         // dst stuff
-        rect_t dstrect = {};
+        rect_t dstrect = { 0 };
 
         if (pdstrect == NULL) {
             dstrect.min.x = 0;
@@ -5234,7 +5232,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
         pdstimage->pixeltype = dstformat;
 
         // src stuff
-        rect_t srcrect = {};
+        rect_t srcrect = { 0 };
 
         if (psrcrect == NULL) {
             srcrect.min.x = 0;
