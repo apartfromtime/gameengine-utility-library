@@ -232,25 +232,6 @@ typedef struct _plane
     }
 } plane_t;
 
-// COLOR
-typedef struct _color
-{
-    float r;
-    float g;
-    float b;
-    float a;
-    float GetIndex(byte1_t index) {
-        switch (index)
-        {
-        case 0: { return r; }
-        case 1: { return g; }
-        case 2: { return b; }
-        case 3: { return a; }
-        }
-        return 0.0f;
-    }
-} color_t;
-
 // RECTANGLE
 typedef struct _rect
 {
