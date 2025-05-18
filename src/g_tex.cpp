@@ -204,7 +204,8 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
     uint32_t ysize = srcysize;
     uint32_t x = 0;
     uint32_t y = 0;
-    uint32_t passes = interlaced != 1 ? 1 : 7;
+    uint32_t passes = interlaced * 7;
+    uint32_t pass = 0;
     uint8_t mask[4] = { 0x01, 0x03, 0, 0x0F };
     uint16_t sample = 0;
     uint16_t pae0 = 0;
@@ -222,8 +223,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
     uint8_t bit1 = 0;
 
     filtertype = (filtertype < PNG_FILTER_COUNT) ? ((srcdepth >= 8) ? filtertype : 0) : 0;
-
-    for (uint32_t pass = 0; pass < passes; ++pass)
+    do
     {
         if (interlaced) {
 
@@ -277,11 +277,9 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
                             if ((x1 >= 0) && (y1 >= 0)) {
                                 pri1 = (pixptr + (y1 * srcpitch) + (x1 * srcbytes))[bpp];
                             }
-
                             if ((y1 >= 0)) {
                                 pri0 = (pixptr + (y1 * srcpitch) + (x0 * srcbytes))[bpp];
                             }
-
                             if ((x1 >= 0)) {
                                 raw1 = (pixptr + (y0 * srcpitch) + (x1 * srcbytes))[bpp];
                             }
@@ -307,19 +305,13 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
                                 pb = ABS(raw1 - pri1);
                                 pc = ABS(raw1 + pri0 - (2 * pri1));
 
-                                if (pa <= pb && pa <= pc)
-                                {
+                                if (pa <= pb && pa <= pc) {
                                     pae0 = (raw0 - raw1) & 0xFF;
-                                }
-                                else if (pb <= pc)
-                                {
+                                } else if (pb <= pc) {
                                     pae0 = (raw0 - pri0) & 0xFF;
-                                }
-                                else
-                                {
+                                } else {
                                     pae0 = (raw0 - pri1) & 0xFF;
                                 }
-
                                 sample = pae0;
                             } break;
                             }
@@ -373,11 +365,9 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
                         if ((x1 >= 0) && (y1 >= 0)) {
                             pri1 = (pixptr + (y1 * srcpitch) + (x1 * srcbytes))[bpp];
                         }
-
                         if ((y1 >= 0)) {
                             pri0 = (pixptr + (y1 * srcpitch) + (x0 * srcbytes))[bpp];
                         }
-
                         if ((x1 >= 0)) {
                             raw1 = (pixptr + (y0 * srcpitch) + (x1 * srcbytes))[bpp];
                         }
@@ -410,7 +400,6 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
                             } else {
                                 pae0 = (raw0 - pri1) & 0xFF;
                             }
-
                             sample = pae0;
                         } break;
                         }
@@ -425,7 +414,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
             }
             y++;
         }
-    }
+    } while (++pass < passes);
 
     if (pdstlen != NULL) { *pdstlen = dstofs; }
 }
@@ -563,9 +552,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     uint8_t compression = 0;
     uint8_t filter = 0;
     // 0 (no interlace) or 1 (Adam7 interlace)
-    uint8_t interlace = (codec == ENCODE_INTERLACE) ? 1 : 0;
-
-    interlace = (interlace < 2) ? interlace : 0;
+    uint8_t interlace = (codec == ENCODE_RLE) ? 1 : 0;
 
     *dstbuf++ = srcdepth <= 32 ? srcdepth <= 4 ? srcdepth : 8 : 16;
     *dstbuf++ = colortype;
@@ -1143,7 +1130,8 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
     uint32_t ysize = dstysize;
     uint32_t x = 0;
     uint32_t y = 0;
-    uint32_t passes = interlaced != 1 ? 1 : 7;
+    uint32_t passes = interlaced * 7;
+    uint32_t pass = 0;
     uint8_t mask[4] = { 0x01, 0x03, 0, 0x0F };
     uint8_t* pixptr = *ppdst;
     uint16_t sample = 0;
@@ -1160,8 +1148,8 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
     uint8_t bitX = 0;
     uint8_t bit0 = 0;
     uint8_t bit1 = 0;
-
-    for (uint32_t pass = 0; pass < passes; ++pass)
+    
+    do
     {
         if (interlaced) {
 
@@ -1271,7 +1259,6 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
                         } else {
                             pae0 = (raw0 + pri1) & 0xFF;
                         }
-
                         sample = pae0;
                     } break;
                     }
@@ -1288,7 +1275,7 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
             }
             y++;
         }
-    }
+    } while (++pass < passes);
 }
 
 //-----------------------------------------------------------------------------
@@ -1420,9 +1407,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
                 compression = *srcbuf++;
 
                 // compression method
-                if (compression == 0) {
-                    compression = ENCODE_RGB;
-                } else {
+                if (compression != 0) {
                     fprintf(stderr, "PNG, Unrecognised compression code: %d.\n",
                         compression);
                     return false;
