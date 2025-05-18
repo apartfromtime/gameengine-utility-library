@@ -1301,7 +1301,8 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
     uint8_t* srcsampledepth, rgba_t* pcolorkey)
 {
-    if (ppdst == NULL || psrc == NULL || psrcsize < 8) {
+    if (psrc == NULL || psrcsize < 8) {
+        fprintf(stderr, "PNG, Not a valid bitmap.\n");
         return false;
     }
 
@@ -1810,6 +1811,15 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     free(odatptr);
     odatptr = NULL;
 
+    if (ppdst == NULL) {
+        
+        fprintf(stderr, "PNG, destination was not a valid pointer.\n");
+        free(datptr);
+        datptr = NULL;
+
+        return false;
+    }
+
     // deinterlace and filter
     uint32_t pixlen = xsize * ysize * bytesperpixel;
     uint8_t* pixels = (uint8_t*)malloc(pixlen);
@@ -2255,7 +2265,7 @@ static bool
 LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth)
 {
-    if (ppdst == NULL || psrc == NULL || psrcsize < s_tga_file_size) {
+    if (psrc == NULL || psrcsize < s_tga_file_size) {
         fprintf(stderr, "TGA, Not a valid bitmap.\n");
         return false;
     }
@@ -2375,6 +2385,11 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t rlevalue = 0;
     uint32_t rlecount = 0;
     uint8_t rgba[4] = {};
+
+    if (ppdst == NULL) {
+        fprintf(stderr, "TGA, destination was not a valid pointer.\n");
+        return false;
+    }
 
     uint8_t* pixels = (uint8_t*)malloc(xsize * ysize * bytesperpixel);
     uint8_t* rawptr = pixels;           // start of current dst row
@@ -2939,7 +2954,7 @@ static bool
 LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth)
 {
-    if (ppdst == NULL || psrc == NULL || psrcsize < s_bmp_file_size) {
+    if (psrc == NULL || psrcsize < s_bmp_file_size) {
         fprintf(stderr, "BMP, Not a valid bitmap.\n");
         return false;
     }
@@ -3038,6 +3053,11 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     int32_t padbytes = widthbytes - pitch;
     int32_t rlecount = 0;
     uint8_t sample = 0;
+
+    if (ppdst == NULL) {
+        fprintf(stderr, "BMP, destination was not a valid pointer.\n");
+        return false;
+    }
 
     uint8_t* pixels = (uint8_t*)malloc(ABS(ysize) * pitch);
     uint8_t* pixptr = pixels;
@@ -3532,7 +3552,7 @@ static bool
 LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth)
 {
-    if (ppdst == NULL || psrc == NULL || psrcsize < s_pcx_v5_info_size) {
+    if (psrc == NULL || psrcsize < s_pcx_v5_info_size) {
         fprintf(stderr, "PCX, Not a valid bitmap.\n");
         return false;
     }
@@ -3572,7 +3592,7 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
         return false;
     }
 
-    if (version != 5) {
+    if (version != 0 && version != 2 && version != 3 && version != 4 && version != 5) {
         fprintf(stderr, "PCX, Version mismatch: %d.\n", version);
         return false;
     }
@@ -3594,12 +3614,17 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t subtotal = 0;
     uint32_t colorplane = 0;
 
+    if (ppdst == NULL) {
+        fprintf(stderr, "PCX, destination was not a valid pointer.\n");
+        return false;
+    }
+
     uint8_t* pixels = (uint8_t*)malloc(ysize * pitch);
     uint8_t* pixptr = pixels;
     uint8_t* pixbuf = pixels;
 
     if (pixels == NULL) {
-        fprintf(stderr, "PCX: Out of memory.\n");
+        fprintf(stderr, "PCX, Out of memory.\n");
         return false;
     }
 
