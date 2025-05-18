@@ -27,6 +27,14 @@
 
 #pragma warning (disable : 4244)            // conversion from <type> to <type>
 
+#define INLINE_OBJECT_SIZE_CHK(ptr, os, chksize)        \
+    do {                                                \
+        if (ptr == NULL || os < chksize) {              \
+            fprintf(stderr, "Not a valid object.\n");   \
+            return false;                               \
+        }                                               \
+    } while (0)
+
 // returns width in bytes, depth must be bits per pixel
 static uint32_t
 WidthInBytes(uint32_t width, uint32_t depth)
@@ -715,8 +723,8 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
         return false;
     }
 
-    // deflate data
-    uint32_t odatlen = idatlen;           // deflate size
+    // deflate
+    uint32_t odatlen = idatlen;
     uint8_t* odatptr = (uint8_t*)malloc(((odatlen + 1) & ~1));
     uint8_t* odatbuf = odatptr;
 
@@ -735,10 +743,10 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 
     memset(odatptr, 0, ((odatlen + 1) & ~1));
 
-    unsigned int oabsrem = odatlen - deflator.total_out;        // absolute remaining output
-    unsigned int odatrem = 0;         // relative remaining output
-    unsigned int iabsrem = idatlen - deflator.total_in;         // absolute remaining input
-    unsigned int idatrem = 0;         // relative remaining input
+    unsigned int oabsrem = odatlen - deflator.total_out;
+    unsigned int odatrem = 0;
+    unsigned int iabsrem = idatlen - deflator.total_in;
+    unsigned int idatrem = 0;
 
     idatrem = MIN(32768, idatlen);
     odatrem = MIN(32768, odatlen);
@@ -846,9 +854,9 @@ static bool
 GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysize,
     uint8_t* srcdepth, uint8_t* srcsampledepth, uint8_t* psrc, uint32_t psrcsize)
 {
-    if (psrc == NULL || psrcsize < 8) {
-        return false;
-    }
+    uint32_t chksize = s_png_signaturesize + s_png_headersize +
+        (4 * (s_png_chunksize + s_png_crcsize));
+    INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, chksize);
 
     uint32_t srclen = psrcsize;
     uint8_t* srcptr = psrc;
@@ -872,7 +880,7 @@ GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
     uint32_t interlace = 0;
     uint32_t gamma = 0;
     uint32_t palnum = 0;
-    uint8_t  colorkey[3] = {};
+    uint8_t  colorkey[3] = { 0 };
     uint8_t  bytesperpixel = 0;
     uint8_t  sampledepth = 8;
 
@@ -1286,10 +1294,9 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
     uint8_t* srcsampledepth, rgba_t* pcolorkey)
 {
-    if (psrc == NULL || psrcsize < 8) {
-        fprintf(stderr, "PNG, Not a valid bitmap.\n");
-        return false;
-    }
+    uint32_t chksize = s_png_signaturesize + s_png_headersize +
+        (4 * (s_png_chunksize + s_png_crcsize));
+    INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, chksize);
 
     uint32_t srclen = psrcsize;
     uint8_t* srcptr = psrc;
@@ -1727,10 +1734,10 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 
     memset(odatptr, 0, ((odatlen + 1) & ~1));
 
-    unsigned int oabsrem = odatlen - inflator.total_out;         // absolute remaining output
-    unsigned int odatrem = 0;         // relative remaining output
-    unsigned int iabsrem = idatlen - inflator.total_in;         // absolute remaining input
-    unsigned int idatrem = 0;         // relative remaining input
+    unsigned int oabsrem = odatlen - inflator.total_out;
+    unsigned int odatrem = 0;
+    unsigned int iabsrem = idatlen - inflator.total_in;
+    unsigned int idatrem = 0;
 
     idatrem = MIN(32768, idatlen);
     odatrem = MIN(32768, odatlen);
@@ -2190,9 +2197,7 @@ static bool
 GetInfoFromMemoryTGA(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysize,
     uint8_t* srcdepth, uint8_t* psrc, uint32_t psrcsize)
 {
-    if (psrc == NULL || psrcsize < s_tga_file_size) {
-        return false;
-    }
+    INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_tga_file_size);
 
     uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
@@ -2248,10 +2253,7 @@ static bool
 LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth)
 {
-    if (psrc == NULL || psrcsize < s_tga_file_size) {
-        fprintf(stderr, "TGA, Not a valid bitmap.\n");
-        return false;
-    }
+    INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_tga_file_size);
 
     // src stuff
     uint8_t* srcptr = psrc;
@@ -2897,9 +2899,7 @@ static bool
 GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
     uint8_t* psrc, uint32_t psrcsize)
 {
-    if (psrc == NULL || psrcsize < s_bmp_file_size) {
-        return false;
-    }
+    INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_bmp_file_size);
 
     uint8_t* srcbuf = psrc;
 
@@ -2937,10 +2937,7 @@ static bool
 LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth)
 {
-    if (psrc == NULL || psrcsize < s_bmp_file_size) {
-        fprintf(stderr, "BMP, Not a valid bitmap.\n");
-        return false;
-    }
+    INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_bmp_file_size);
 
     uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
@@ -3479,9 +3476,7 @@ static bool
 GetInfoFromMemoryPCX(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
     uint8_t* psrc, uint32_t psrcsize)
 {
-    if (psrc == NULL || psrcsize < s_pcx_v5_info_size) {
-        return false;
-    }
+    INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_pcx_v5_info_size);
 
     uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
@@ -3535,10 +3530,7 @@ static bool
 LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth)
 {
-    if (psrc == NULL || psrcsize < s_pcx_v5_info_size) {
-        fprintf(stderr, "PCX, Not a valid bitmap.\n");
-        return false;
-    }
+    INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_pcx_v5_info_size);
 
     uint8_t* srcptr = psrc;
     uint8_t* srcbuf = psrc;
