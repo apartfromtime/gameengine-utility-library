@@ -25,7 +25,7 @@
 #include <stdint.h>
 
 #define GEUL_MAJOR_VERSION      1
-#define GEUL_MINOR_VERSION      2
+#define GEUL_MINOR_VERSION      3
 #define GEUL_PATCH_VERSION      2
 
 //-----------------------------------------------------------------------------
