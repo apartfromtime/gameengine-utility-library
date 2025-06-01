@@ -1910,6 +1910,45 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrcbuf,
 
 #endif // #ifndef _PNG_H_
 
+uint32_t
+ParseABS(uint8_t** pixels, uint32_t bytesperpixel, uint32_t maxcount)
+{
+    uint8_t* buffer = *pixels;
+    uint32_t count = 1;
+    uint32_t sample0 = 0;
+    uint32_t sample1 = 0;
+
+    memcpy(&sample1, buffer, bytesperpixel);
+    while (count < maxcount) {
+        sample0 = sample1;
+        memcpy(&sample1, (buffer + bytesperpixel), bytesperpixel);
+        if (sample0 == sample1) { break; }
+        buffer += bytesperpixel;
+        count++;
+    }
+
+    return count;
+}
+
+uint32_t
+ParseRLE(uint8_t** pixels, uint32_t bytesperpixel, uint32_t maxcount)
+{
+    uint8_t* buffer = *pixels;
+    uint32_t count = 1;
+    uint32_t sample0 = 0;
+    uint32_t sample1 = 0;
+
+    memcpy(&sample1, buffer, bytesperpixel);
+    while (count < maxcount) {
+        sample0 = sample1;
+        memcpy(&sample1, (buffer + bytesperpixel), bytesperpixel);
+        if (sample0 != sample1) { break; }
+        buffer += bytesperpixel;
+        count++;
+    }
+
+    return count;
+}
 
 #ifndef _TGA_H_
 #define _TGA_H_
@@ -2096,9 +2135,12 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
 
             uint32_t abscount = 0;
             uint32_t rlecount = 0;
-            uint32_t rlevalue = 0;
-            uint32_t sample0 = 0;
-            uint32_t sample1 = 0;
+            uint32_t runcount = 0;
+            uint32_t maxcount = 0xFF;
+            uint32_t absbound = srcxsize - 0xFF;
+            uint32_t rlebound = srcxsize - 0x80;
+            uint32_t sample = 0;
+            uint8_t* buffer = NULL;
 
             switch (image_type)
             {
@@ -2106,80 +2148,34 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             case TGA_MAPPED_RLE:
             case TGA_BLACK_AND_WHITE_RLE:
             {
-                while (y < srcysize)
-                {
+                while (y < srcysize) {
                     rawbuf = rawptr;
                     x = 0;
-
-                    while (x < srcxsize)
-                    {
-                        abscount = 1;
-                        sample0 = 0;
-                        sample1 = 0;
-
-                        memcpy(&sample0, (rawbuf + (x * bytesperpixel)), bytesperpixel);
-
-                        sample1 = sample0;
-
-                        while ((x + abscount) < srcxsize && abscount < 0xFF)
-                        {
-                            sample0 = sample1;
-                            sample1 = 0;
-
-                            memcpy(&sample1, (rawbuf + ((x + abscount) * bytesperpixel)),
-                                bytesperpixel);
-
-                            if (sample0 == sample1) {
-                                break;
-                            }
-
-                            abscount++;
-                        }
-
-                        rlecount = 1;
-                        sample0 = 0;
-                        sample1 = 0;
-
-                        memcpy(&sample0, (rawbuf + (x * bytesperpixel)), bytesperpixel);
-
-                        sample1 = sample0;
-
-                        while ((x + rlecount) < srcxsize && rlecount < 0x80)
-                        {
-                            sample0 = sample1;
-                            sample1 = 0;
-
-                            memcpy(&sample1, (rawbuf + ((x + rlecount) * bytesperpixel)),
-                                bytesperpixel);
-
-                            if (sample0 != sample1) {
-                                break;
-                            }
-
-                            rlecount++;
-                        }
-
+                    while (x < srcxsize) {
+                        memcpy(&sample, (rawbuf + (x * bytesperpixel)), bytesperpixel);
+                        buffer =  (rawbuf + (x * bytesperpixel));
+                        maxcount = 0xFF;
+                        if (x > absbound) { maxcount = srcxsize - x; };
+                        abscount = ParseABS(&buffer, bytesperpixel, maxcount);
+                        maxcount = 0x80;
+                        if (x > rlebound) { maxcount = srcxsize - x; };
+                        rlecount = ParseRLE(&buffer, bytesperpixel, maxcount);
                         if (abscount >= rlecount) {
-
-                            rlevalue = abscount;
-
-                            *dstbuf++ = (0 << 7) | (rlevalue - 1);
+                            runcount = abscount;
+                            *dstbuf++ = (0 << 7) | (runcount - 1);
                             bytesencoded++;
-
-                            memcpy(&dstbuf, (rawbuf + (x * bytesperpixel) * rlevalue), bytesperpixel);
-                            dstbuf += bytesperpixel * rlevalue;
-                            bytesencoded += bytesperpixel * rlevalue;
+                            memcpy(dstbuf, (rawbuf + (x * bytesperpixel) * runcount), bytesperpixel);
+                            dstbuf += bytesperpixel * runcount;
+                            bytesencoded += bytesperpixel * runcount;
                         } else {
-                            rlevalue = rlecount;
-
-                            *dstbuf++ = (1 << 7) | (rlevalue - 1);
+                            runcount = rlecount;
+                            *dstbuf++ = (1 << 7) | (runcount - 1);
                             bytesencoded++;
-
-                            memcpy(dstbuf, &sample0, bytesperpixel);
+                            memcpy(dstbuf, &sample, bytesperpixel);
                             dstbuf += bytesperpixel;
                             bytesencoded += bytesperpixel;
                         }
-                        x += rlevalue;
+                        x += runcount;
                     }
                     rawptr += pitch;
                     y++;
@@ -2495,7 +2491,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     INLINE_OBJECT_NULL_CHK(ppdstsize);
 
     //INLINE_OBJECT_NULL_CHK(psrc);
-    //INLINE_OBJECT_SIZE_CHK(psrcsize, psrcsize, 0);
+    //INLINE_OBJECT_SIZE_CHK(psrcsize, 0);
 
     if (srcdepth !=  1 && srcdepth !=  4 && srcdepth != 8 && srcdepth != 24 &&
         srcdepth != 32) {
@@ -2623,21 +2619,21 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
 
             uint32_t abscount = 0;
             uint32_t rlecount = 0;
-            uint32_t rlevalue = 0;
-            uint8_t sample0 = 0;
-            uint8_t sample1 = 0;
+            uint32_t runcount = 0;
+            uint32_t maxcount = 0xFF;
+            uint32_t maxbound = xextent - 0xFF;
+            uint8_t sample = 0;
+            uint8_t* buffer = NULL;
 
             switch (dstdepth)
             {
             case 4:         // 4-bit encoding
             {
-                uint32_t runcount = 0;
                 x = 0;
                 y = 0;
                 uint8_t* pixels = (uint8_t*)malloc(srcxsize * srcysize);
                 uint8_t* pixbuf = pixels;
                 uint8_t* srcbuf = rawbuf;
-                uint8_t sample = 0;
 
                 memset(pixels, 0, srcxsize * srcysize);
 
@@ -2666,8 +2662,6 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             };
             case 8:         // 8-bit encoding
             {
-                uint8_t sample = 0;
-
                 while (y < yextent)
                 {
                     rawbuf = rawptr;
@@ -2721,37 +2715,12 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
 
                     while (x < xextent)
                     {
-                        abscount = 1;
-                        sample0 = *(rawbuf + x);
-                        sample1 = sample0;
-
-                        while ((x + abscount) < xextent && abscount < 0xFF)
-                        {
-                            sample0 = sample1;
-                            sample1 = *(rawbuf + x + abscount);
-
-                            if (sample0 == sample1) {
-                                break;
-                            }
-
-                            abscount++;
-                        }
-
-                        rlecount = 1;
-                        sample0 = *(rawbuf + x);
-                        sample1 = sample0;
-
-                        while ((x + rlecount) < xextent && rlecount < 0xFF)
-                        {
-                            sample0 = sample1;
-                            sample1 = *(rawbuf + x + rlecount);
-
-                            if (sample0 != sample1) {
-                                break;
-                            }
-
-                            rlecount++;
-                        }
+                        sample = *(rawbuf + x);
+                        buffer =  (rawbuf + x);
+                        maxcount = 0xFF;
+                        if (x > maxbound) { maxcount = xextent - x; };
+                        abscount = ParseABS(&buffer, 1, maxcount);
+                        rlecount = ParseRLE(&buffer, 1, maxcount);
 
                         if (abscount >= 3 && abscount >= rlecount) {
                             for (uint32_t i = 0; i < abscount; i++)
@@ -2765,17 +2734,17 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
 
                         if (abscount >= 3 && abscount >= rlecount) {
 
-                            rlevalue = abscount;
+                            runcount = abscount;
 
                             *dstbuf++ = 0x00;
-                            *dstbuf++ = rlevalue;
+                            *dstbuf++ = runcount;
                             bytesencoded++;
                             bytesencoded++;
 
-                            uint32_t count = rlevalue;
+                            uint32_t count = runcount;
 
                             if (dstdepth == 4) {
-                                count = (rlevalue >> 1);
+                                count = (runcount >> 1);
                             }
 
                             for (uint32_t i = 0; i < count; ++i)
@@ -2800,16 +2769,14 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
                             }
 
                             // pad-byte
-                            if ((rlevalue & 1)) {
+                            if ((runcount & 1)) {
                                 *dstbuf++ = 0x00;
                                 bytesencoded++;
                             }
                         } else {
-                            rlevalue = rlecount;
+                            runcount = rlecount;
 
-                            sample = 0;
-
-                            if (sample0 == colorkey) {
+                            if (sample == colorkey) {
                                 *dstbuf++ = 0x00;
                                 *dstbuf++ = 0x02;
                                 bytesencoded++;
@@ -2821,25 +2788,19 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
                                 {
                                 case 4:
                                 {
-                                    int d1 = sample0 & 0xF;
-                                    int d0 = sample0 << 4;
-
+                                    int d1 = sample & 0xF;
+                                    int d0 = sample << 4;
                                     sample = d0 + d1;
-                                } break;
-                                case 8:
-                                {
-                                    sample = sample0;
                                 } break;
                                 }
                             }
 
-                            *dstbuf++ = rlevalue;
+                            *dstbuf++ = runcount;
                             *dstbuf++ = sample;
                             bytesencoded++;
                             bytesencoded++;
                         }
-
-                        x += rlevalue;
+                        x += runcount;
                     }
 
                     *dstbuf++ = 0x00;
@@ -3321,7 +3282,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     // byte encoded array
     uint32_t datasize = s_pcx_v5_info_size + (ysize * (srcbytesperpixel * dstpitch)) +
         dstpalettesize;
-    uint8_t* data = (uint8_t*)malloc(datasize);
+    uint8_t* data = (uint8_t*)malloc(datasize+datasize);
 
     if (data == NULL) {
         fprintf(stderr, "PCX, Out of memory.\n");
@@ -3358,68 +3319,48 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     uint32_t bytesencoded = 0;
     uint32_t colorplane = 0;
     uint32_t rlecount = 0;
-    uint32_t rlevalue = 0;
+    uint32_t runcount = 0;
+    uint32_t maxcount = 0x3F;
+    uint32_t maxbound = xsize - 0x3F;
     uint32_t x = 0;
     uint32_t y = 0;
-    uint8_t sample0 = 0;
-    uint8_t sample1 = 0;
+    uint8_t sample = 0;
+    uint8_t* buffer = NULL;
 
-    while (y < ysize)
-    {
+    while (y < ysize) {
         colorplane = 0;
-
-        do
-        {
+        do {
             rawbuf = rawptr;
             x = 0;
-
-            while (x < xsize)
-            {
-                rlecount = 1;
-                sample0 = *(rawbuf + ((x * srcbytesperpixel) + colorplane));
-                sample1 = sample0;
-
-                while ((x + rlecount) < xsize && rlecount < 0x3F)
-                {
-                    sample0 = sample1;
-                    sample1 = *(rawbuf + (((x + rlecount) * srcbytesperpixel) +
-                        colorplane));
-
-                    if (sample0 != sample1) {
-                        break;
-                    }
-
-                    rlecount++;
-                }
-
-                rlevalue = rlecount;
-
+            while (x < xsize) {
+                sample = *(rawbuf + ((x * srcbytesperpixel) + colorplane));
+                buffer =  (rawbuf + ((x * srcbytesperpixel) + colorplane));
+                maxcount = 0x3F;
+                if (x > maxbound) { maxcount = xsize - x; };
+                rlecount = ParseRLE(&buffer, srcbytesperpixel, maxcount);
+                runcount = rlecount;
                 if (rlecount == 1) {
-                    if ((0xC0 != (0xC0 & sample0))) {
-                        *dstbuf++ = sample0;
+                    if ((0xC0 != (0xC0 & sample))) {
+                        *dstbuf++ = sample;
                         bytesencoded++;
                     } else {
-                        *dstbuf++ = rlevalue | 0xC0;
-                        *dstbuf++ = sample0;
+                        *dstbuf++ = runcount | 0xC0;
+                        *dstbuf++ = sample;
                         bytesencoded++;
                         bytesencoded++;
                     }
                 } else {
-                    *dstbuf++ = rlevalue | 0xC0;
-                    *dstbuf++ = sample0;
+                    *dstbuf++ = runcount | 0xC0;
+                    *dstbuf++ = sample;
                     bytesencoded++;
                     bytesencoded++;
                 }
-
-                x += rlevalue;
+                x += runcount;
             }
-
             dstbuf += dstpadbytes;
             bytesencoded += dstpadbytes;
             colorplane++;
-
         } while (colorplane < srcbytesperpixel);
-
         rawptr += srcpitch;
         y++;
     }
@@ -3915,7 +3856,6 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t fileformat,
         if (psrcimage->format != GEUL_COLOUR_INDEX) {
             psrcpalette = NULL;
         }
-
         switch (fileformat)
         {
         case GEUL_PNG:
@@ -3944,10 +3884,10 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t fileformat,
                 false);
         } break;
         }
-    }
-    if (psrcimage->pixels != NULL) {
-        free(psrcimage->pixels);
-        psrcimage->pixels = NULL;
+        if (psrcimage->pixels != NULL) {
+            free(psrcimage->pixels);
+            psrcimage->pixels = NULL;
+        }
     }
 
     return result;
