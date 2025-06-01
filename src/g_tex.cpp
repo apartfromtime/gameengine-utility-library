@@ -35,12 +35,30 @@
         }                                               \
     } while (0)
 
+// returns bytes per pixel
+static uint8_t
+GetBytesForPixelFormat(uint32_t format)
+{
+    uint8_t bytes = 1;
+    switch (format)
+    {
+    case GEUL_RGBA:
+    case GEUL_BGRA:
+    { bytes++; }
+    case GEUL_RGB:
+    case GEUL_BGR:
+    { bytes++; }
+    case GEUL_LUMINANCE_ALPHA:
+    { bytes++; }
+    }
+    return bytes;
+}
+
 // returns width in bytes, depth must be bits per pixel
 static uint32_t
 WidthInBytes(uint32_t width, uint32_t depth)
 {
     uint32_t bytes = width;
-
     switch (depth)
     {
     case 32: bytes += width;
@@ -50,7 +68,6 @@ WidthInBytes(uint32_t width, uint32_t depth)
     case  2: bytes >>= 1;
     case  4: bytes >>= 1;
     };
-
     return bytes;
 }
 
@@ -431,16 +448,16 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize,
 // SavePNG
 //------------------------------------------------------------------------------
 static bool
-SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* psrc,
-    uint32_t srcxsize, uint32_t srcysize, uint8_t srcdepth, uint8_t srcsampledepth,
-    palette_t* psrcpalette, rgba_t* pcolorkey)
+SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec, uint8_t* psrc,
+    uint32_t psrcsize, uint32_t srcxsize, uint32_t srcysize, uint8_t srcdepth,
+    uint8_t srcsampledepth, palette_t* psrcpalette, rgba_t* pcolorkey)
 {
     if (ppdst == NULL || ppdstsize == NULL) {
         fprintf(stderr, "PNG, Invalid dst data.\n");
         return false;
     }
 
-    if (psrc == NULL) {
+    if (psrc == NULL || psrcsize == 0) {
         fprintf(stderr, "PNG, Invalid src data.\n");
         return false;
     }
@@ -560,7 +577,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     uint8_t compression = 0;
     uint8_t filter = 0;
     // 0 (no interlace) or 1 (Adam7 interlace)
-    uint8_t interlace = (codec == ENCODE_RLE) ? 1 : 0;
+    uint8_t interlace = (codec == GEUL_RLE) ? 1 : 0;
 
     *dstbuf++ = srcdepth <= 32 ? srcdepth <= 4 ? srcdepth : 8 : 16;
     *dstbuf++ = colortype;
@@ -852,7 +869,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 //-----------------------------------------------------------------------------
 static bool
 GetInfoFromMemoryPNG(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysize,
-    uint8_t* srcdepth, uint8_t* srcsampledepth, uint8_t* psrc, uint32_t psrcsize)
+    uint32_t* srcdepth, uint8_t* srcsampledepth, uint8_t* psrc, uint32_t psrcsize)
 {
     uint32_t chksize = s_png_signaturesize + s_png_headersize +
         (4 * (s_png_chunksize + s_png_crcsize));
@@ -1291,7 +1308,7 @@ ExpandPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstdep
 //-----------------------------------------------------------------------------
 static bool
 LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
-    uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
+    uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint32_t* srcdepth,
     uint8_t* srcsampledepth, rgba_t* pcolorkey)
 {
     uint32_t chksize = s_png_signaturesize + s_png_headersize +
@@ -1313,7 +1330,6 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     }
 
     // image
-    pixel_t pixeltype = PIXELTYPE_UNKNOWN;
     uint32_t xsize = 0;
     uint32_t ysize = 0;
     uint32_t depth = 0;
@@ -1920,16 +1936,16 @@ static const uint32_t s_tga_file_size = 18;
 // SaveTGA
 //------------------------------------------------------------------------------
 static bool
-SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* psrc,
-    uint32_t srcxsize, uint32_t srcysize, uint8_t srcdepth, palette_t* psrcpalette,
-    bool invertX, bool invertY)
+SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec, uint8_t* psrc,
+    uint32_t psrcsize, uint32_t srcxsize, uint32_t srcysize, uint8_t srcdepth,
+    palette_t* psrcpalette, bool invertX, bool invertY)
 {
     if (ppdst == NULL || ppdstsize == NULL) {
         fprintf(stderr, "TGA, Invalid dst data.\n");
         return false;
     }
 
-    if (psrc == NULL) {
+    if (psrc == NULL || psrcsize == 0) {
         fprintf(stderr, "TGA, Invalid src data.\n");
         // return false;
     }
@@ -1969,7 +1985,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     if (psrc == NULL) {
         image_type = TGA_NO_IMAGE_DATA;
     } else {
-        if (codec == ENCODE_RLE) {
+        if (codec == GEUL_RLE) {
             switch(srcdepth)
             {
                 case 32:
@@ -2054,9 +2070,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
                 r = (psrcpalette->data[i].r * 0x1F) / 0xFF;
                 g = (psrcpalette->data[i].g * 0x1F) / 0xFF;
                 b = (psrcpalette->data[i].b * 0x1F) / 0xFF;
-                
                 rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
-
                 WriteU16ToLE(dstbuf, rgb16); dstbuf += 2;
             }
         } else if (colormap_size == 24) {
@@ -2082,7 +2096,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
         uint32_t x = 0;
         uint32_t y = 0;
 
-        if (codec == ENCODE_RLE) {          // run-length encoding
+        if (codec == GEUL_RLE) {          // run-length encoding
 
             uint32_t abscount = 0;
             uint32_t rlecount = 0;
@@ -2177,7 +2191,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
             } break;
             }
         } else {            // everything else
-            memcpy(dstbuf, rawbuf, srcysize* pitch);
+            memcpy(dstbuf, rawbuf, srcysize * pitch);
             dstbuf += srcysize * pitch;
             bytesencoded += srcysize * pitch;
         }
@@ -2195,7 +2209,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 //-----------------------------------------------------------------------------
 static bool
 GetInfoFromMemoryTGA(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysize,
-    uint8_t* srcdepth, uint8_t* psrc, uint32_t psrcsize)
+    uint32_t* srcdepth, uint8_t* psrc, uint32_t psrcsize)
 {
     INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_tga_file_size);
 
@@ -2251,7 +2265,7 @@ GetInfoFromMemoryTGA(uint8_t* srccolormap, uint32_t* srcxsize, uint32_t* srcysiz
 //-----------------------------------------------------------------------------
 static bool
 LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
-    uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth)
+    uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint32_t* srcdepth)
 {
     INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_tga_file_size);
 
@@ -2369,7 +2383,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
     uint32_t pitch = xsize * bytesperpixel;
     uint32_t rlevalue = 0;
     uint32_t rlecount = 0;
-    uint8_t rgba[4] = {};
+    uint8_t rgba[4] = { 0 };
 
     if (ppdst == NULL) {
         fprintf(stderr, "TGA, destination was not a valid pointer.\n");
@@ -2480,16 +2494,16 @@ static const uint32_t s_bmp_v3_info_size = 40;
 // SaveBMP
 //------------------------------------------------------------------------------
 static bool
-SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* psrc,
-    uint32_t srcxsize, uint32_t srcysize, uint32_t srcdepth, palette_t* psrcpalette,
-    rgba_t* pcolorkey, bool invertY)
+SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec, uint8_t* psrc,
+    uint32_t psrcsize, uint32_t srcxsize, uint32_t srcysize, uint32_t srcdepth,
+    palette_t* psrcpalette, rgba_t* pcolorkey, bool invertY)
 {
     if (ppdst == NULL || ppdstsize == NULL) {
         fprintf(stderr, "BMP, Invalid dst data.\n");
         return false;
     }
 
-    if (psrc == NULL) {
+    if (psrc == NULL || psrcsize == 0) {
         fprintf(stderr, "BMP, Invalid src data.\n");
         //return false;
     }
@@ -2549,7 +2563,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
     uint16_t bits = dstdepth;
     uint32_t compression = BI_RGB;
 
-    if (codec == ENCODE_RLE) {
+    if (codec == GEUL_RLE) {
         if (srcdepth == 8) {
             compression = BI_RLE8;
         }
@@ -2896,7 +2910,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 // GetInfo
 //------------------------------------------------------------------------------
 static bool
-GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
+GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize, uint32_t* srcdepth,
     uint8_t* psrc, uint32_t psrcsize)
 {
     INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_bmp_file_size);
@@ -2905,13 +2919,13 @@ GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
 
     // file struct
     uint16_t type        = ReadU16FromLE(srcbuf); srcbuf += 2;
-    srcbuf += 4; // file size
+    srcbuf += 4;            // file size
     uint16_t reserved1   = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint16_t reserved2   = ReadU16FromLE(srcbuf); srcbuf += 2;
-    srcbuf += 4; // offset
+    srcbuf += 4;            // offset
 
     // info struct
-    srcbuf += 4; // info size
+    srcbuf += 4;            // info size
     int32_t  xsize       = ReadI32FromLE(srcbuf); srcbuf += 4;
     int32_t  ysize       = ReadI32FromLE(srcbuf); srcbuf += 4;
     uint16_t planes      = ReadU16FromLE(srcbuf); srcbuf += 2;
@@ -2935,7 +2949,7 @@ GetInfoFromMemoryBMP(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
 //------------------------------------------------------------------------------
 static bool
 LoadFromMemoryBMP(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
-    uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth)
+    uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint32_t* srcdepth)
 {
     INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_bmp_file_size);
 
@@ -3267,15 +3281,16 @@ static const uint32_t s_pcx_v5_info_size = 128;
 // SavePCX
 //-----------------------------------------------------------------------------
 static bool
-SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* psrc,
-    uint32_t srcxsize, uint32_t srcysize, uint8_t srcdepth, palette_t* psrcpalette)
+SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec, uint8_t* psrc,
+    uint32_t psrcsize, uint32_t srcxsize, uint32_t srcysize, uint8_t srcdepth,
+    palette_t* psrcpalette)
 {
     if (ppdst == NULL || ppdstsize == NULL) {
         fprintf(stderr, "PCX, Invalid dst data.\n");
         return false;
     }
 
-    if (psrc == NULL) {
+    if (psrc == NULL || psrcsize == 0) {
         fprintf(stderr, "PCX, Invalid src data.\n");
         return false;
     }
@@ -3473,7 +3488,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, encode_t codec, uint8_t* p
 // GetInfoPCX
 //-----------------------------------------------------------------------------
 static bool
-GetInfoFromMemoryPCX(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
+GetInfoFromMemoryPCX(uint32_t* srcxsize, uint32_t* srcysize, uint32_t* srcdepth,
     uint8_t* psrc, uint32_t psrcsize)
 {
     INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_pcx_v5_info_size);
@@ -3528,7 +3543,7 @@ GetInfoFromMemoryPCX(uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth,
 //-----------------------------------------------------------------------------
 static bool
 LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
-    uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint8_t* srcdepth)
+    uint32_t psrcsize, uint32_t* srcxsize, uint32_t* srcysize, uint32_t* srcdepth)
 {
     INLINE_OBJECT_SIZE_CHK(psrc, psrcsize, s_pcx_v5_info_size);
 
@@ -3689,901 +3704,62 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* pdstpalette, uint8_t* psrc,
 #endif // #ifndef _PCX_H
 
 //-----------------------------------------------------------------------------
-// Resampling
-//-----------------------------------------------------------------------------
-
-typedef struct _filter_info
-{
-    float pixelN;         // number
-    float pixelW;         // weight
-} filter_info_t;
-
-typedef struct _filter_list
-{
-    filter_info_t*  info;          // info of weights
-    uint32_t        size;          // size of info
-} filter_list_t;
-
-static const float BOX_SUPPORT = 0.5f;
-
-static float 
-BoxFilter(float t)
-{
-    if ((t > -0.5f) && (t <= 0.5f)) return (1.0f);
-    return 0.0f;
-}
-
-static const float TRIANGLE_SUPPORT = 1.0f;
-
-static float
-TriangleFilter(float t)
-{
-    if (t < 0.0f) t = -t;
-    if (t < 1.0f) return (1.0f - t);
-    return 0.0f;
-}
-
-static const float BELL_SUPPORT = 1.5f;
-
-static float
-BellFilter(float t)
-{
-    if (t < 0.0f) t = -t;
-    if (t < 0.5f) return (0.75f - (t * t));
-    if (t < 1.5f) {
-        t = (t - 1.5f);
-        return (0.5f * (t * t));
-    }
-    return 0.0f;
-}
-
-static const float B_SPLINE_SUPPORT = 2.0f;
-
-static float
-BSplineFilter(float t)
-{
-    float tt;
-
-    if (t < 0.0f) t = -t;
-    if (t < 1.0f) {
-        tt = t * t;
-        return ((0.5f * tt * t) - tt + (2.0f / 3.0f));
-    } else if (t < 2.0f) {
-        t = 2.0f - t;
-        return ((1.0f / 6.0f) * (t * t * t));
-    }
-    return 0.0f;
-}
-
-static const float CUBIC_SUPPORT = 1.0f;
-
-static float
-CubicFilter(float t)
-{
-    if (t < 0.0f) t = -t;
-    if (t < 1.0f) return ((2.0f * t - 3.0f) * t * t + 1.0f);
-    return 0.0f;
-}
-
-static float
-Sinc(float x)
-{
-    x *= G_PI;
-    if (x != 0.0f) return (sinf(x) / x);
-    return 1.0f;
-}
-
-static const float LANCZOS3_SUPPORT = 3.0f;
-
-static float
-Lanczos3Filter(float t)
-{
-    if (t < 0.0f) t = -t;
-    if (t < 3.0) return(Sinc(t) * Sinc(t / 3.0f));
-    return 0.0f;
-}
-
-static const float MITCHELL_SUPPORT = 2.0f;
-
-#define	B	(1.0f / 3.0f)
-#define	C	(1.0f / 3.0f)
-
-static float
-MitchellFilter(float t)
-{
-    float tt = t * t;
-    if (t < 0.0f) t = -t;
-    if (t < 1.0f) {
-        t = (((12.0f - 9.0f * B - 6.0f * C) * (t * tt))
-            + ((-18.0f + 12.0f * B + 6.0f * C) * tt)
-            + (6.0f - 2.0f * B));
-        return (t / 6.0f);
-    } else if (t < 2.0f) {
-        t = (((-1.0f * B - 6.0f * C) * (t * tt))
-            + ((6.0f * B + 30.0f * C) * tt)
-            + ((-12.0f * B - 48.0f * C) * t)
-            + (8.0f * B + 24.0f * C));
-        return (t / 6.0f);
-    }
-    return 0.0f;
-}
-
-//-----------------------------------------------------------------------------
-// Filter
-//-----------------------------------------------------------------------------
-static bool
-Filter(uint8_t** pdst, uint32_t dstxsize, uint32_t dstysize, uint32_t dstbytes,
-    uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize, uint32_t srcbytes,
-    uint32_t filtertype)
-{
-    if (psrc == NULL) {
-        return false;
-    }
-
-    // dst stuff
-    if (*pdst == NULL) {
-        *pdst = (uint8_t*)malloc(dstxsize * dstysize * dstbytes);
-        memset(*pdst, 0, dstxsize * dstysize * dstbytes);
-    }
-
-    uint32_t dstpitch = dstxsize * dstbytes;
-    uint8_t* dstbuf = pdst[0];
-
-    // src stuff
-    uint32_t srcpitch = srcxsize * srcbytes;
-    uint8_t* srcbuf = psrc;
-
-    bool result = true;
-
-    // do filtering and scaling
-    typedef float (*filter_f)(float);
-    filter_f filter_func = NULL;
-    float filterwidth = 0.0f;
-
-    switch (filtertype)
-    {
-    case FILTER_BOX:
-    {
-        filter_func = BoxFilter;
-        filterwidth = BOX_SUPPORT;
-    } break;
-    case FILTER_TRIANGLE:
-    {
-        filter_func = TriangleFilter;
-        filterwidth = TRIANGLE_SUPPORT;
-    } break;
-    case FILTER_BELL:
-    {
-        filter_func = BellFilter;
-        filterwidth = BELL_SUPPORT;
-    } break;
-    case FILTER_BSPLINE:
-    {
-        filter_func = BSplineFilter;
-        filterwidth = B_SPLINE_SUPPORT;
-    } break;
-    case FILTER_CUBIC:
-    {
-        filter_func = CubicFilter;
-        filterwidth = CUBIC_SUPPORT;
-    } break;
-    case FILTER_LANCZOS:
-    {
-        filter_func = Lanczos3Filter;
-        filterwidth = LANCZOS3_SUPPORT;
-    } break;
-    case FILTER_MITCHELL:
-    {
-        filter_func = MitchellFilter;
-        filterwidth = MITCHELL_SUPPORT;
-    } break;
-    }
-
-    uint8_t* tmpptr = NULL;
-    uint8_t* tmpbuf = NULL;
-    uint8_t* raster = NULL;         // a row or column of pixels
-    float xscale, yscale;           // scale factors
-    float pixelN, pixelW;           // pixel number and weight
-    float fwidth, fscale;           // filter calculation variables
-    float mid, min, max;
-
-    // create intermediate image
-    tmpptr = (uint8_t*)malloc(srcysize * dstpitch);
-    tmpbuf = tmpptr;
-
-    xscale = (float)dstxsize / (float)srcxsize;
-    yscale = (float)dstysize / (float)srcysize;
-
-    // pre-calculate filter contributions for a row
-    filter_list_t* filter = (filter_list_t*)malloc((dstxsize + 4) *
-        sizeof(filter_list_t));
-
-    if (filter == NULL) {
-        
-        fprintf(stderr, "Filter: Out of memory\n");
-        free(tmpptr);
-        
-        return false;
-    }
-
-    memset(filter, 0, (dstxsize + dstbytes) * sizeof(filter_list_t));
-
-    fwidth = filterwidth;
-    fscale = 1.0f;
-
-    if (xscale < 1.0f) {
-        fwidth /= xscale;
-        fscale /= xscale;
-    }
-
-    for (int i = 0; i < (int)dstxsize; ++i)
-    {
-        filter[i].size = 0;
-        filter[i].info = (filter_info_t*)malloc((int)((fwidth * 2) + 1) *
-            sizeof(filter_info_t));
-
-        if (filter[i].info == NULL) {
-
-            for (int j = 0; j < (int)dstxsize - i; ++j)
-            {
-                free(filter[j].info);
-            }
-
-            fprintf(stderr, "Filter: Out of memory\n");
-            
-            free(filter);
-            free(tmpptr);
-
-            return false;
-        }
-
-        memset(filter[i].info, 0, (int)((fwidth * 2) + 1) * sizeof(filter_info_t));
-
-        mid = (float)i / xscale;
-        min =  ceilf(mid - fwidth);
-        max = floorf(mid + fwidth);
-
-        for (int j = (int)min; j <= (int)max; ++j)
-        {
-            pixelN = 0;
-            pixelW = mid - (float)j;
-            pixelW = filter_func(pixelW / fscale) / fscale;
-
-            if (j < 0) {
-                pixelN = -j;
-            } else if (j >= (int)srcxsize) {
-                pixelN = (srcxsize - j) + (srcxsize - 1);
-            } else {
-                pixelN = j;
-            }
-
-            if (filter[i].size < ((fwidth * 2) + 1)) {
-
-                filter[i].info[filter[i].size].pixelN = pixelN;
-                filter[i].info[filter[i].size].pixelW = pixelW;
-                filter[i].size++;
-            }
-        }
-    }
-
-    // apply filter to horizontal axis from src to tmp
-    raster = (uint8_t*)malloc((srcxsize + srcbytes) * srcbytes);
-
-    if (raster == NULL) {
-        
-        fprintf(stderr, "Filter: Out of memory\n");
-
-        for (int i = 0; i < (int)dstxsize; ++i)
-        {
-            free(filter[i].info);
-        }
-
-        free(filter);
-        free(tmpptr);
-
-        return false;
-    }
-
-    memset(raster, 0, (srcxsize + srcbytes) * srcbytes);
-
-    for (int k = 0; k < (int)srcysize; ++k)
-    {
-        // get pixel row
-        memset(raster, 0, (srcxsize + srcbytes) * srcbytes);
-        int n = (k - ((k / srcysize) * srcysize));
-
-        memcpy(raster, (srcbuf + (n * srcpitch)), srcpitch);
-
-        for (int i = 0; i < (int)dstxsize; ++i)
-        {
-            for (size_t bpp = 0; bpp < srcbytes; bpp++)
-            {
-                pixelW = 0.0f;
-
-                for (uint32_t j = 0; j < filter[i].size; ++j)
-                {
-                    pixelW += raster[((int)filter[i].info[j].pixelN *
-                        srcbytes) + bpp] * filter[i].info[j].pixelW;
-                }
-
-                tmpptr[(k * dstpitch) + (i * dstbytes) + bpp] =
-                    CLAMP(pixelW, 0, 255);
-            }
-        }
-    }
-
-    // free the memory allocated for horizontal filter weights
-    for (int i = 0; i < (int)dstxsize; ++i)
-    {
-        free(filter[i].info);
-    }
-
-    free(filter);
-    free(raster);
-
-    // pre-calculate filter contributions for a column
-    filter = (filter_list_t*)malloc((dstysize + dstbytes) * sizeof(filter_list_t));
-
-    if (filter == NULL) {
-
-        fprintf(stderr, "Filter: Out of memory\n");
-        free(tmpptr);
-
-        return false;
-    }
-
-    memset(filter, 0, (dstysize + dstbytes) * sizeof(filter_list_t));
-
-    fwidth = filterwidth;
-    fscale = 1.0f;
-
-    if (yscale < 1.0f) {
-        fwidth /= yscale;
-        fscale /= yscale;
-    }
-
-    for (int i = 0; i < (int)dstysize; ++i)
-    {
-        filter[i].size = 0;
-        filter[i].info = (filter_info_t*)malloc((int)((fwidth * 2) + 1) *
-            sizeof(filter_info_t));
-
-        if (filter[i].info == NULL) {
-            
-            fprintf(stderr, "Filter: Out of memory\n");
-
-            for (int j = 0; j < (int)dstysize - i; ++j)
-            {
-                free(filter[j].info);
-            }
-
-            free(filter);
-            free(tmpptr);
-
-            return false;
-        }
-
-        memset(filter[i].info, 0, (int)((fwidth * 2) + 1) *
-            sizeof(filter_info_t));
-
-        mid = (float)i / yscale;
-        min =  ceilf(mid - fwidth);
-        max = floorf(mid + fwidth);
-
-        for (int j = (int)min; j <= (int)max; ++j)
-        {
-            pixelN = 0;
-            pixelW = mid - (float)j;
-            pixelW = filter_func(pixelW / fscale) / fscale;
-
-            if (j < 0) {
-                pixelN = -j;
-            } else if (j >= (int)srcysize) {
-                pixelN = (srcysize - j) + (srcysize - 1);
-            } else {
-                pixelN = j;
-            }
-
-            if (filter[i].size < ((fwidth * 2) + 1)) {
-
-                filter[i].info[filter[i].size].pixelN = pixelN;
-                filter[i].info[filter[i].size].pixelW = pixelW;
-                filter[i].size++;
-            }
-        }
-    }
-
-    // apply filter to vertical axis from tmp to dst
-    raster = (uint8_t*)malloc((srcysize + dstbytes) * dstbytes);
-
-    if (raster == NULL) {
-
-        fprintf(stderr, "Filter: Out of memory\n");
-
-        for (int i = 0; i < (int)dstysize; ++i)
-        {
-            free(filter[i].info);
-        }
-
-        free(filter);
-        free(tmpptr);
-
-        return false;
-    }
-
-    memset(raster, 0, (srcysize + dstbytes) * dstbytes);
-
-    for (int k = 0; k < (int)dstxsize; ++k)
-    {
-        uint8_t* pbuf = tmpbuf + (k * dstbytes);
-        uint8_t* rbuf = raster;
-
-        for (int y = srcysize; y > 0; y--)
-        {
-            memcpy(rbuf, pbuf, dstbytes);
-            rbuf += dstbytes;
-            pbuf += dstpitch;
-        }
-
-        for (int i = 0; i < (int)dstysize; ++i)
-        {
-            for (size_t bpp = 0; bpp < dstbytes; bpp++)
-            {
-                pixelW = 0.0f;
-
-                for (uint32_t j = 0; j < filter[i].size; ++j)
-                {
-                    pixelW += raster[((int)filter[i].info[j].pixelN *
-                        dstbytes) + bpp] * filter[i].info[j].pixelW;
-                }
-
-                dstbuf[(i * dstpitch) + (k * dstbytes) + bpp] =
-                    CLAMP(pixelW, 0, 255);
-            }
-        }
-    }
-
-    // free the memory allocated for vertical filter weights
-    for (int i = 0; i < (int)dstysize; ++i)
-    {
-        free(filter[i].info);
-    }
-
-    free(filter);
-    free(raster);
-    free(tmpptr);
-
-    return result;
-}
-
-static uint8_t
-GetBytesForPixelFormat(pixel_t format)
-{
-    uint8_t bytes = 1;
-
-    switch (format)
-    {
-    case PIXELTYPE_RGBA:
-    case PIXELTYPE_ABGR:
-    case PIXELTYPE_BGRA:
-    { bytes++; }
-    case PIXELTYPE_RGB:
-    case PIXELTYPE_BGR:
-    { bytes++; }
-    case PIXELTYPE_XBGR1555:
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    { bytes++; }
-    }
-
-    return bytes;
-}
-
-void
-GetMaskForPixelFormat(pixel_t format, uint32_t& rmask, uint32_t& gmask,
-    uint32_t& bmask, uint32_t& amask)
-{
-    uint32_t pmask[4] = { 0 };
-
-    switch (format)
-    {
-    case PIXELTYPE_RGBA:
-    case PIXELTYPE_ABGR:
-    case PIXELTYPE_BGRA:
-    case PIXELTYPE_RGB:
-    case PIXELTYPE_BGR:
-    {
-        pmask[0] = 0x000000FF;
-        pmask[1] = 0x0000FF00;
-        pmask[2] = 0x00FF0000;
-        pmask[3] = 0xFF000000;
-    } break;
-    case PIXELTYPE_XBGR1555:
-    {
-        pmask[0] = 0x8000;
-        pmask[1] = 0x7C00;
-        pmask[2] = 0x03E0;
-        pmask[3] = 0x001F;
-    } break;
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    case PIXELTYPE_LUMINANCE:
-    {
-        pmask[0] = 0x00FF;
-        pmask[1] = 0x00FF;
-        pmask[2] = 0x00FF;
-        pmask[3] = 0xFF00;
-    } break;
-    }
-
-    switch (format)
-    {
-    case PIXELTYPE_RGBA:
-    {
-        rmask = pmask[0];
-        gmask = pmask[1];
-        bmask = pmask[2];
-        amask = pmask[3];
-    } break;
-    case PIXELTYPE_ABGR:
-    {
-        amask = pmask[0];
-        bmask = pmask[1];
-        gmask = pmask[2];
-        rmask = pmask[3];
-    } break;
-    case PIXELTYPE_BGRA:
-    {
-        bmask = pmask[0];
-        gmask = pmask[1];
-        rmask = pmask[2];
-        amask = pmask[3];
-    } break;
-    case PIXELTYPE_RGB:
-    {
-        rmask = pmask[0];
-        gmask = pmask[1];
-        bmask = pmask[2];
-        amask = pmask[3];
-    } break;
-    case PIXELTYPE_BGR:
-    {
-        bmask = pmask[0];
-        gmask = pmask[1];
-        rmask = pmask[2];
-        amask = pmask[3];
-    } break;
-    case PIXELTYPE_XBGR1555:
-    {
-        amask = pmask[0];
-        bmask = pmask[1];
-        gmask = pmask[2];
-        rmask = pmask[3];
-    } break;
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    {
-        rmask = pmask[0];
-        gmask = pmask[1];
-        bmask = pmask[2];
-        amask = pmask[3];
-    } break;
-    case PIXELTYPE_LUMINANCE:
-    {
-        rmask = pmask[0];
-        gmask = pmask[1];
-        bmask = pmask[2];
-        amask = pmask[3];
-    } break;
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Blit_Nbit_Nbit
-//-----------------------------------------------------------------------------
-static void
-Blit_Nbit_Nbit(uint8_t* pdst, uint32_t dstxsize, uint32_t dstysize,
-    pixel_t dstformat, uint8_t* psrc, uint32_t srcxsize, uint32_t srcysize,
-    pixel_t srcformat, palette_t* ppalette)
-{
-    uint8_t* bufdst = pdst;
-    uint8_t* bufsrc = psrc;
-    uint32_t dstpitch = dstxsize;
-    uint32_t srcpitch = srcxsize;
-    uint32_t xsize = (srcxsize < dstxsize) ? srcxsize : dstxsize;
-    uint32_t ysize = (srcysize < dstysize) ? srcysize : dstysize;
-    uint32_t x = 0;
-    uint32_t y = 0;
-    uint32_t rshift = 0;
-    uint32_t gshift = 0;
-    uint32_t bshift = 0;
-    uint32_t ashift = 0;
-    uint32_t rmask = 0;
-    uint32_t gmask = 0;
-    uint32_t bmask = 0;
-    uint32_t amask = 0;
-    uint16_t rgb16 = 0;
-    uint8_t r = 0;
-    uint8_t g = 0;
-    uint8_t b = 0;
-    uint8_t a = 255;
-    uint8_t v = 0;
-    uint8_t dstbytes = GetBytesForPixelFormat(dstformat);
-    uint8_t srcbytes = GetBytesForPixelFormat(srcformat);
-
-    dstpitch = dstxsize * dstbytes;
-    srcpitch = srcxsize * srcbytes;
-
-    GetMaskForPixelFormat(srcformat, rmask, gmask, bmask, amask);
-
-    for (size_t mask = rmask; (mask & 0x01) != 1; mask >>= 1) rshift++;
-    for (size_t mask = gmask; (mask & 0x01) != 1; mask >>= 1) gshift++;
-    for (size_t mask = bmask; (mask & 0x01) != 1; mask >>= 1) bshift++;
-    for (size_t mask = amask; (mask & 0x01) != 1; mask >>= 1) ashift++;
-
-    if (srcformat == PIXELTYPE_LUMINANCE || srcbytes == 2 || srcbytes == 3 ||
-        srcbytes == 4) {
-        
-        float fmod = 1.0f;
-        float amod = 1.0f;
-
-        if (srcbytes == 3 || srcbytes == 4) {
-            if (dstformat == PIXELTYPE_XBGR1555) {
-                fmod = 31.0f / 255.0f;
-                amod = 1.0f;
-            }
-        }
-
-        if (srcbytes == 2) {
-            fmod = 255.0f / 31.0f;
-            amod = 255.0f;
-            if (srcformat == PIXELTYPE_LUMINANCE_ALPHA) {
-                fmod = 1.0f;
-                amod = 1.0f;
-                if (dstformat == PIXELTYPE_XBGR1555) {
-                    amod = 1.0f / 255.0f;
-                }
-            }
-        }
-
-        while (y++ < ysize)
-        {
-            x = 0;
-            while (x < xsize)
-            {
-                uint32_t pixel = UINT_MAX;
-
-                memcpy(&pixel, (bufsrc + (x * srcbytes)), srcbytes);
-
-                switch (dstformat)
-                {
-                case PIXELTYPE_RGBA:
-                {
-                    bufdst[x * 4 + 0] = ((pixel & rmask) >> rshift) * fmod;
-                    bufdst[x * 4 + 1] = ((pixel & gmask) >> gshift) * fmod;
-                    bufdst[x * 4 + 2] = ((pixel & bmask) >> bshift) * fmod;
-                    bufdst[x * 4 + 3] = ((pixel & amask) >> ashift) * amod;
-                } break;
-                case PIXELTYPE_ABGR:
-                {
-                    bufdst[x * 4 + 0] = ((pixel & amask) >> ashift) * amod;
-                    bufdst[x * 4 + 1] = ((pixel & bmask) >> bshift) * fmod;
-                    bufdst[x * 4 + 2] = ((pixel & gmask) >> gshift) * fmod;
-                    bufdst[x * 4 + 3] = ((pixel & rmask) >> rshift) * fmod;
-                } break;
-                case PIXELTYPE_BGRA:
-                {
-                    bufdst[x * 4 + 0] = ((pixel & bmask) >> bshift) * fmod;
-                    bufdst[x * 4 + 1] = ((pixel & gmask) >> gshift) * fmod;
-                    bufdst[x * 4 + 2] = ((pixel & rmask) >> rshift) * fmod;
-                    bufdst[x * 4 + 3] = ((pixel & amask) >> ashift) * amod;
-                } break;
-                case PIXELTYPE_RGB:
-                {
-                    bufdst[x * 3 + 0] = ((pixel & rmask) >> rshift) * fmod;
-                    bufdst[x * 3 + 1] = ((pixel & gmask) >> gshift) * fmod;
-                    bufdst[x * 3 + 2] = ((pixel & bmask) >> bshift) * fmod;
-                } break;
-                case PIXELTYPE_BGR:
-                {
-                    bufdst[x * 3 + 0] = ((pixel & bmask) >> bshift) * fmod;
-                    bufdst[x * 3 + 1] = ((pixel & gmask) >> gshift) * fmod;
-                    bufdst[x * 3 + 2] = ((pixel & rmask) >> rshift) * fmod;
-                } break;
-                case PIXELTYPE_XBGR1555:
-                {
-                    r = ((pixel & rmask) >> rshift) * fmod;
-                    g = ((pixel & gmask) >> gshift) * fmod;
-                    b = ((pixel & bmask) >> bshift) * fmod;
-                    a = ((pixel & amask) >> ashift) * amod;
-
-                    rgb16 = (((a & 0xFF) << 15) | (r & 0xFF) << 10) |
-                        ((g & 0xFF) << 5) | (b & 0xFF);
-
-                    bufdst[x * 2 + 0] = (rgb16 & 0x00FF) >> 0;
-                    bufdst[x * 2 + 1] = (rgb16 & 0xFF00) >> 8;
-                } break;
-                case PIXELTYPE_LUMINANCE_ALPHA:
-                {
-                    bufdst[x * 2 + 0] = (uint8_t)(
-                        (((pixel & rmask) >> rshift) * fmod) * 0.2990f +
-                        (((pixel & gmask) >> gshift) * fmod) * 0.5870f +
-                        (((pixel & bmask) >> bshift) * fmod) * 0.1140f);
-                    bufdst[x * 2 + 1] = (pixel & amask) * amod;
-                } break;
-                case PIXELTYPE_LUMINANCE:
-                {
-                    bufdst[x] = (uint8_t)(
-                        (((pixel & rmask) >> rshift) * fmod) * 0.2990f +
-                        (((pixel & gmask) >> gshift) * fmod) * 0.5870f +
-                        (((pixel & bmask) >> bshift) * fmod) * 0.1140f);
-                } break;
-                }
-                x++;
-            }
-            bufdst += dstpitch;
-            bufsrc += srcpitch;
-        }
-    } else {
-        float fmod = 31.0f / 255.0f;
-        float amod = 1.0f;
-
-        while (y++ < ysize)
-        {
-            x = 0;
-            while (x < xsize)
-            {
-                v = bufsrc[x * 1 + 0];
-                b = ppalette->data[v].b;
-                g = ppalette->data[v].g;
-                r = ppalette->data[v].r;
-                a = ppalette->data[v].a;
-
-                switch (dstformat)
-                {
-                case PIXELTYPE_RGBA:
-                {
-                    bufdst[x * 4 + 0] = r;
-                    bufdst[x * 4 + 1] = g;
-                    bufdst[x * 4 + 2] = b;
-                    bufdst[x * 4 + 3] = a;
-                } break;
-                case PIXELTYPE_ABGR:
-                {
-                    bufdst[x * 4 + 0] = a;
-                    bufdst[x * 4 + 1] = b;
-                    bufdst[x * 4 + 2] = g;
-                    bufdst[x * 4 + 3] = r;
-                } break;
-                case PIXELTYPE_BGRA:
-                {
-                    bufdst[x * 4 + 0] = b;
-                    bufdst[x * 4 + 1] = g;
-                    bufdst[x * 4 + 2] = r;
-                    bufdst[x * 4 + 3] = a;
-                } break;
-                case PIXELTYPE_RGB:
-                {
-                    bufdst[x * 3 + 0] = r;
-                    bufdst[x * 3 + 1] = g;
-                    bufdst[x * 3 + 2] = b;
-                } break;
-                case PIXELTYPE_BGR:
-                {
-                    bufdst[x * 3 + 0] = b;
-                    bufdst[x * 3 + 1] = g;
-                    bufdst[x * 3 + 2] = r;
-                } break;
-                case PIXELTYPE_XBGR1555:
-                {
-                    r = r * fmod;
-                    g = g * fmod;
-                    b = b * fmod;
-                    a = a * amod;
-
-                    rgb16 = ((a & 0xFF) << 15) | ((r & 0xFF) << 10) |
-                        ((g & 0xFF) << 5) | (b & 0xFF);
-
-                    bufdst[x * 2 + 0] = (rgb16 & 0x00FF) >> 0;
-                    bufdst[x * 2 + 1] = (rgb16 & 0xFF00) >> 8;
-                } break;
-                case PIXELTYPE_LUMINANCE_ALPHA:
-                {
-                    bufdst[x * 2 + 0] = (uint8_t)(r * 0.2990f + g * 0.5870f +
-                        b * 0.1140f);
-                    bufdst[x * 2 + 1] = a;
-                } break;
-                case PIXELTYPE_LUMINANCE:
-                {
-                    bufdst[x] = (uint8_t)(r * 0.2990f + g * 0.5870f + b * 0.1140f);
-                } break;
-                }
-                x++;
-            }
-            bufdst += dstpitch;
-            bufsrc += srcpitch;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
 // FastFill
 //-----------------------------------------------------------------------------
 static void
-FastFill(image_t* pimage, palette_t* ppalette, rgba_t dst, rgba_t src)
+FastFill(image_t* pimage, palette_t* ppalette, rgba_t newcolor, rgba_t oldcolor)
 {
     uint8_t* bufdst = NULL;
-    uint8_t* pixels = NULL;
     uint32_t bytes = 1;
-    uint32_t pitch = 0;
     uint32_t dc = 0;
     uint32_t sc = 0;
     uint32_t pc = 0;
     uint32_t x = 0;
     uint32_t y = 0;
 
-    if (pimage == NULL || pimage->data == NULL) {
+    if (pimage == NULL || pimage->pixels == NULL) {
         return;
     }
 
-    bytes = GetBytesForPixelFormat(pimage->pixeltype);
-    pitch = pimage->xsize * bytes;
-
-    switch (pimage->pixeltype)
+    switch (pimage->format)
     {
-    case PIXELTYPE_RGBA:
+    case GEUL_RGBA:
     {
-        dc = (dst.a << 24) + (dst.b << 16) + (dst.g << 8) + dst.r;
-        sc = (src.a << 24) + (src.b << 16) + (src.g << 8) + src.r;
+        dc = (newcolor.a << 24) + (newcolor.b << 16) + (newcolor.g << 8) + newcolor.r;
+        sc = (oldcolor.a << 24) + (oldcolor.b << 16) + (oldcolor.g << 8) + oldcolor.r;
     } break;
-    case PIXELTYPE_ABGR:
+    case GEUL_BGRA:
     {
-        dc = (dst.r << 24) + (dst.g << 16) + (dst.b << 8) + dst.a;
-        sc = (src.r << 24) + (src.g << 16) + (src.b << 8) + src.a;
+        dc = (newcolor.a << 24) + (newcolor.r << 16) + (newcolor.g << 8) + newcolor.b;
+        sc = (oldcolor.a << 24) + (oldcolor.r << 16) + (oldcolor.g << 8) + oldcolor.b;
     } break;
-    case PIXELTYPE_BGRA:
+    case GEUL_RGB:
     {
-        dc = (dst.a << 24) + (dst.r << 16) + (dst.g << 8) + dst.b;
-        sc = (src.a << 24) + (src.r << 16) + (src.g << 8) + src.b;
+        dc = (    0 << 24) + (newcolor.b << 16) + (newcolor.g << 8) + newcolor.r;
+        sc = (    0 << 24) + (oldcolor.b << 16) + (oldcolor.g << 8) + oldcolor.r;
     } break;
-    case PIXELTYPE_RGB:
+    case GEUL_BGR:
     {
-        dc = (    0 << 24) + (dst.b << 16) + (dst.g << 8) + dst.r;
-        sc = (    0 << 24) + (src.b << 16) + (src.g << 8) + src.r;
+        dc = (    0 << 24) + (newcolor.r << 16) + (newcolor.g << 8) + newcolor.b;
+        sc = (    0 << 24) + (oldcolor.r << 16) + (oldcolor.g << 8) + oldcolor.b;
     } break;
-    case PIXELTYPE_BGR:
+    case GEUL_LUMINANCE_ALPHA:
     {
-        dc = (    0 << 24) + (dst.r << 16) + (dst.g << 8) + dst.b;
-        sc = (    0 << 24) + (src.r << 16) + (src.g << 8) + src.b;
+        // FIXME: possible rounding error?
+        dc = (newcolor.a << 8) + (uint8_t)(newcolor.r * 0.2990f +
+            newcolor.g * 0.5870f + newcolor.b * 0.1140f);
+        sc = (newcolor.a << 8) + (uint8_t)(oldcolor.r * 0.2990f +
+            oldcolor.g * 0.5870f + oldcolor.b * 0.1140f);
     } break;
-    case PIXELTYPE_XBGR1555:
+    case GEUL_LUMINANCE:
     {
-        float fmod = 31.0f / 255.0f;
-        float amod = 1.0f;
-        uint8_t r0 = dst.r * fmod;
-        uint8_t g0 = dst.g * fmod;
-        uint8_t b0 = dst.b * fmod;
-        uint8_t a0 = dst.a * amod;
-        uint8_t r1 = src.r * fmod;
-        uint8_t g1 = src.g * fmod;
-        uint8_t b1 = src.b * fmod;
-        uint8_t a1 = src.a * amod;
-
-        dc = ((a0 & 0xFF) << 15) | ((r0 & 0xFF) << 10) | ((g0 & 0xFF) << 5) | (b0 & 0xFF);
-        sc = ((a1 & 0xFF) << 15) | ((r1 & 0xFF) << 10) | ((g1 & 0xFF) << 5) | (b1 & 0xFF);
+        // FIXME: possible rounding error?
+        dc = (    0 << 8) + (uint8_t)(newcolor.r * 0.2990f +
+            newcolor.g * 0.5870f + newcolor.b * 0.1140f);
+        sc = (    0 << 8) + (uint8_t)(oldcolor.r * 0.2990f +
+            oldcolor.g * 0.5870f + oldcolor.b * 0.1140f);
     } break;
-    case PIXELTYPE_LUMINANCE_ALPHA:
-    {
-        dc = (dst.a << 8) + (uint8_t)(dst.r * 0.2990f + dst.g * 0.5870f +
-            dst.b * 0.1140f);
-        sc = (dst.a << 8) + (uint8_t)(src.r * 0.2990f + src.g * 0.5870f +
-            src.b * 0.1140f);
-    } break;
-    case PIXELTYPE_LUMINANCE:
-    {
-        dc = (    0 << 8) + (uint8_t)(dst.r * 0.2990f + dst.g * 0.5870f +
-            dst.b * 0.1140f);
-        sc = (    0 << 8) + (uint8_t)(src.r * 0.2990f + src.g * 0.5870f +
-            src.b * 0.1140f);
-    } break;
-    case PIXELTYPE_COLOUR_INDEX:
+    case GEUL_COLOUR_INDEX:
     {
         int32_t dstindex = -1;
         int32_t srcindex = -1;
@@ -4594,10 +3770,10 @@ FastFill(image_t* pimage, palette_t* ppalette, rgba_t dst, rgba_t src)
 
         for (uint32_t i = 0; i < ppalette->size; ++i)
         {
-            if (ppalette->data[i].r == dst.r &&
-                ppalette->data[i].g == dst.g &&
-                ppalette->data[i].b == dst.b &&
-                ppalette->data[i].a == dst.a) {
+            if (ppalette->data[i].r == newcolor.r &&
+                ppalette->data[i].g == newcolor.g &&
+                ppalette->data[i].b == newcolor.b &&
+                ppalette->data[i].a == newcolor.a) {
                 dstindex = i;
                 break;
             }
@@ -4605,10 +3781,10 @@ FastFill(image_t* pimage, palette_t* ppalette, rgba_t dst, rgba_t src)
 
         for (uint32_t i = 0; i < ppalette->size; ++i)
         {
-            if (ppalette->data[i].r == src.r &&
-                ppalette->data[i].g == src.g &&
-                ppalette->data[i].b == src.b &&
-                ppalette->data[i].a == src.a) {
+            if (ppalette->data[i].r == oldcolor.r &&
+                ppalette->data[i].g == oldcolor.g &&
+                ppalette->data[i].b == oldcolor.b &&
+                ppalette->data[i].a == oldcolor.a) {
                 srcindex = i;
                 break;
             }
@@ -4623,12 +3799,13 @@ FastFill(image_t* pimage, palette_t* ppalette, rgba_t dst, rgba_t src)
     } break;
     }
 
-    bufdst = pimage->data;
+    bufdst = pimage->pixels;
+    bytes = GetBytesForPixelFormat(pimage->format);
 
-    while (y < pimage->ysize)
+    while (y < pimage->height)
     {
-        x = (pimage->xsize + 3) / 4;
-        switch (pimage->xsize % 4)
+        x = (pimage->width + 3) / 4;
+        switch (pimage->width % 4)
         {
         case 0: do {
                 memcpy(&pc, bufdst, bytes);
@@ -4656,105 +3833,75 @@ FastFill(image_t* pimage, palette_t* ppalette, rgba_t dst, rgba_t src)
 // SaveImageToMemory
 //-----------------------------------------------------------------------------
 bool
-SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
-    encode_t dstcodec, image_t* psrcimage, palette_t* psrcpalette, rect_t* psrcrect)
+SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t fileformat,
+    uint32_t dstcodec, image_t* psrcimage, palette_t* psrcpalette)
 {
-    image_t dstimage = {
-        NULL,
-        0,
-        0,
-        PIXELTYPE_UNKNOWN
-    };
-    image_t* pdstimage = &dstimage;
     uint32_t depth = 8;
-    pixel_t dstformat = PIXELTYPE_UNKNOWN;
+    uint32_t imagesize = 0;
+    uint32_t dstformat = 0;
     bool result = false;
 
     if (psrcimage != NULL) {
         // supported output formats
-        switch (format)
+        switch (fileformat)
         {
-            case FILEFORMAT_PNG:
+            case GEUL_PNG:
             {
-                if (psrcimage->pixeltype == PIXELTYPE_RGBA
-                    || psrcimage->pixeltype == PIXELTYPE_ABGR
-                    || psrcimage->pixeltype == PIXELTYPE_BGRA) {
-                    dstformat = PIXELTYPE_RGBA;
-                } else if (psrcimage->pixeltype == PIXELTYPE_RGB
-                    || psrcimage->pixeltype == PIXELTYPE_BGR) {
-                    dstformat = PIXELTYPE_RGB;
-                } else if (psrcimage->pixeltype == PIXELTYPE_XBGR1555) {
-                    dstformat = PIXELTYPE_XBGR1555;
-                } else if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE_ALPHA) {
-                    dstformat = PIXELTYPE_LUMINANCE_ALPHA;
-                } else if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE) {
-                    dstformat = PIXELTYPE_LUMINANCE;
-                } else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX) {
-                    dstformat = PIXELTYPE_COLOUR_INDEX;
+                if (psrcimage->format == GEUL_RGBA) {
+                    dstformat = GEUL_RGBA;
+                } else if (psrcimage->format == GEUL_RGB) {
+                    dstformat = GEUL_RGB;
+                } else if (psrcimage->format == GEUL_LUMINANCE_ALPHA) {
+                    dstformat = GEUL_LUMINANCE_ALPHA;
+                } else if (psrcimage->format == GEUL_LUMINANCE) {
+                    dstformat = GEUL_LUMINANCE;
+                } else if (psrcimage->format == GEUL_COLOUR_INDEX) {
+                    dstformat = GEUL_COLOUR_INDEX;
                 } else {
                     fprintf(stderr, "SaveImage, Invalid src format, cannot \
-                        convert src data to dst format.\n");
+                        save src data to dst format.\n");
                     return false;
                 }
             } break;
-            case FILEFORMAT_BMP:
+            case GEUL_BMP:
             {
-                if (psrcimage->pixeltype == PIXELTYPE_RGBA
-                    || psrcimage->pixeltype == PIXELTYPE_ABGR
-                    || psrcimage->pixeltype == PIXELTYPE_BGRA) {
-                    dstformat = PIXELTYPE_BGRA;
-                } else if (psrcimage->pixeltype == PIXELTYPE_RGB
-                    || psrcimage->pixeltype == PIXELTYPE_BGR
-                    || psrcimage->pixeltype == PIXELTYPE_XBGR1555
-                    || psrcimage->pixeltype == PIXELTYPE_LUMINANCE_ALPHA
-                    || psrcimage->pixeltype == PIXELTYPE_LUMINANCE) {
-                    dstformat = PIXELTYPE_BGR;
-                } else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX) {
-                    dstformat = PIXELTYPE_COLOUR_INDEX;
+                if (psrcimage->format == GEUL_BGRA) {
+                    dstformat = GEUL_BGRA;
+                } else if (psrcimage->format == GEUL_BGR) {
+                    dstformat = GEUL_BGR;
+                } else if (psrcimage->format == GEUL_COLOUR_INDEX) {
+                    dstformat = GEUL_COLOUR_INDEX;
                 } else {
                     fprintf(stderr, "SaveImage, Invalid src format, cannot \
-                        convert src data to dst format.\n");
+                        save src data to dst format.\n");
                     return false;
                 }
             } break;
-            case FILEFORMAT_PCX:
+            case GEUL_PCX:
             {
-                if (psrcimage->pixeltype == PIXELTYPE_RGBA
-                    || psrcimage->pixeltype == PIXELTYPE_RGB
-                    || psrcimage->pixeltype == PIXELTYPE_XBGR1555
-                    || psrcimage->pixeltype == PIXELTYPE_ABGR
-                    || psrcimage->pixeltype == PIXELTYPE_BGRA
-                    || psrcimage->pixeltype == PIXELTYPE_BGR
-                    || psrcimage->pixeltype == PIXELTYPE_LUMINANCE_ALPHA
-                    || psrcimage->pixeltype == PIXELTYPE_LUMINANCE) {
-                    dstformat = PIXELTYPE_RGB;
-                } else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX) {
-                    dstformat = PIXELTYPE_COLOUR_INDEX;
+                if (psrcimage->format == GEUL_RGB) {
+                    dstformat = GEUL_RGB;
+                } else if (psrcimage->format == GEUL_COLOUR_INDEX) {
+                    dstformat = GEUL_COLOUR_INDEX;
                 } else {
                     fprintf(stderr, "SaveImage, Invalid src format, cannot \
-                        convert src data to dst format.\n");
+                        save src data to dst format.\n");
                     return false;
                 }
             } break;
-            case FILEFORMAT_TGA:
+            case GEUL_TGA:
             {
-                if (psrcimage->pixeltype == PIXELTYPE_RGBA
-                    || psrcimage->pixeltype == PIXELTYPE_ABGR
-                    || psrcimage->pixeltype == PIXELTYPE_BGRA) {
-                    dstformat = PIXELTYPE_BGRA;
-                } else if (psrcimage->pixeltype == PIXELTYPE_RGB
-                    || psrcimage->pixeltype == PIXELTYPE_BGR) {
-                    dstformat = PIXELTYPE_BGR;
-                } else if (psrcimage->pixeltype == PIXELTYPE_XBGR1555) {
-                    dstformat = PIXELTYPE_XBGR1555;
-                } else if (psrcimage->pixeltype == PIXELTYPE_LUMINANCE_ALPHA
-                    || psrcimage->pixeltype == PIXELTYPE_LUMINANCE) {
-                    dstformat = PIXELTYPE_LUMINANCE;
-                } else if (psrcimage->pixeltype == PIXELTYPE_COLOUR_INDEX) {
-                    dstformat = PIXELTYPE_COLOUR_INDEX;
+                if (psrcimage->format == GEUL_BGRA) {
+                    dstformat = GEUL_BGRA;
+                } else if (psrcimage->format == GEUL_BGR) {
+                    dstformat = GEUL_BGR;
+                } else if (psrcimage->format == GEUL_LUMINANCE) {
+                    dstformat = GEUL_LUMINANCE;
+                } else if (psrcimage->format == GEUL_COLOUR_INDEX) {
+                    dstformat = GEUL_COLOUR_INDEX;
                 } else {
                     fprintf(stderr, "SaveImage, Invalid src format, cannot \
-                        convert src data to dst format.\n");
+                        save src data to dst format.\n");
                     return false;
                 }
             } break;
@@ -4766,111 +3913,46 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
         }
 
         depth *= GetBytesForPixelFormat(dstformat);
+        imagesize = psrcimage->width *psrcimage->height *
+            GetBytesForPixelFormat(psrcimage->format);
 
-        // src stuff
-        rect_t srcrect = { 0 };
-
-        if (psrcrect == NULL) {
-            srcrect.min.x = 0;
-            srcrect.min.y = 0;
-            srcrect.max.x = psrcimage->xsize;
-            srcrect.max.y = psrcimage->ysize;
-        } else {
-            srcrect = *psrcrect;
-        }
-
-        uint8_t srcbytes = GetBytesForPixelFormat(psrcimage->pixeltype);
-        uint32_t srcxorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min.x),
-            psrcimage->xsize));
-        uint32_t srcyorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min.y),
-            psrcimage->ysize));
-        uint32_t srcxextent = MIN((uint32_t)ABS(srcrect.max.x), psrcimage->xsize);
-        uint32_t srcyextent = MIN((uint32_t)ABS(srcrect.max.y), psrcimage->ysize);
-        uint32_t srcpitch = srcxextent * srcbytes;
-        uint32_t srcxsize = srcxextent - srcxorigin;
-        uint32_t srcysize = srcyextent - srcyorigin;
-
-        // dst stuff
-        uint32_t dstpitch = srcxsize * srcbytes;
-
-        dstimage.xsize = srcxsize;
-        dstimage.ysize = srcysize;
-        dstimage.pixeltype = dstformat;
-        dstimage.data = (uint8_t*)malloc(srcysize * srcpitch);
-
-        if (dstimage.data == NULL) {
-            result = false;
-            fprintf(stderr, "SaveImage: Out of memory.\n");
-        } else {
-
-            memset(dstimage.data, 0, srcysize * dstpitch);
-
-            // copy to destination
-            uint8_t* bufdst = pdstimage->data;
-            uint8_t* bufsrc = psrcimage->data + (srcyorigin * srcpitch) +
-                (srcxorigin * srcbytes);
-            uint32_t xsize = srcxsize;
-            uint32_t ysize = srcysize;
-            uint32_t pitch = srcxsize * srcbytes;
-            uint32_t y = 0;
-
-            while (y++ < ysize)
-            {
-                memcpy(bufdst, bufsrc, pitch);
-                bufdst += dstpitch;
-                bufsrc += srcpitch;
-            }
-
-            // convert to dstformat
-            if (dstformat != psrcimage->pixeltype) {
-
-                uint8_t* tmpptr = (uint8_t*)malloc(srcysize * dstpitch);
-
-                Blit_Nbit_Nbit(tmpptr, srcxsize, srcysize, dstformat, pdstimage->data,
-                    srcxsize, srcysize, psrcimage->pixeltype, psrcpalette);
-
-                free(pdstimage->data);
-                pdstimage->data = tmpptr;
-            }
-
-            result = true;
-        }
-
-        if (dstimage.pixeltype != PIXELTYPE_COLOUR_INDEX) {
+        if (psrcimage->format != GEUL_COLOUR_INDEX) {
             psrcpalette = NULL;
         }
 
         if (result == true) {
-
-            switch (format)
+            switch (fileformat)
             {
-            case FILEFORMAT_PNG:
+            case GEUL_PNG:
             {
-                result = SaveToMemoryPNG(ppdst, ppdstsize, dstcodec, dstimage.data,
-                    dstimage.xsize, dstimage.ysize, depth, 8, psrcpalette, NULL);
+                result = SaveToMemoryPNG(ppdst, ppdstsize, dstcodec, psrcimage->pixels,
+                    imagesize, psrcimage->width, psrcimage->height, depth, 8,
+                    psrcpalette, NULL);
             } break;
-            case FILEFORMAT_BMP:
+            case GEUL_BMP:
             {
-                result = SaveToMemoryBMP(ppdst, ppdstsize, dstcodec, dstimage.data,
-                    dstimage.xsize, dstimage.ysize, depth, psrcpalette, NULL, false);
+                result = SaveToMemoryBMP(ppdst, ppdstsize, dstcodec, psrcimage->pixels,
+                    imagesize, psrcimage->width, psrcimage->height, depth,
+                    psrcpalette, NULL, false);
             } break;
-            case FILEFORMAT_PCX:
+            case GEUL_PCX:
             {
-                result = SaveToMemoryPCX(ppdst, ppdstsize, dstcodec, dstimage.data,
-                    dstimage.xsize, dstimage.ysize, depth, psrcpalette);
+                result = SaveToMemoryPCX(ppdst, ppdstsize, dstcodec, psrcimage->pixels,
+                    imagesize, psrcimage->width, psrcimage->height, depth,
+                    psrcpalette);
             } break;
-            case FILEFORMAT_TGA:
+            case GEUL_TGA:
             {
-                result = SaveToMemoryTGA(ppdst, ppdstsize, dstcodec, dstimage.data,
-                    dstimage.xsize, dstimage.ysize, depth, psrcpalette, false,
+                result = SaveToMemoryTGA(ppdst, ppdstsize, dstcodec, psrcimage->pixels,
+                    imagesize, psrcimage->width, psrcimage->height, depth,
+                    psrcpalette, false,
                     false);
             } break;
             }
         }
-
-        if (dstimage.data != NULL) {
-            free(dstimage.data);
-            dstimage.data = NULL;
+        if (psrcimage->pixels != NULL) {
+            free(psrcimage->pixels);
+            psrcimage->pixels = NULL;
         }
     }
 
@@ -4881,12 +3963,13 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, file_format_t format,
 // SaveImageToFile
 //-----------------------------------------------------------------------------
 bool
-SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec,
-    image_t* psrcimage, palette_t* psrcpalette, rect_t* psrcrect)
+SaveImageToFile(const char* pdstfile, uint32_t dstformat, uint32_t dstcodec,
+    image_t* psrcimage, palette_t* psrcpalette)
 {
     bool result = false;
 
     if (pdstfile == NULL || strlen(pdstfile) == 0) {
+        fprintf(stderr, "SaveImage, Not a valid filename.\n");
         return result;
     }
 
@@ -4902,7 +3985,7 @@ SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec
     if (hFile != NULL) {
         // save image
         result = SaveImageToMemory(&rawdst, &dstsize, dstformat, dstcodec,
-            psrcimage, psrcpalette, psrcrect);
+            psrcimage, psrcpalette);
     } else {
         fprintf(stderr, "SaveImage, Couldn't open file %s.\n", pdstfile);
     }
@@ -4914,7 +3997,6 @@ SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec
 
     if (hFile != NULL && dstbuf != NULL && fileSize != 0) {
         bytesWritten = fwrite(dstbuf, sizeof(uint8_t), fileSize, hFile);
-
         fclose(hFile);
         hFile = NULL;
     }
@@ -4933,50 +4015,54 @@ SaveImageToFile(const char* pdstfile, file_format_t dstformat, encode_t dstcodec
 // GetImageInfoFromMemory
 //-----------------------------------------------------------------------------
 bool
-GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
+GetImageInfoFromMemory(image_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
 {
-    bool result = false;
-    pixel_t pixeltype = PIXELTYPE_UNKNOWN;
-    uint32_t xsize = 0;
-    uint32_t ysize = 0;
-    uint8_t depth = 0;
+    uint32_t depth = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t format = 0;
+    uint32_t type = GEUL_UNSIGNED_BYTE;
     uint8_t colormap = 0;
-    file_format_t format = FILEFORMAT_NONE;
+    bool result = false;
 
-    if (psrcinfo != NULL) { psrcinfo->fileformat = FILEFORMAT_NONE; }
-    if ((result = GetInfoFromMemoryPNG(&colormap, &xsize, &ysize, &depth, NULL,
+    if (psrcinfo == NULL) {
+        return false;
+    }
+
+    if ((result = GetInfoFromMemoryPNG(&colormap, &width, &height, &depth, NULL,
         psrc, psrcsize)) == true) {
-        if (depth == 32) { pixeltype = PIXELTYPE_RGBA; }
-        else if (depth == 24) { pixeltype = PIXELTYPE_RGB; }
-        else if (depth == 16) { pixeltype = PIXELTYPE_LUMINANCE_ALPHA; }
-        else if (depth <=  8 && colormap == 0) { pixeltype = PIXELTYPE_LUMINANCE; }
-        else if (depth <=  8 && colormap == 1) { pixeltype = PIXELTYPE_COLOUR_INDEX; }
-        format = FILEFORMAT_PNG;
-    } else if ((result = GetInfoFromMemoryBMP(&xsize, &ysize, &depth, psrc,
+        if (depth == 32) { format = GEUL_RGBA; }
+        else if (depth == 24) { format = GEUL_RGB; }
+        else if (depth == 16) { format = GEUL_LUMINANCE_ALPHA; }
+        else if (depth <=  8 && colormap == 0) { format = GEUL_LUMINANCE; }
+        else if (depth <=  8 && colormap == 1) { format = GEUL_COLOUR_INDEX;
+            type = GEUL_BITMAP; }
+    } else if ((result = GetInfoFromMemoryBMP(&width, &height, &depth, psrc,
         psrcsize)) == true) {
-        pixeltype = (depth == 32) ? PIXELTYPE_BGRA :
-            (depth == 24) ? PIXELTYPE_BGR : PIXELTYPE_COLOUR_INDEX;
-        format = FILEFORMAT_BMP;
-    } else if ((result = GetInfoFromMemoryPCX(&xsize, &ysize, &depth, psrc,
+        if (depth == 32) { format = GEUL_BGRA; }
+        else if (depth == 24) { format = GEUL_BGR; }
+        else if (depth <=  8 && colormap == 1) { format = GEUL_COLOUR_INDEX;
+            type = GEUL_BITMAP; }
+    } else if ((result = GetInfoFromMemoryPCX(&width, &height, &depth, psrc,
         psrcsize)) == true) {
-        pixeltype = (depth <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;
-        format = FILEFORMAT_PCX;
-    } else if ((result = GetInfoFromMemoryTGA(&colormap, &xsize, &ysize,
-        &depth, psrc, psrcsize)) == true) {
-        if (depth == 32) { pixeltype = PIXELTYPE_BGRA; }
-        else if (depth == 24) { pixeltype = PIXELTYPE_BGR; }
-        else if (depth == 16) { pixeltype = PIXELTYPE_XBGR1555; }
-        else if (depth ==  8 && colormap == 0) { pixeltype = PIXELTYPE_LUMINANCE; }
-        else if (depth ==  8 && colormap == 1) { pixeltype = PIXELTYPE_COLOUR_INDEX; }
-        format = FILEFORMAT_TGA;
+        if (depth <= 8) { format = GEUL_COLOUR_INDEX; type = GEUL_BITMAP; }
+        else { format = GEUL_RGB; }
+    } else if ((result = GetInfoFromMemoryTGA(&colormap, &width, &height, &depth,
+        psrc, psrcsize)) == true) {
+        if (depth == 32) { format = GEUL_BGRA; }
+        else if (depth == 24) { format = GEUL_BGR; }
+        else if (depth == 16) { format = GEUL_BGR; }
+        else if (depth ==  8 && colormap == 0) { format = GEUL_LUMINANCE; }
+        else if (depth ==  8 && colormap == 1) { format = GEUL_COLOUR_INDEX;
+            type = GEUL_BITMAP; }
     } else { fprintf(stderr, "GetImageInfo, Unsupported image format\n"); }
 
-    if (psrcinfo != NULL) {
-        psrcinfo->pixeltype = pixeltype;
-        psrcinfo->xsize = xsize;
-        psrcinfo->ysize = ysize;
+    if (result == true) {
         psrcinfo->depth = depth;
-        psrcinfo->fileformat = format;
+        psrcinfo->width = width;
+        psrcinfo->height = height;
+        psrcinfo->format = format;
+        psrcinfo->type = type;
     }
 
     return result;
@@ -4986,11 +4072,12 @@ GetImageInfoFromMemory(image_info_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize)
 // GetImageInfoFromFile
 //-----------------------------------------------------------------------------
 bool
-GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
+GetImageInfoFromFile(image_t* psrcinfo, const char* psrcfile)
 {
     bool result = false;
 
     if (psrcfile == NULL || strlen(psrcfile) == 0) {
+        fprintf(stderr, "GetImageInfo, Not a valid filename.\n");
         return result;
     }
 
@@ -5022,7 +4109,6 @@ GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
             fprintf(stderr, "GetImageInfo, Out of memory.\n");
             return result;
         }
-
         memset(srcbuf, 0, ((fileSize + 1) & ~1));
     }
 
@@ -5040,7 +4126,6 @@ GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
     if (fileSize == bytesRead && bytesRead != 0) {
         // image info
         result = GetImageInfoFromMemory(psrcinfo, rawsrc, (uint32_t)bytesRead);
-
         free(srcbuf);
         srcbuf = NULL;
         rawsrc = NULL;
@@ -5053,73 +4138,111 @@ GetImageInfoFromFile(image_info_t* psrcinfo, const char* psrcfile)
 // LoadImageFromMemory
 //-----------------------------------------------------------------------------
 bool
-LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
-    uint8_t* psrc, uint32_t srcsize, pixel_t dstformat, rect_t* psrcrect,
-    uint32_t filtertype, rgba_t colorkey, image_info_t* psrcinfo)
+LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rgba_t colorkey,
+    uint8_t* psrc, uint32_t srcsize)
 {
+    palette_t srcpalette = { 0 };
+    uint8_t* pixels = NULL;
+    uint32_t depth = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t format = 0;
+    uint32_t type = GEUL_UNSIGNED_BYTE;
+    uint32_t fileformat = 0;
     bool result = false;
-    palette_t srcpalette = {};
-    image_t srcimage = {
-        NULL,
-        0,
-        0,
-        PIXELTYPE_UNKNOWN
-    };
-    image_t* psrcimage = &srcimage;
-    uint8_t depth = 0;
-    file_format_t format = FILEFORMAT_NONE;
 
     if (pdstimage != NULL) {
-
         rgba_t pngcolorkey = { 0, 0, 0, 0 };
-        if ((result = LoadFromMemoryPNG(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depth, NULL,
-            &pngcolorkey)) == true) {
-            if (depth == 32) { srcimage.pixeltype = PIXELTYPE_RGBA; }
-            else if (depth == 24) { srcimage.pixeltype = PIXELTYPE_RGB; }
-            else if (depth == 16) { srcimage.pixeltype = PIXELTYPE_LUMINANCE_ALPHA; }
-            else if (depth <= 8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
-            else if (depth <= 8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
-            if (pngcolorkey.b != 0 && pngcolorkey.g != 0 && pngcolorkey.r != 0 && pngcolorkey.a != 0) {
-                colorkey = pngcolorkey;
-            }
-            format = FILEFORMAT_PNG;
-        } else if ((result = LoadFromMemoryBMP(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true) {
-            srcimage.pixeltype = (depth == 32) ? PIXELTYPE_BGRA :
-                (depth == 24) ? PIXELTYPE_BGR : PIXELTYPE_COLOUR_INDEX;
-            format = FILEFORMAT_BMP;
-        } else if ((result = LoadFromMemoryPCX(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true) {
-            srcimage.pixeltype = (depth <= 8) ? PIXELTYPE_COLOUR_INDEX : PIXELTYPE_RGB;
-            format = FILEFORMAT_PCX;
-        } else if ((result = LoadFromMemoryTGA(&srcimage.data, &srcpalette, psrc,
-            srcsize, &srcimage.xsize, &srcimage.ysize, &depth)) == true) {
-            if (depth == 32) { srcimage.pixeltype = PIXELTYPE_BGRA; }
-            else if (depth == 24) { srcimage.pixeltype = PIXELTYPE_BGR; }
-            else if (depth == 16) { srcimage.pixeltype = PIXELTYPE_XBGR1555; }
-            else if (depth == 8 && srcpalette.size == 0) { srcimage.pixeltype = PIXELTYPE_LUMINANCE; }
-            else if (depth == 8 && srcpalette.size != 0) { srcimage.pixeltype = PIXELTYPE_COLOUR_INDEX; }
-            format = FILEFORMAT_TGA;
+        if ((result = LoadFromMemoryPNG(&pixels, &srcpalette, psrc, srcsize,
+            &width, &height, &depth, NULL, &pngcolorkey)) == true) {
+            if (depth == 32) { format = GEUL_RGBA; }
+            else if (depth == 24) { format = GEUL_RGB; }
+            else if (depth == 16) { format = GEUL_LUMINANCE_ALPHA; }
+            else if (depth <= 8 && srcpalette.size == 0) { format = GEUL_LUMINANCE; }
+            else if (depth <= 8 && srcpalette.size != 0) { format = GEUL_COLOUR_INDEX;
+                type = GEUL_BITMAP; }
+            if (pngcolorkey.b != 0 && pngcolorkey.g != 0 && pngcolorkey.r != 0 &&
+                pngcolorkey.a != 0) { colorkey = pngcolorkey; }
+            fileformat = GEUL_PNG;
+        } else if ((result = LoadFromMemoryBMP(&pixels, &srcpalette, psrc, srcsize,
+            &width, &height, &depth)) == true) {
+            if (depth == 32) { format = GEUL_BGRA; }
+            else if (depth == 24) { format = GEUL_BGR; }
+            else if (depth <= 8 && srcpalette.size != 0) { format = GEUL_COLOUR_INDEX;
+            type = GEUL_BITMAP; }
+            fileformat = GEUL_BMP;
+        } else if ((result = LoadFromMemoryPCX(&pixels, &srcpalette, psrc, srcsize,
+            &width, &height, &depth)) == true) {
+            if (depth <= 8 && srcpalette.size != 0) { format = GEUL_COLOUR_INDEX;
+            type = GEUL_BITMAP; }
+            else { format = GEUL_RGB; }
+            fileformat = GEUL_PCX;
+        } else if ((result = LoadFromMemoryTGA(&pixels, &srcpalette, psrc, srcsize,
+            &width, &height, &depth)) == true) {
+            if (depth == 32) { format = GEUL_BGRA; }
+            else if (depth == 24) { format = GEUL_BGR; }
+            else if (depth == 16) { format = GEUL_BGRA; }
+            else if (depth == 8 && srcpalette.size == 0) { format = GEUL_LUMINANCE; }
+            else if (depth == 8 && srcpalette.size != 0) { format = GEUL_COLOUR_INDEX;
+                type = GEUL_BITMAP; }
+            fileformat = GEUL_TGA;
         } else { fprintf(stderr, "LoadImage, Unsupported image format\n"); }
 
-        if (result == true && psrcinfo != NULL) {
-            psrcinfo->xsize = srcimage.xsize;
-            psrcinfo->ysize = srcimage.ysize;
-            psrcinfo->pixeltype = srcimage.pixeltype;
-            psrcinfo->depth = depth;
-            psrcinfo->fileformat = format;
-        }
-
-        // expand packed type
-        if ((format == FILEFORMAT_PNG || format == FILEFORMAT_BMP ||
-             format == FILEFORMAT_PCX) && depth <= 4 && result == true) {
-
+        // unpack types
+        if (fileformat == GEUL_TGA && depth == 16 && result == true) {
+            uint8_t* buffer = (uint8_t*)malloc(width * height * 4);
+            uint8_t* pixbuf = buffer;
+            uint8_t* srcbuf = pixels;
+            uint32_t dstpitch = width * 4;
+            uint32_t srcpitch = width * 2;
             uint32_t x = 0;
             uint32_t y = 0;
-            uint8_t* pixels = (uint8_t*)malloc(srcimage.xsize * srcimage.ysize);
-            uint8_t* pixbuf = pixels;
-            uint8_t* srcbuf = srcimage.data;
+            uint32_t rshift = 0;
+            uint32_t gshift = 0;
+            uint32_t bshift = 0;
+            uint32_t ashift = 0;
+            uint32_t rmask = 0x001F;
+            uint32_t gmask = 0x03E0;
+            uint32_t bmask = 0x7C00;
+            uint32_t amask = 0x8000;
+            float color = 255.0f / 31.0f;
+            float alpha = 255.0f;
+            uint16_t pixel = 0;
+
+            memset(buffer, 0, width * height * 4);
+
+            for (size_t mask = rmask; (mask & 0x01) != 1; mask >>= 1) rshift++;
+            for (size_t mask = gmask; (mask & 0x01) != 1; mask >>= 1) gshift++;
+            for (size_t mask = bmask; (mask & 0x01) != 1; mask >>= 1) bshift++;
+            for (size_t mask = amask; (mask & 0x01) != 1; mask >>= 1) ashift++;
+            
+            while (y++ < height)
+            {
+                x = 0;
+                while (x < width)
+                {
+                    memcpy(&pixel, (srcbuf + (x * 2)), 2);
+                    pixbuf[x*4+0] = ((pixel & bmask) >> bshift) * color;
+                    pixbuf[x*4+1] = ((pixel & gmask) >> gshift) * color;
+                    pixbuf[x*4+2] = ((pixel & rmask) >> rshift) * color;
+                    pixbuf[x*4+3] = ((pixel & amask) >> ashift) * alpha;
+                    x++;
+                }
+                pixbuf += dstpitch;
+                srcbuf += srcpitch;
+            }
+            free(pixels);
+            pixels = buffer;
+            depth = 32;
+        }
+
+        if ((fileformat == GEUL_PNG || fileformat == GEUL_BMP ||
+             fileformat == GEUL_PCX) && depth <= 4 && result == true) {
+            uint8_t* buffer = (uint8_t*)malloc(width * height);
+            uint8_t* pixbuf = buffer;
+            uint8_t* srcbuf = pixels;
+            uint32_t x = 0;
+            uint32_t y = 0;
             uint8_t pixelsperbyte =  8 / depth;
             uint8_t maskbits[4] = { 0x01, 0x03, 0, 0x0F };
             uint8_t scalebit[4] = { 0xFF, 0x55, 0, 0x11 };
@@ -5127,14 +4250,11 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             uint8_t resetbit = 8 - depth;
             uint8_t bit = resetbit;
 
-            memset(pixels, 0, srcimage.xsize * srcimage.ysize);
+            memset(buffer, 0, width * height);
 
-            while (y < srcimage.ysize)
-            {
-                x = (srcimage.xsize / pixelsperbyte);
-
-                do
-                {
+            while (y < height) {
+                x = (width / pixelsperbyte);
+                do {
                     switch (pixelsperbyte)
                     {
                     case 8: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
@@ -5148,8 +4268,7 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
                         srcbuf++;
                     }
                 } while (--x > 0);
-
-                switch (srcimage.xsize & (pixelsperbyte - 1))
+                switch (width & (pixelsperbyte - 1))
                 {
                 case 7: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
                 case 6: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
@@ -5162,123 +4281,26 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
                 }
                 y++;
             }
-
-            pixbuf = pixels;
-
-            if (srcimage.pixeltype == PIXELTYPE_LUMINANCE) {
-                for (unsigned int i = 0; i < srcimage.xsize * srcimage.ysize; ++i)
+            pixbuf = buffer;
+            if (format == GEUL_LUMINANCE) {
+                for (unsigned int i = 0; i < width * height; ++i)
                 {
                     *pixbuf++ *= scalebit[depth-1];
                 }
             }
-
-            free(srcimage.data);
-            srcimage.data = pixels;
+            free(pixels);
+            pixels = buffer;
             depth = 8;
         }
 
-        // dst stuff
-        rect_t dstrect = { 0 };
-
-        if (pdstrect == NULL) {
-            dstrect.min.x = 0;
-            dstrect.min.y = 0;
-            dstrect.max.x = psrcimage->xsize;
-            dstrect.max.y = psrcimage->ysize;
-        } else {
-            dstrect = *pdstrect;
-        }
-
-        dstformat = (dstformat == PIXELTYPE_UNKNOWN) ? PIXELTYPE_RGBA : dstformat;
-        uint8_t dstbytes = GetBytesForPixelFormat(dstformat);
-        uint32_t dstxorigin = MAX(0, ABS(dstrect.min.x));
-        uint32_t dstyorigin = MAX(0, ABS(dstrect.min.y));
-        uint32_t dstxextent = ABS(dstrect.max.x);
-        uint32_t dstyextent = ABS(dstrect.max.y);
-        uint32_t dstxsize = dstxextent - dstxorigin;
-        uint32_t dstysize = dstyextent - dstyorigin;
-        uint32_t dstpitch = dstxextent * dstbytes;
-
-        if (pdstimage->data == NULL) {
-            pdstimage->data = (uint8_t*)malloc(dstyextent * dstpitch);
-            memset(pdstimage->data, 0, dstyextent * dstpitch);
-        }
-
-        pdstimage->xsize = dstxextent;
-        pdstimage->ysize = dstyextent;
-        pdstimage->pixeltype = dstformat;
-
-        // src stuff
-        rect_t srcrect = { 0 };
-
-        if (psrcrect == NULL) {
-            srcrect.min.x = 0;
-            srcrect.min.y = 0;
-            srcrect.max.x = psrcimage->xsize;
-            srcrect.max.y = psrcimage->ysize;
-        } else {
-            srcrect = *psrcrect;
-        }
-
-        uint8_t srcbytes = GetBytesForPixelFormat(srcimage.pixeltype);
-        uint32_t srcxorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min.x),
-            psrcimage->xsize));
-        uint32_t srcyorigin = MAX(0, MIN((uint32_t)ABS(srcrect.min.y),
-            psrcimage->ysize));
-        uint32_t srcxextent = psrcimage->xsize;
-        uint32_t srcyextent = psrcimage->ysize;
-        uint32_t srcxsize = srcxextent - srcxorigin;
-        uint32_t srcysize = srcyextent - srcyorigin;
-        uint32_t srcpitch = srcxextent * srcbytes;
-
-        // convert to dstformat
-        if (pdstimage->pixeltype != psrcimage->pixeltype) {
-
-            uint8_t* tmpptr = (uint8_t*)malloc(srcyextent * srcxextent * dstbytes);
-
-            Blit_Nbit_Nbit(tmpptr, srcxextent, srcyextent, dstformat, psrcimage->data,
-                srcxextent, srcyextent, psrcimage->pixeltype, &srcpalette);
-
-            srcpitch = srcxextent * dstbytes;
-            
-            free(psrcimage->data);
-            psrcimage->data = tmpptr;
-        }
-
-        // filter and scale
-        if (filtertype != FILTER_NONE && dstformat != PIXELTYPE_COLOUR_INDEX) {
-
-            uint8_t* tmpptr = NULL;
-
-            result = Filter(&tmpptr, dstxextent, dstyextent, dstbytes, psrcimage->data,
-                srcxextent, srcyextent, dstbytes, filtertype);
-
-            srcxsize = dstxextent - srcxorigin;
-            srcysize = dstyextent - srcyorigin;
-            srcpitch = dstxextent * dstbytes;
-
-            free(psrcimage->data);
-            psrcimage->data = tmpptr;
-        }
-
-        // copy to destination
-        if (result == true) {
-
-            uint8_t* bufdst = pdstimage->data + (dstyorigin * dstpitch) +
-                (dstxorigin * dstbytes);
-            uint8_t* bufsrc = psrcimage->data + (srcyorigin * srcpitch) +
-                (srcxorigin * dstbytes);
-            uint32_t xsize = MIN(srcxsize, dstxsize);
-            uint32_t ysize = MIN(srcysize, dstysize);
-            uint32_t pitch = xsize * dstbytes;
-            uint32_t y = 0;
-
-            while (y++ < ysize)
+        // palette
+        if (pdstpalette != NULL && format == GEUL_COLOUR_INDEX && result == true) {
+            for (uint32_t i = 0; i < srcpalette.size; ++i)
             {
-                memcpy(bufdst, bufsrc, pitch);
-                bufdst += dstpitch;
-                bufsrc += srcpitch;
+                pdstpalette->data[i] = srcpalette.data[i];
             }
+            pdstpalette->size = srcpalette.size;
+            pdstpalette->bits = srcpalette.bits;
         }
 
         // transparency
@@ -5290,20 +4312,19 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
             }
         }
 
-        // palette
-        if (pdstpalette != NULL && dstformat == PIXELTYPE_COLOUR_INDEX) {
-            for (uint32_t i = 0; i < srcpalette.size; ++i)
-            {
-                pdstpalette->data[i] = srcpalette.data[i];
-            }
-
-            pdstpalette->size = srcpalette.size;
-            pdstpalette->bits = srcpalette.bits;
+        // dst stuff
+        if (result == true) {
+            pdstimage->pixels = pixels;
+            pdstimage->depth = depth;
+            pdstimage->width = width;
+            pdstimage->height = height;
+            pdstimage->format = format;
+            pdstimage->type = type;
         }
 
-        if (srcimage.data != NULL) {
-            free(srcimage.data);
-            srcimage.data = NULL;
+        if (pixels != NULL) {
+            free(pixels);
+            pixels = NULL;
         }
     }
 
@@ -5314,9 +4335,8 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect
 // LoadImageFromFile
 //-----------------------------------------------------------------------------
 bool
-LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
-    const char* psrcfile, pixel_t format, rect_t* psrcrect, uint32_t filter,
-    rgba_t colorkey, image_info_t* psrcinfo)
+LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rgba_t colorkey,
+    const char* psrcfile)
 {
     bool result = false;
 
@@ -5351,12 +4371,10 @@ LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
 
     if (fileSize != 0) {
         srcbuf = malloc(((fileSize + 1) & ~1));
-
         if (srcbuf == NULL) {
             fprintf(stderr, "LoadImage, Out of memory.\n");
             return result;
         }
-
         memset(srcbuf, 0, ((fileSize + 1) & ~1));
     }
 
@@ -5373,9 +4391,8 @@ LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rect_t* pdstrect,
 
     if (fileSize == bytesRead && bytesRead != 0) {
         // load image
-        result = LoadImageFromMemory(pdstimage, pdstpalette, pdstrect, rawsrc,
-            (uint32_t)bytesRead, format, psrcrect, filter, colorkey, psrcinfo);
-
+        result = LoadImageFromMemory(pdstimage, pdstpalette, colorkey, rawsrc,
+            (uint32_t)bytesRead);
         free(srcbuf);
         srcbuf = NULL;
         rawsrc = NULL;
