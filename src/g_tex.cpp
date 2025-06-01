@@ -2136,7 +2136,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             uint32_t abscount = 0;
             uint32_t rlecount = 0;
             uint32_t runcount = 0;
-            uint32_t maxcount = 0xFF;
+            uint32_t maxcount = 0;
             uint32_t absbound = srcxsize - 0xFF;
             uint32_t rlebound = srcxsize - 0x80;
             uint32_t sample = 0;
@@ -2164,7 +2164,8 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
                             runcount = abscount;
                             *dstbuf++ = (0 << 7) | (runcount - 1);
                             bytesencoded++;
-                            memcpy(dstbuf, (rawbuf + (x * bytesperpixel) * runcount), bytesperpixel);
+                            memcpy(dstbuf, (rawbuf + (x * bytesperpixel) * runcount),
+                                bytesperpixel);
                             dstbuf += bytesperpixel * runcount;
                             bytesencoded += bytesperpixel * runcount;
                         } else {
@@ -3272,11 +3273,12 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     uint32_t dstpalettesize = 0;
 
     // palette
-    if (srcdepth == 8 && psrcpalette != NULL) {
-        dstpalettesize = 768;
-    } else {
+    if (srcdepth == 8 && psrcpalette == NULL) {
         fprintf(stderr, "PCX, Missing palette.\n");
         return false;
+    }
+    if (srcdepth == 8) {
+        dstpalettesize = 768;
     }
 
     // byte encoded array
@@ -3397,7 +3399,6 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
                 *dstbuf++ = palptr[i].g;
                 *dstbuf++ = palptr[i].b;
             }
-
             bytesencoded += dstpalettesize;
         }
     }
@@ -3757,35 +3758,30 @@ FastFill(image_t* pimage, palette_t* ppalette, rgba_t newcolor, rgba_t oldcolor)
 //-----------------------------------------------------------------------------
 bool
 SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t fileformat,
-    uint32_t dstcodec, image_t* psrcimage, palette_t* psrcpalette)
+    uint32_t codec, image_t* pimage, palette_t* ppalette)
 {
     uint32_t depth = 8;
-    uint32_t imagesize = 0;
-    uint32_t dstformat = 0;
+    uint32_t pixelsize = 0;
+    uint32_t format = 0;
     bool result = false;
 
-    if (psrcimage != NULL) {
+    if (pimage != NULL) {
         // supported output formats
         switch (fileformat)
         {
         case GEUL_PNG:
         {
-            if (psrcimage->format == GEUL_RGBA) {
-                dstformat = GEUL_RGBA;
-            }
-            else if (psrcimage->format == GEUL_RGB) {
-                dstformat = GEUL_RGB;
-            }
-            else if (psrcimage->format == GEUL_LUMINANCE_ALPHA) {
-                dstformat = GEUL_LUMINANCE_ALPHA;
-            }
-            else if (psrcimage->format == GEUL_LUMINANCE) {
-                dstformat = GEUL_LUMINANCE;
-            }
-            else if (psrcimage->format == GEUL_COLOUR_INDEX) {
-                dstformat = GEUL_COLOUR_INDEX;
-            }
-            else {
+            if (pimage->format == GEUL_RGBA) {
+                format = GEUL_RGBA;
+            } else if (pimage->format == GEUL_RGB) {
+                format = GEUL_RGB;
+            } else if (pimage->format == GEUL_LUMINANCE_ALPHA) {
+                format = GEUL_LUMINANCE_ALPHA;
+            } else if (pimage->format == GEUL_LUMINANCE) {
+                format = GEUL_LUMINANCE;
+            } else if (pimage->format == GEUL_COLOUR_INDEX) {
+                format = GEUL_COLOUR_INDEX;
+            } else {
                 fprintf(stderr, "SaveImage, Invalid src format, cannot \
                         save src data to dst format.\n");
                 return false;
@@ -3793,16 +3789,13 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t fileformat,
         } break;
         case GEUL_BMP:
         {
-            if (psrcimage->format == GEUL_BGRA) {
-                dstformat = GEUL_BGRA;
-            }
-            else if (psrcimage->format == GEUL_BGR) {
-                dstformat = GEUL_BGR;
-            }
-            else if (psrcimage->format == GEUL_COLOUR_INDEX) {
-                dstformat = GEUL_COLOUR_INDEX;
-            }
-            else {
+            if (pimage->format == GEUL_BGRA) {
+                format = GEUL_BGRA;
+            } else if (pimage->format == GEUL_BGR) {
+                format = GEUL_BGR;
+            } else if (pimage->format == GEUL_COLOUR_INDEX) {
+                format = GEUL_COLOUR_INDEX;
+            } else {
                 fprintf(stderr, "SaveImage, Invalid src format, cannot \
                         save src data to dst format.\n");
                 return false;
@@ -3810,13 +3803,11 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t fileformat,
         } break;
         case GEUL_PCX:
         {
-            if (psrcimage->format == GEUL_RGB) {
-                dstformat = GEUL_RGB;
-            }
-            else if (psrcimage->format == GEUL_COLOUR_INDEX) {
-                dstformat = GEUL_COLOUR_INDEX;
-            }
-            else {
+            if (pimage->format == GEUL_RGB) {
+                format = GEUL_RGB;
+            } else if (pimage->format == GEUL_COLOUR_INDEX) {
+                format = GEUL_COLOUR_INDEX;
+            } else {
                 fprintf(stderr, "SaveImage, Invalid src format, cannot \
                         save src data to dst format.\n");
                 return false;
@@ -3824,19 +3815,15 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t fileformat,
         } break;
         case GEUL_TGA:
         {
-            if (psrcimage->format == GEUL_BGRA) {
-                dstformat = GEUL_BGRA;
-            }
-            else if (psrcimage->format == GEUL_BGR) {
-                dstformat = GEUL_BGR;
-            }
-            else if (psrcimage->format == GEUL_LUMINANCE) {
-                dstformat = GEUL_LUMINANCE;
-            }
-            else if (psrcimage->format == GEUL_COLOUR_INDEX) {
-                dstformat = GEUL_COLOUR_INDEX;
-            }
-            else {
+            if (pimage->format == GEUL_BGRA) {
+                format = GEUL_BGRA;
+            } else if (pimage->format == GEUL_BGR) {
+                format = GEUL_BGR;
+            } else if (pimage->format == GEUL_LUMINANCE) {
+                format = GEUL_LUMINANCE;
+            } else if (pimage->format == GEUL_COLOUR_INDEX) {
+                format = GEUL_COLOUR_INDEX;
+            } else {
                 fprintf(stderr, "SaveImage, Invalid src format, cannot \
                         save src data to dst format.\n");
                 return false;
@@ -3848,45 +3835,43 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t fileformat,
             return false;
         }
         }
-
-        depth *= GetBytesForPixelFormat(dstformat);
-        imagesize = psrcimage->width * psrcimage->height *
-            GetBytesForPixelFormat(psrcimage->format);
-
-        if (psrcimage->format != GEUL_COLOUR_INDEX) {
-            psrcpalette = NULL;
+        depth *= GetBytesForPixelFormat(format);
+        pixelsize = pimage->width * pimage->height *
+            GetBytesForPixelFormat(pimage->format);
+        if (pimage->format != GEUL_COLOUR_INDEX) {
+            ppalette = NULL;
         }
         switch (fileformat)
         {
         case GEUL_PNG:
         {
-            result = SaveToMemoryPNG(ppdst, ppdstsize, dstcodec, psrcimage->pixels,
-                imagesize, psrcimage->width, psrcimage->height, depth, 8,
-                psrcpalette, NULL);
+            result = SaveToMemoryPNG(ppdst, ppdstsize, codec, pimage->pixels,
+                pixelsize, pimage->width, pimage->height, depth, 8,
+                ppalette, NULL);
         } break;
         case GEUL_BMP:
         {
-            result = SaveToMemoryBMP(ppdst, ppdstsize, dstcodec, psrcimage->pixels,
-                imagesize, psrcimage->width, psrcimage->height, depth,
-                psrcpalette, NULL, false);
+            result = SaveToMemoryBMP(ppdst, ppdstsize, codec, pimage->pixels,
+                pixelsize, pimage->width, pimage->height, depth,
+                ppalette, NULL, false);
         } break;
         case GEUL_PCX:
         {
-            result = SaveToMemoryPCX(ppdst, ppdstsize, dstcodec, psrcimage->pixels,
-                imagesize, psrcimage->width, psrcimage->height, depth,
-                psrcpalette);
+            result = SaveToMemoryPCX(ppdst, ppdstsize, codec, pimage->pixels,
+                pixelsize, pimage->width, pimage->height, depth,
+                ppalette);
         } break;
         case GEUL_TGA:
         {
-            result = SaveToMemoryTGA(ppdst, ppdstsize, dstcodec, psrcimage->pixels,
-                imagesize, psrcimage->width, psrcimage->height, depth,
-                psrcpalette, false,
+            result = SaveToMemoryTGA(ppdst, ppdstsize, codec, pimage->pixels,
+                pixelsize, pimage->width, pimage->height, depth,
+                ppalette, false,
                 false);
         } break;
         }
-        if (psrcimage->pixels != NULL) {
-            free(psrcimage->pixels);
-            psrcimage->pixels = NULL;
+        if (pimage->pixels != NULL) {
+            free(pimage->pixels);
+            pimage->pixels = NULL;
         }
     }
 
@@ -4121,50 +4106,40 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rgba_t colorkey,
 
         // unpack types
         if (fileformat == GEUL_TGA && depth == 16 && result == true) {
-            uint8_t* buffer = (uint8_t*)malloc(width * height * 4);
+            uint8_t* buffer = (uint8_t*)malloc(width * height * 3);
             uint8_t* pixbuf = buffer;
             uint8_t* srcbuf = pixels;
-            uint32_t dstpitch = width * 4;
             uint32_t srcpitch = width * 2;
             uint32_t x = 0;
             uint32_t y = 0;
-            uint32_t rshift = 0;
-            uint32_t gshift = 0;
             uint32_t bshift = 0;
-            uint32_t ashift = 0;
-            uint32_t rmask = 0x001F;
+            uint32_t gshift = 5;
+            uint32_t rshift = 10;
+            uint32_t ashift = 15;
+            uint32_t bmask = 0x001F;
             uint32_t gmask = 0x03E0;
-            uint32_t bmask = 0x7C00;
-            uint32_t amask = 0x8000;
+            uint32_t rmask = 0x7C00;
+            //uint32_t amask = 0x8000;
             float color = 255.0f / 31.0f;
-            float alpha = 255.0f;
+            //float alpha = 255.0f;
             uint16_t pixel = 0;
-
-            memset(buffer, 0, width * height * 4);
-
-            for (size_t mask = rmask; (mask & 0x01) != 1; mask >>= 1) rshift++;
-            for (size_t mask = gmask; (mask & 0x01) != 1; mask >>= 1) gshift++;
-            for (size_t mask = bmask; (mask & 0x01) != 1; mask >>= 1) bshift++;
-            for (size_t mask = amask; (mask & 0x01) != 1; mask >>= 1) ashift++;
-            
-            while (y++ < height)
-            {
+            memset(buffer, 0, width * height * 3);
+            while (y++ < height) {
                 x = 0;
-                while (x < width)
-                {
+                while (x < width) {
                     memcpy(&pixel, (srcbuf + (x * 2)), 2);
-                    pixbuf[x*4+0] = ((pixel & bmask) >> bshift) * color;
-                    pixbuf[x*4+1] = ((pixel & gmask) >> gshift) * color;
-                    pixbuf[x*4+2] = ((pixel & rmask) >> rshift) * color;
-                    pixbuf[x*4+3] = ((pixel & amask) >> ashift) * alpha;
+                    *pixbuf++ = ((pixel & bmask) >> bshift) * color;
+                    *pixbuf++ = ((pixel & gmask) >> gshift) * color;
+                    *pixbuf++ = ((pixel & rmask) >> rshift) * color;
+                    //*pixbuf++ = ((pixel & amask) >> ashift) * alpha;
                     x++;
                 }
-                pixbuf += dstpitch;
                 srcbuf += srcpitch;
             }
             free(pixels);
             pixels = buffer;
-            depth = 32;
+            depth = 24;
+            format = GEUL_BGR;
         }
 
         if ((fileformat == GEUL_PNG || fileformat == GEUL_BMP ||
