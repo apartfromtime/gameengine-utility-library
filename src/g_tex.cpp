@@ -655,8 +655,8 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t srcxsize, uint32_t srcysize
 //------------------------------------------------------------------------------
 static bool
 SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
-    uint8_t* psrcbuf, uint32_t psrcsize, uint32_t srcxsize, uint32_t srcysize,
-    uint8_t srcdepth, uint8_t srcsampledepth, palette_t* ppalette, rgba_t* pcolorkey)
+    uint8_t* psrcbuf, uint32_t psrcsize, uint32_t width, uint32_t height,
+    uint8_t depth, uint8_t sampledepth, palette_t* ppalette, rgba_t* pcolorkey)
 {
     INLINE_OBJECT_NULL_CHK(ppdst);
     INLINE_OBJECT_NULL_CHK(ppdstsize);
@@ -664,67 +664,67 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     INLINE_OBJECT_NULL_CHK(psrcbuf);
     INLINE_OBJECT_SIZE_CHK(psrcsize, 0);
 
-    if (srcdepth !=  1 && srcdepth !=  2 && srcdepth !=  4 && srcdepth !=  8 &&
-        srcdepth != 16 && srcdepth != 24 && srcdepth != 32) {
-        fprintf(stderr, "PNG, Unsupported depth: %d.\n", srcdepth);
+    if (depth !=  1 && depth !=  2 && depth !=  4 && depth !=  8 &&
+        depth != 16 && depth != 24 && depth != 32) {
+        fprintf(stderr, "PNG, Unsupported depth: %d.\n", depth);
         return false;
     }
 
-    if (srcxsize == 0 || srcysize == 0) {
-        fprintf(stderr, "PNG, Unsupported size: (%d, %d).\n", srcxsize, srcysize);
+    if (width == 0 || height == 0) {
+        fprintf(stderr, "PNG, Unsupported size: (%d, %d).\n", width, height);
         return false;
     }
 
     // color-type interpretation of the image and number of bytes-per-pixel
     uint8_t colortype = 0;
+    uint32_t palettesize = 0;
 
-    switch (srcdepth)
+    switch (depth)
     {
-        case 32:            // rgba
-        {
-            colortype = 6;
-        } break;
-        case 24:            // rgb
-        {
-            colortype = 2;
-        } break;
-        case 16:            // greyscale + alpha
-        {
-            colortype = 4;
-        } break;
-        case 8:
-        case 4:
-        case 2:
-        case 1:
-        {
-            if (ppalette == NULL) {
-                colortype = 0;          // greyscale
-            } else {
-                colortype = 3;          // palette
-            }
-        } break;
+    case 32:            // rgba
+    {
+        colortype = 6;
+    } break;
+    case 24:            // rgb
+    {
+        colortype = 2;
+    } break;
+    case 16:            // greyscale + alpha
+    {
+        colortype = 4;
+    } break;
+    case 8:
+    case 4:
+    case 2:
+    case 1:
+    {
+        if (ppalette == NULL) {
+            colortype = 0;          // greyscale
+        } else {
+            colortype = 3;          // palette
+            // the PLTE chunk contains from 1 to 256 palette entries, each three-bytes
+            palettesize = ppalette->size * 3;
+        }
+    } break;
+    }
+
+    // check for invalid color-type and sampledepth
+    if (colortype == 3 && sampledepth >= 16) {
+        fprintf(stderr, "PNG, bad color-type (%d) and bit-depth (%d).\n", colortype,
+            sampledepth);
+        return false;
     }
 
     // src stuff
     uint8_t* srcptr = psrcbuf;
-    uint32_t srcpitch = WidthInBytes(srcxsize, srcdepth);
-    uint32_t palettesize = 0;
+    uint32_t srcpitch = WidthInBytes(width, depth);
     uint32_t crc = 0;
-
-    // palette
-    if (srcdepth <= 8) {
-        if (ppalette != NULL) {
-            // the PLTE chunk contains from 1 to 256 palette entries, each
-            // three-bytes
-            palettesize = ppalette->size * 3;
-        }
-    }
 
     // byte encoded array
     int datasize = s_png_signaturesize +
         (s_png_chunksize + s_png_headersize + s_png_crcsize) +
         (s_png_chunksize + palettesize + s_png_crcsize) +
-        (s_png_chunksize + (((srcysize + 1) * srcpitch + 1) + (srcysize + 1)) +
+        (s_png_chunksize + (((height + 1) * srcpitch + 1) + (height + 1)) +
             s_png_crcsize) +
         (s_png_chunksize + s_png_crcsize);
     uint8_t* data = (uint8_t*)malloc(datasize);
@@ -756,55 +756,36 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     // IHDR chunk
     size = s_png_headersize;
     type = BigU32(IHDR);
-
     WriteU32ToBE(dstbuf, size); dstbuf += 4;         // chunk size
     uint8_t* crcbuf = dstbuf;            // set pointer for crc calculation
     WriteU32ToBE(dstbuf, type); dstbuf += 4;         // chunk type
     byteswritten += 8;
-
-    WriteU32ToBE(dstbuf, srcxsize); dstbuf += 4;
-    WriteU32ToBE(dstbuf, srcysize); dstbuf += 4;
-
-    // check for invalid color-type and depth
-    if (colortype == 3 && srcdepth >= 16) {
-
-        fprintf(stderr, "PNG, bad color-type (%d) and bit-depth (%d).\n",
-            colortype, srcdepth);
-        free(data);
-        data = NULL;
-
-        return false;
-    }
-    
+    WriteU32ToBE(dstbuf, width); dstbuf += 4;
+    WriteU32ToBE(dstbuf, height); dstbuf += 4;
     uint8_t compression = 0;
     uint8_t filter = 0;
     // 0 (no interlace) or 1 (Adam7 interlace)
     uint8_t interlace = (codec == GEUL_RLE) ? 1 : 0;
-
-    *dstbuf++ = srcdepth <= 32 ? srcdepth <= 4 ? srcdepth : 8 : 16;
+    *dstbuf++ = depth <= 32 ? depth <= 4 ? depth : 8 : 16;
     *dstbuf++ = colortype;
     *dstbuf++ = compression;
     *dstbuf++ = filter;
     *dstbuf++ = interlace;
     byteswritten += 13;
-
     // CRC
     crc = Crc(crcbuf, (int)(dstbuf - crcbuf));
     WriteU32ToBE(dstbuf, crc); dstbuf += 4;
     byteswritten += 4;
 
     // palette
-    if (palettesize) {
-
+    if (colortype == 3 && palettesize != 0) {
         // PLTE chunk
         size = palettesize;
         type = BigU32(PLTE);
-
         WriteU32ToBE(dstbuf, size); dstbuf += 4;
         crcbuf = dstbuf;
         WriteU32ToBE(dstbuf, type); dstbuf += 4;
         byteswritten += 8;
-
         for (uint32_t i = 0; i < ppalette->size; ++i)
         {
             *dstbuf++ = ppalette->data[i].r;
@@ -812,7 +793,6 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             *dstbuf++ = ppalette->data[i].b;
             byteswritten += 3;
         }
-
         // CRC
         crc = Crc(crcbuf, (int)(dstbuf - crcbuf));
         WriteU32ToBE(dstbuf, crc); dstbuf += 4;
@@ -820,11 +800,10 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     }
 
     // transparency
-    if (pcolorkey != NULL) {
+    if (pcolorkey != NULL && (colortype == 0 || colortype == 2 || colortype == 3)) {
 
         // tRNS chunk
         type = BigU32(tRNS);
-
         switch (colortype)
         {
         case 0:
@@ -835,7 +814,6 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             crcbuf = dstbuf;
             WriteU32ToBE(dstbuf, type); dstbuf += 4;
             byteswritten += 8;
-
             WriteU16ToBE(dstbuf, pcolorkey->a); dstbuf += 2;
             byteswritten += 2;
         } break;
@@ -847,7 +825,6 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             crcbuf = dstbuf;
             WriteU32ToBE(dstbuf, type); dstbuf += 4;
             byteswritten += 8;
-
             WriteU16ToBE(dstbuf, pcolorkey->r); dstbuf += 2;
             WriteU16ToBE(dstbuf, pcolorkey->g); dstbuf += 2;
             WriteU16ToBE(dstbuf, pcolorkey->b); dstbuf += 2;
@@ -861,24 +838,13 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             crcbuf = dstbuf;
             WriteU32ToBE(dstbuf, type); dstbuf += 4;
             byteswritten += 8;
-
             for (uint32_t i = 0; i < size; ++i)
             {
                 *dstbuf++ = ppalette->data[i].a;
                 byteswritten++;
             }
         } break;
-        default:
-        {
-            fprintf(stderr, "PNG, bad color-type (%d) for tRNS.\n", colortype);
-
-            free(data);
-            data = NULL;
-
-            return false;
         }
-        }
-
         // CRC
         crc = Crc(crcbuf, (int)(dstbuf - crcbuf));
         WriteU32ToBE(dstbuf, crc); dstbuf += 4;
@@ -886,7 +852,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     }
 
     // uncompressed data, bytes per line, per component, plus filter per row
-    uint32_t idatlen = ((srcysize + 1) * (srcpitch + 1)) + (srcysize + 1);
+    uint32_t idatlen = ((height + 1) * (srcpitch + 1)) + (height + 1);
     uint8_t* idatptr = (uint8_t*)malloc(((idatlen + 1) & ~1));
     uint8_t* idatbuf = idatptr;
 
@@ -903,9 +869,8 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
 
     // filter selection (adaptive filtering with five basic filter types)
     uint8_t filtermode = PNG_FILTER_ADAPTIVE;
-
     if (filtermode == PNG_FILTER_ADAPTIVE) {
-        if (colortype == 3 || srcdepth <= 4) {
+        if (colortype == 3 || depth <= 4) {
             filtermode = PNG_FILTER_NONE;
         }
     }
@@ -913,10 +878,10 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     // IDAT chunk
     // interlace and filter
     if (interlace) {
-        ShrinkInterlacedPNG(idatbuf, &idatlen, srcxsize, srcysize, srcdepth,
+        ShrinkInterlacedPNG(idatbuf, &idatlen, width, height, depth,
             filtermode, srcptr);
     } else {
-        ShrinkPNG(idatbuf, &idatlen, srcxsize, srcysize, srcdepth, filtermode,
+        ShrinkPNG(idatbuf, &idatlen, width, height, depth, filtermode,
             srcptr);
     }
 
@@ -926,7 +891,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     uint32_t bytesdecoded = 0;
 
     // ZLIB compression
-    z_stream deflator = {};
+    z_stream deflator = { 0 };
 
     // deflate\inflate compression levels 0-10
     uint8_t compressionlevel = 6;
@@ -1031,19 +996,16 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             // IDAT chunk
             size = odatrem;
             type = BigU32(IDAT);
-
             WriteU32ToBE(dstbuf, size); dstbuf += 4;
             crcbuf = dstbuf;
             WriteU32ToBE(dstbuf, type); dstbuf += 4;
             byteswritten += 8;
-
             // IDAT data
             for (size_t i = 0; i < odatrem; ++i)
             {
                 *dstbuf++ = *odatptr++;
                 byteswritten++;
             }
-
             // CRC
             crc = Crc(crcbuf, (int)(dstbuf - crcbuf));
             WriteU32ToBE(dstbuf, crc); dstbuf += 4;
@@ -1054,12 +1016,10 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     // IEND chunk
     size = 0;
     type = BigU32(IEND);
-
     WriteU32ToBE(dstbuf, size); dstbuf += 4;
     crcbuf = dstbuf;
     WriteU32ToBE(dstbuf, type); dstbuf += 4;
     byteswritten += 8;
-
     // CRC
     crc = Crc(crcbuf, (int)(dstbuf - crcbuf));
     WriteU32ToBE(dstbuf, crc); dstbuf += 4;
