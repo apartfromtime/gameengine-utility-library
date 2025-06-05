@@ -1524,12 +1524,15 @@ ExpandInterlacedPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize,
     uint16_t b = 0;
     uint16_t c = 0;
     uint8_t filter = 0;
-    int32_t x0 = 0;
-    int32_t y0 = 0;
-    int32_t x1 = 0;
-    int32_t y1 = 0;
-    int32_t xx = 0;
-    int32_t yy = 0;
+    uint8_t* pixptr = pixels;
+    uint8_t* pixbuf = pixptr;
+    uint8_t latch = 0;
+    uint8_t* filter0 = &latch;
+    uint8_t* filter1 = &latch;
+    uint8_t* filter2 = &latch;
+    uint8_t increment = 1;
+    uint8_t xinc = 0;
+    uint8_t yinc = 0;
 
     const uint8_t i_xorigin[7] = { 0, 4, 0, 2, 0, 1, 0 };
     const uint8_t i_xextent[7] = { 8, 8, 4, 4, 2, 2, 1 };
@@ -1547,138 +1550,116 @@ ExpandInterlacedPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize,
         while (y < ysize)
         {
             filter = *buffer++;
-            y0 = (((y - 0) * yskip) + yorig);
-            y1 = (((y - 1) * yskip) + yorig);
-            yy = y0 * pitch;
+            pixptr = pixels + (((y * yskip) + yorig) * pitch);
+            pixbuf = pixptr;
             x = 0;
             switch (filter)
             {
             case 0:
             {
+                pixbuf += xorig * bytes;
                 while (x < xsize) {
-                    x0 = (((x - 0) * xskip) + xorig);
-                    x1 = (((x - 1) * xskip) + xorig);
-                    xx = (uint32_t)(x0 / pixelsperbyte);
                     bpp = 0;
-                    while (bpp < bytes) {
-                        pix1 = 0;
-                        pix0 = *buffer++;
-                        pix1 = raw1 & 0xFF;
-                        (pixels + yy + xx)[bpp] = ((pix0 + pix1) & 0xFF);
-                        bpp++;
-                    }
+                    while (bpp < bytes) { *pixbuf++ = *buffer++ & 0xFF; bpp++; }
+                    pixbuf += (xskip - 1) * bytes;
                     x++;
                 }
             } break;
             case 1:
             {
+                filter0 = &latch;
+                xinc = 0;
+                pixbuf += xorig * bytes;
                 while (x < xsize) {
-                    x0 = (((x - 0) * xskip) + xorig);
-                    x1 = (((x - 1) * xskip) + xorig);
-                    xx = (uint32_t)(x0 / pixelsperbyte);
                     bpp = 0;
                     while (bpp < bytes) {
-                        pix1 = 0;
-                        raw1 = 0;
-                        pix0 = *buffer++;
-                        if ((x1 >= 0)) {
-                            raw1 = (pixels + (y0 * pitch) + (x1 * bytes))[bpp];
-                        }
-                        pix1 = raw1 & 0xFF;
-                        (pixels + yy + xx)[bpp] = ((pix0 + pix1) & 0xFF);
+                        *pixbuf++ = (*buffer++ + *filter0) & 0xFF;
+                        filter0 += xinc;
                         bpp++;
                     }
+                    xinc = increment;
+                    filter0 = pixbuf - bytes;
+                    pixbuf += (xskip - 1) * bytes;
                     x++;
                 }
             } break;
             case 2:
             {
+                pixbuf += xorig * bytes;
                 while (x < xsize) {
-                    x0 = (((x - 0) * xskip) + xorig);
-                    x1 = (((x - 1) * xskip) + xorig);
-                    xx = (uint32_t)(x0 / pixelsperbyte);
                     bpp = 0;
                     while (bpp < bytes) {
-                        pix1 = 0;
-                        pri0 = 0;
-                        pix0 = *buffer++;
-                        if ((y1 >= 0)) {
-                            pri0 = (pixels + (y1 * pitch) + (x0 * bytes))[bpp];
-                        }
-                        pix1 = pri0 & 0xFF;
-                        (pixels + yy + xx)[bpp] = ((pix0 + pix1) & 0xFF);
+                        *pixbuf++ = (*buffer++ + *filter1) & 0xFF;
+                        filter1 += yinc;
                         bpp++;
                     }
+                    filter1 += (xskip - 1) * bytes;
+                    pixbuf += (xskip - 1) * bytes;
                     x++;
                 }
             } break;
             case 3:
             {
+                filter0 = &latch;
+                xinc = 0;
+                pixbuf += xorig * bytes;
                 while (x < xsize) {
-                    x0 = (((x - 0) * xskip) + xorig);
-                    x1 = (((x - 1) * xskip) + xorig);
-                    xx = (uint32_t)(x0 / pixelsperbyte);
                     bpp = 0;
                     while (bpp < bytes) {
-                        pix1 = 0;
-                        pri0 = 0;
-                        raw1 = 0;
-                        pix0 = *buffer++;
-                        if ((x1 >= 0)) {
-                            raw1 = (pixels + (y0 * pitch) + (x1 * bytes))[bpp];
-                        }
-                        if ((y1 >= 0)) {
-                            pri0 = (pixels + (y1 * pitch) + (x0 * bytes))[bpp];
-                        }
-                        pix1 = FLOOR((raw1 + pri0) / 2) & 0xFF;
-                        (pixels + yy + xx)[bpp] = ((pix0 + pix1) & 0xFF);
+                        pix1 = ((*filter0 + *filter1) & 0xFF) >> 1;
+                        *pixbuf++ = (*buffer++ + pix1) & 0xFF;
+                        filter0 += xinc;
+                        filter1 += yinc;
                         bpp++;
                     }
+                    xinc = increment;
+                    filter0 = pixbuf - bytes;
+                    filter1 += (xskip - 1) * bytes;
+                    pixbuf += (xskip - 1) * bytes;
                     x++;
                 }
             } break;
             case 4:
             {
+                filter0 = &latch;
+                filter2 = &latch;
+                xinc = 0;
+                pixbuf += xorig * bytes;
                 while (x < xsize) {
-                    x0 = (((x - 0) * xskip) + xorig);
-                    x1 = (((x - 1) * xskip) + xorig);
-                    xx = (uint32_t)(x0 / pixelsperbyte);
                     bpp = 0;
                     while (bpp < bytes) {
-                        pix1 = 0;
-                        pri0 = 0;
-                        pri1 = 0;
-                        raw1 = 0;
                         pix0 = *buffer++;
-                        if ((x1 >= 0) && (y1 >= 0)) {
-                            pri1 = (pixels + (y1 * pitch) + (x1 * bytes))[bpp];
-                        }
-                        if ((x1 >= 0)) {
-                            raw1 = (pixels + (y0 * pitch) + (x1 * bytes))[bpp];
-                        }
-                        if ((y1 >= 0)) {
-                            pri0 = (pixels + (y1 * pitch) + (x0 * bytes))[bpp];
-                        }
+                        raw1 = *filter0;
+                        pri0 = *filter1;
+                        pri1 = *filter2;
                         a = ABS(pri0 - pri1);
                         b = ABS(raw1 - pri1);
                         c = ABS(raw1 + pri0 - (2 * pri1));
                         if (a <= b && a <= c) {
                             pae0 = raw1 & 0xFF;
-                        }
-                        else if (b <= c) {
+                        } else if (b <= c) {
                             pae0 = pri0 & 0xFF;
-                        }
-                        else {
+                        } else {
                             pae0 = pri1 & 0xFF;
                         }
                         pix1 = pae0 & 0xFF;
-                        (pixels + yy + xx)[bpp] = ((pix0 + pix1) & 0xFF);
+                        *pixbuf++ = ((pix0 + pix1) & 0xFF);
+                        filter0 += xinc;
+                        filter1 += yinc;
+                        filter2 += xinc;
                         bpp++;
                     }
+                    xinc = increment;
+                    filter0 = pixbuf - bytes;
+                    filter2 = filter1 - bytes;
+                    filter1 += (xskip - 1) * bytes;
+                    pixbuf += (xskip - 1) * bytes;
                     x++;
                 }
             } break;
             }
+            filter1 = pixptr + xorig * bytes;
+            yinc = increment;
             y++;
         }
     } while (++pass < 7);
