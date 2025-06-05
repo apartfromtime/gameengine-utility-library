@@ -1260,23 +1260,23 @@ GetInfoFromMemoryPNG(uint8_t* pcolormap, uint32_t* pwidth, uint32_t* pheight,
 // ExpandPNG
 //------------------------------------------------------------------------------
 static void
-ExpandIndexInterlacedPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize,
+ExpandIndexInterlacedPNG(uint8_t** ppdst, uint32_t width, uint32_t height,
     uint32_t depth, uint8_t* psrc)
 {
     uint8_t* pixels = *ppdst;
     uint8_t* buffer = psrc;
-    float pixelsperbyte = (8.0f / (float)depth);
-    uint32_t pitch = WidthInBytes(dstxsize, depth);
+    uint32_t pitch = WidthInBytes(width, depth);
     uint32_t xskip = 1;
     uint32_t yskip = 1;
     uint32_t xorig = 0;
     uint32_t yorig = 0;
-    uint32_t xsize = dstxsize;
-    uint32_t ysize = dstysize;
+    uint32_t xsize = width;
+    uint32_t ysize = height;
     uint32_t x = 0;
     uint32_t y = 0;
     uint32_t pass = 0;
-    uint8_t mask[4] = { 0x01, 0x03, 0, 0x0F };
+    uint8_t maskbits[4] = { 0x01, 0x03, 0, 0x0F };
+    uint8_t mask = maskbits[depth-1];
     uint16_t pix0 = 0;
     uint16_t pix1 = 0;
     uint16_t pae0 = 0;
@@ -1287,19 +1287,23 @@ ExpandIndexInterlacedPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize,
     uint16_t b = 0;
     uint16_t c = 0;
     uint8_t filter = 0;
-    uint8_t bitX = 0;
     uint8_t bit0 = 0;
     uint8_t bit1 = 0;
-    uint8_t curX = 0;
+    uint8_t bit2 = 0;
     uint8_t cur0 = 0;
     uint8_t cur1 = 0;
+    uint8_t cur2 = 0;
     int32_t x0 = 0;
-    int32_t y0 = 0;
     int32_t x1 = 0;
-    int32_t y1 = 0;
-    int32_t xx = 0;
-    int32_t yy = 0;
-    uint8_t mod = pixelsperbyte - 1;
+    uint8_t ppb = (depth == 1 ? 3 : depth == 2 ? 2 : 1);
+    uint8_t bpp = (depth == 1 ? 0 : depth == 2 ? 1 : 2);
+    uint8_t mod = (8 / depth) - 1;
+    uint8_t* pixptr = pixels;
+    uint8_t* pixbuf = pixptr;
+    uint8_t latch = 0;
+    uint8_t* filter0 = &latch;
+    uint8_t* filter1 = &latch;
+    uint8_t* filter2 = &latch;
 
     const uint8_t i_xorigin[7] = { 0, 4, 0, 2, 0, 1, 0 };
     const uint8_t i_xextent[7] = { 8, 8, 4, 4, 2, 2, 1 };
@@ -1307,186 +1311,130 @@ ExpandIndexInterlacedPNG(uint8_t** ppdst, uint32_t dstxsize, uint32_t dstysize,
     const uint8_t i_yextent[7] = { 8, 8, 8, 4, 4, 2, 2 };
 
     do {
-        xsize = (dstxsize - i_xorigin[pass] + i_xextent[pass] - 1) / i_xextent[pass];
-        ysize = (dstysize - i_yorigin[pass] + i_yextent[pass] - 1) / i_yextent[pass];
+        xsize = (width  - i_xorigin[pass] + i_xextent[pass] - 1) / i_xextent[pass];
+        ysize = (height - i_yorigin[pass] + i_yextent[pass] - 1) / i_yextent[pass];
         xskip = i_xextent[pass];
         yskip = i_yextent[pass];
         xorig = i_xorigin[pass];
         yorig = i_yorigin[pass];
         y = 0;
-        while (y < ysize)
-        {
+        while (y < ysize) {
             filter = *buffer++;
-            y0 = (((y - 0) * yskip) + yorig);
-            y1 = (((y - 1) * yskip) + yorig);
-            yy = y0 * pitch;
+            pixptr = pixels + (((y * yskip) + yorig) * pitch);
+            pixbuf = pixptr;
             x = 0;
             switch (filter)
             {
             case 0:
             {
+                pix1 = 0;
                 while (x < xsize) {
-                    x0 = (((x - 0) * xskip) + xorig);
-                    x1 = (((x - 1) * xskip) + xorig);
-                    xx = (uint32_t)(x0 / pixelsperbyte);
-                    curX = ( x & mod);
-                    cur0 = (x0 & mod);
-                    cur1 = (x1 & mod);
-                    pix1 = 0;
-                    if (curX == 0) {
-                        pix0 = *buffer++;
-                    }
-                    bitX = (mod - curX) * depth;
-                    bit0 = (mod - cur0) * depth;
-                    bit1 = (mod - cur1) * depth;
-                    (pixels + yy + xx)[0] |= (((pix0 + pix1) >> bitX) &
-                        mask[depth - 1]) << bit0;
+                    x0 = ((x - 0) * xskip) + xorig;
+                    cur0 = ( x & mod);
+                    cur1 = (x0 & mod);
+                    bit0 = (mod - cur0) << bpp;
+                    bit1 = (mod - cur1) << bpp;
+                    pix0 = (cur0 == 0) ? *buffer++ : pix0;
+                    *(pixbuf + (x0 >> ppb)) |=
+                        (((pix0 + pix1) >> bit0) & mask) << bit1;
                     x++;
                 }
             } break;
             case 1:
             {
+                filter0 = &latch;
                 while (x < xsize) {
-                    x0 = (((x - 0) * xskip) + xorig);
-                    x1 = (((x - 1) * xskip) + xorig);
-                    xx = (uint32_t)(x0 / pixelsperbyte);
-                    curX = ( x & mod);
-                    cur0 = (x0 & mod);
-                    cur1 = (x1 & mod);
-                    pix1 = 0;
-                    raw1 = 0;
-                    if (curX == 0) {
-                        pix0 = *buffer++;
-                    }
-                    bitX = (mod - curX) * depth;
-                    bit0 = (mod - cur0) * depth;
-                    bit1 = (mod - cur1) * depth;
-                    if ((x1 >= 0)) {
-                        raw1 = (*(pixels + (y0 * pitch) +
-                            (uint32_t)(x1 / pixelsperbyte)) >> bit1) &
-                            mask[depth - 1];
-                    }
+                    x0 = ((x - 0) * xskip) + xorig;
+                    x1 = ((x - 1) * xskip) + xorig;
+                    cur0 = ( x & mod);
+                    cur2 = (x1 & mod);
+                    bit0 = (mod - cur0) << bpp;
+                    bit2 = (mod - cur2) << bpp;
+                    pix0 = (cur0 == 0) ? *buffer++ : pix0;
+                    raw1 = (*(filter0 + (x1 >> ppb)) >> bit2) & mask;
                     pix1 = raw1 & 0xFF;
-                    (pixels + yy + xx)[0] |= (((pix0 + pix1) >> bitX) &
-                        mask[depth - 1]) << bitX;
+                    filter0 = pixbuf;
+                    *(pixbuf + (x0 >> ppb)) |=
+                        (((pix0 + pix1) >> bit0) & mask) << bit0;
                     x++;
                 }
             } break;
             case 2:
             {
                 while (x < xsize) {
-                    x0 = (((x - 0) * xskip) + xorig);
-                    x1 = (((x - 1) * xskip) + xorig);
-                    xx = (uint32_t)(x0 / pixelsperbyte);
-                    curX = ( x & mod);
-                    cur0 = (x0 & mod);
-                    cur1 = (x1 & mod);
-                    pix1 = 0;
-                    pri0 = 0;
-                    if (curX == 0) {
-                        pix0 = *buffer++;
-                    }
-                    bitX = (mod - curX) * depth;
-                    bit0 = (mod - cur0) * depth;
-                    bit1 = (mod - cur1) * depth;
-                    if ((y1 >= 0)) {
-                        pri0 = (*(pixels + (y1 * pitch) +
-                            (uint32_t)(x0 / pixelsperbyte)) >> bit0) &
-                            mask[depth - 1];
-                    }
+                    x0 = ((x - 0) * xskip) + xorig;
+                    x1 = ((x - 1) * xskip) + xorig;
+                    cur0 = ( x & mod);
+                    cur1 = (x0 & mod);
+                    bit0 = (mod - cur0) << bpp;
+                    bit1 = (mod - cur1) << bpp;
+                    pix0 = (cur0 == 0) ? *buffer++ : pix0;
+                    pri0 = (*(filter1 + (x0 >> ppb)) >> bit1) & mask;
                     pix1 = pri0 & 0xFF;
-                    (pixels + yy + xx)[0] |= (((pix0 + pix1) >> bitX) &
-                        mask[depth - 1]) << bitX;
+                    *(pixbuf + (x0 >> ppb)) |=
+                        (((pix0 + pix1) >> bit0) & mask) << bit0;
                     x++;
                 }
             } break;
             case 3:
             {
+                filter0 = &latch;
                 while (x < xsize) {
-                    x0 = (((x - 0) * xskip) + xorig);
-                    x1 = (((x - 1) * xskip) + xorig);
-                    xx = (uint32_t)(x0 / pixelsperbyte);
-                    curX = ( x & mod);
-                    cur0 = (x0 & mod);
-                    cur1 = (x1 & mod);
-                    pix1 = 0;
-                    pri0 = 0;
-                    raw1 = 0;
-                    if (curX == 0) {
-                        pix0 = *buffer++;
-                    }
-                    bitX = (mod - curX) * depth;
-                    bit0 = (mod - cur0) * depth;
-                    bit1 = (mod - cur1) * depth;
-                    if ((x1 >= 0)) {
-                        raw1 = (*(pixels + (y0 * pitch) +
-                            (uint32_t)(x1 / pixelsperbyte)) >> bit1) &
-                            mask[depth - 1];
-                    }
-                    if ((y1 >= 0)) {
-                        pri0 = (*(pixels + (y1 * pitch) +
-                            (uint32_t)(x0 / pixelsperbyte)) >> bit0) &
-                            mask[depth - 1];
-                    }
-                    pix1 = FLOOR((raw1 + pri0) / 2) & 0xFF;
-                    (pixels + yy + xx)[0] |= (((pix0 + pix1) >> bitX) &
-                        mask[depth - 1]) << bitX;
+                    x0 = ((x - 0) * xskip) + xorig;
+                    x1 = ((x - 1) * xskip) + xorig;
+                    cur0 = ( x & mod);
+                    cur1 = (x0 & mod);
+                    cur2 = (x1 & mod);
+                    bit0 = (mod - cur0) << bpp;
+                    bit1 = (mod - cur1) << bpp;
+                    bit2 = (mod - cur2) << bpp;
+                    pix0 = (cur0 == 0) ? *buffer++ : pix0;
+                    raw1 = (*(filter0 + (x1 >> ppb)) >> bit2) & mask;
+                    pri0 = (*(filter1 + (x0 >> ppb)) >> bit1) & mask;
+                    pix1 = ((raw1 + pri0) & 0xFF) >> 1;
+                    filter0 = pixbuf;
+                    *(pixbuf + (x0 >> ppb)) |=
+                        (((pix0 + pix1) >> bit0) & mask) << bit0;
                     x++;
                 }
             } break;
             case 4:
             {
+                filter0 = &latch;
+                filter2 = &latch;
                 while (x < xsize) {
-                    x0 = (((x - 0) * xskip) + xorig);
-                    x1 = (((x - 1) * xskip) + xorig);
-                    xx = (uint32_t)(x0 / pixelsperbyte);
-                    curX = ( x & mod);
-                    cur0 = (x0 & mod);
-                    cur1 = (x1 & mod);
-                    pix1 = 0;
-                    pri0 = 0;
-                    pri1 = 0;
-                    raw1 = 0;
-                    if (curX == 0) {
-                        pix0 = *buffer++;
-                    }
-                    bitX = (mod - curX) * depth;
-                    bit0 = (mod - cur0) * depth;
-                    bit1 = (mod - cur1) * depth;
-                    if ((x1 >= 0) && (y1 >= 0)) {
-                        pri1 = (*(pixels + (y1 * pitch) +
-                            (uint32_t)(x1 / pixelsperbyte)) >> bit1) &
-                            mask[depth - 1];
-                    }
-                    if ((x1 >= 0)) {
-                        raw1 = (*(pixels + (y0 * pitch) +
-                            (uint32_t)(x1 / pixelsperbyte)) >> bit1) &
-                            mask[depth - 1];
-                    }
-                    if ((y1 >= 0)) {
-                        pri0 = (*(pixels + (y1 * pitch) +
-                            (uint32_t)(x0 / pixelsperbyte)) >> bit0) &
-                            mask[depth - 1];
-                    }
+                    x0 = ((x - 0) * xskip) + xorig;
+                    x1 = ((x - 1) * xskip) + xorig;
+                    cur0 = ( x & mod);
+                    cur1 = (x0 & mod);
+                    cur2 = (x1 & mod);
+                    bit0 = (mod - cur0) << bpp;
+                    bit1 = (mod - cur1) << bpp;
+                    bit2 = (mod - cur2) << bpp;
+                    pix0 = (cur0 == 0) ? *buffer++ : pix0;
+                    raw1 = (*(filter0 + (x1 >> ppb)) >> bit2) & mask;
+                    pri0 = (*(filter1 + (x0 >> ppb)) >> bit1) & mask;
+                    pri1 = (*(filter2 + (x1 >> ppb)) >> bit2) & mask;
                     a = ABS(pri0 - pri1);
                     b = ABS(raw1 - pri1);
                     c = ABS(raw1 + pri0 - (2 * pri1));
                     if (a <= b && a <= c) {
                         pae0 = raw1 & 0xFF;
-                    }
-                    else if (b <= c) {
+                    } else if (b <= c) {
                         pae0 = pri0 & 0xFF;
-                    }
-                    else {
+                    } else {
                         pae0 = pri1 & 0xFF;
                     }
                     pix1 = pae0 & 0xFF;
-                    (pixels + yy + xx)[0] |= (((pix0 + pix1) >> bitX) &
-                        mask[depth - 1]) << bitX;
+                    filter0 = pixbuf;
+                    filter2 = filter1;
+                    *(pixbuf + (x0 >> ppb)) |=
+                        (((pix0 + pix1) >> bit0) & mask) << bit0;
                     x++;
                 }
             } break;
             }
+            filter1 = pixptr;
             y++;
         }
     } while (++pass < 7);
@@ -1789,7 +1737,7 @@ ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
                 filter0 = pixbuf;
                 filter1 += yinc;
                 pixbuf++;
-                x++;
+                x += xx;
             }
         } break;
         case 4:
