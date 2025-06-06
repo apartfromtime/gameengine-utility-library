@@ -951,9 +951,9 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
         byteswritten += 8;
         for (uint32_t i = 0; i < ppalette->size; ++i)
         {
-            *dstbuf++ = ppalette->data[i].r;
-            *dstbuf++ = ppalette->data[i].g;
-            *dstbuf++ = ppalette->data[i].b;
+            *dstbuf++ = ppalette->entry[i*4+0];
+            *dstbuf++ = ppalette->entry[i*4+1];
+            *dstbuf++ = ppalette->entry[i*4+2];
             byteswritten += 3;
         }
         // CRC
@@ -1003,7 +1003,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             byteswritten += 8;
             for (uint32_t i = 0; i < size; ++i)
             {
-                *dstbuf++ = ppalette->data[i].a;
+                *dstbuf++ = ppalette->entry[i*4+3];
                 byteswritten++;
             }
         } break;
@@ -2252,10 +2252,10 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
                 if (ppalette != NULL) {
                     for (uint32_t i = 0; i < palnum; ++i)
                     {
-                        ppalette->data[i].r = *srcbuf++;
-                        ppalette->data[i].g = *srcbuf++;
-                        ppalette->data[i].b = *srcbuf++;
-                        ppalette->data[i].a = 255;
+                        ppalette->entry[i*4+0] = *srcbuf++;
+                        ppalette->entry[i*4+1] = *srcbuf++;
+                        ppalette->entry[i*4+2] = *srcbuf++;
+                        ppalette->entry[i*4+3] = 255;
                     }
                     ppalette->size = palnum;
                     ppalette->bits = 24;
@@ -2282,7 +2282,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
                     if (ppalette != NULL) {
                         for (uint32_t i = 0; i < size; ++i)
                         {
-                            ppalette->data[i].a = *srcbuf++;
+                            ppalette->entry[i*4+3] = *srcbuf++;
                         }
                         ppalette->bits = 32;
                     }
@@ -2736,24 +2736,24 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             uint16_t g = 0;
             uint16_t b = 0;
             for (uint16_t i = colormap_index; i < colormap_length; ++i) {
-                r = (ppalette->data[i].r * 0x1F) / 0xFF;
-                g = (ppalette->data[i].g * 0x1F) / 0xFF;
-                b = (ppalette->data[i].b * 0x1F) / 0xFF;
+                r = (ppalette->entry[i*4+0] * 0x1F) / 0xFF;
+                g = (ppalette->entry[i*4+1] * 0x1F) / 0xFF;
+                b = (ppalette->entry[i*4+2] * 0x1F) / 0xFF;
                 rgb16 = ((r & 0xFF) << 10) | ((g & 0xFF) << 5) | (b & 0xFF);
                 WriteU16ToLE(dstbuf, rgb16); dstbuf += 2;
             }
         } else if (colormap_size == 24) {
             for (uint16_t i = colormap_index; i < colormap_length; ++i) {
-                *dstbuf++ = ppalette->data[i].b;
-                *dstbuf++ = ppalette->data[i].g;
-                *dstbuf++ = ppalette->data[i].r;
+                *dstbuf++ = ppalette->entry[i*4+2];
+                *dstbuf++ = ppalette->entry[i*4+1];
+                *dstbuf++ = ppalette->entry[i*4+0];
             }
         } else if (colormap_size == 32) {            
             for (uint16_t i = colormap_index; i < colormap_length; ++i) {
-                *dstbuf++ = ppalette->data[i].b;
-                *dstbuf++ = ppalette->data[i].g;
-                *dstbuf++ = ppalette->data[i].r;
-                *dstbuf++ = ppalette->data[i].a;
+                *dstbuf++ = ppalette->entry[i*4+2];
+                *dstbuf++ = ppalette->entry[i*4+1];
+                *dstbuf++ = ppalette->entry[i*4+0];
+                *dstbuf++ = ppalette->entry[i*4+3];
             }
         }
     }
@@ -2941,28 +2941,28 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
                         pixel |= *palptr++;
                         pixel |= *palptr++ << 8;
                         
-                        ppalette->data[i].b = (((pixel >>  0) & 0x1F) * 0xFF) / 0x1F;
-                        ppalette->data[i].g = (((pixel >>  5) & 0x1F) * 0xFF) / 0x1F;
-                        ppalette->data[i].r = (((pixel >> 10) & 0x1F) * 0xFF) / 0x1F;
-                        ppalette->data[i].a = 255;
+                        ppalette->entry[i*4+2] = (((pixel >>  0) & 0x1F) * 0xFF) / 0x1F;
+                        ppalette->entry[i*4+1] = (((pixel >>  5) & 0x1F) * 0xFF) / 0x1F;
+                        ppalette->entry[i*4+0] = (((pixel >> 10) & 0x1F) * 0xFF) / 0x1F;
+                        ppalette->entry[i*4+3] = 255;
                     }
                     ppalette->size = palnum;
                     ppalette->bits = 24;
                 } else if (colormap_size == 24) {
                     for (size_t i = 0; i < palnum; ++i) {
-                        ppalette->data[i].b = *palptr++;
-                        ppalette->data[i].g = *palptr++;
-                        ppalette->data[i].r = *palptr++;
-                        ppalette->data[i].a = 255;
+                        ppalette->entry[i*4+2] = *palptr++;
+                        ppalette->entry[i*4+1] = *palptr++;
+                        ppalette->entry[i*4+0] = *palptr++;
+                        ppalette->entry[i*4+3] = 255;
                     }
                     ppalette->size = palnum;
                     ppalette->bits = 24;
                 } else if (colormap_size == 32) {
                     for (size_t i = 0; i < palnum; ++i) {
-                        ppalette->data[i].b = *palptr++;
-                        ppalette->data[i].g = *palptr++;
-                        ppalette->data[i].r = *palptr++;
-                        ppalette->data[i].a = *palptr++;
+                        ppalette->entry[i*4+2] = *palptr++;
+                        ppalette->entry[i*4+1] = *palptr++;
+                        ppalette->entry[i*4+0] = *palptr++;
+                        ppalette->entry[i*4+3] = *palptr++;
                     }
                     ppalette->size = palnum;
                     ppalette->bits = 32;
@@ -3159,10 +3159,10 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     if (srcdepth <= 8) {
         if (ppalette != NULL) {
             for (uint32_t i = 0; i < dstpalettesize >> 2; ++i) {
-                *dstbuf++ = ppalette->data[i].b;
-                *dstbuf++ = ppalette->data[i].g;
-                *dstbuf++ = ppalette->data[i].r;
-                *dstbuf++ = ppalette->data[i].a;
+                *dstbuf++ = ppalette->entry[i*4+2];
+                *dstbuf++ = ppalette->entry[i*4+1];
+                *dstbuf++ = ppalette->entry[i*4+0];
+                *dstbuf++ = ppalette->entry[i*4+3];
             }
         }
     }
@@ -3174,10 +3174,10 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             int32_t colorkey = -1;
             if (pcolorkey != NULL && ppalette != NULL) {
                 for (uint32_t i = 0; i < dstpalettesize >> 2; ++i) {
-                    if (ppalette->data[i].r == pcolorkey[0] &&
-                        ppalette->data[i].g == pcolorkey[1] &&
-                        ppalette->data[i].b == pcolorkey[2] &&
-                        ppalette->data[i].a == pcolorkey[3]) {
+                    if (ppalette->entry[i*4+0] == pcolorkey[0] &&
+                        ppalette->entry[i*4+1] == pcolorkey[1] &&
+                        ppalette->entry[i*4+2] == pcolorkey[2] &&
+                        ppalette->entry[i*4+3] == pcolorkey[3]) {
                         colorkey = i;
                         break;
                     }
@@ -3462,22 +3462,22 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
         uint32_t palnum = num_colours;
         if (ppalette != 0) {
             for (uint32_t i = 0; i < palnum; ++i) {
-                ppalette->data[i].b = *palptr++;
-                ppalette->data[i].g = *palptr++;
-                ppalette->data[i].r = *palptr++;
-                ppalette->data[i].a = *palptr++;
+                ppalette->entry[i*4+2] = *palptr++;
+                ppalette->entry[i*4+1] = *palptr++;
+                ppalette->entry[i*4+0] = *palptr++;
+                ppalette->entry[i*4+3] = *palptr++;
             }
             ppalette->size = palnum;
             ppalette->bits = 32;
             uint32_t alpha = 0;
             for (size_t i = 0; i < ppalette->size; ++i) {
-                alpha |= ppalette->data[i].a;
+                alpha |= ppalette->entry[i*4+3];
             }
             // if alpha is all 0s replace with 255s
             if (alpha == 0) {
                 for (size_t i = 0; i < ppalette->size; ++i)
                 {
-                    ppalette->data[i].a = 255;
+                    ppalette->entry[i*4+3] = 255;
                 }
             }
         }
@@ -3657,23 +3657,23 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
 
 
 // default 16 color ega palette
-static rgba_t ega_palette[16] = {
-    {   0,   0,   0, 255 },
-    {   0,   0, 170, 255 },
-    {   0, 170,   0, 255 },
-    {   0, 170, 170, 255 },
-    { 170,   0,   0, 255 },
-    { 170,   0, 170, 255 },
-    { 170,  85,   0, 255 },
-    { 170, 170, 170, 255 },
-    {  85,  85,  85, 255 },
-    {  85,  85, 255, 255 },
-    {  85, 255,  85, 255 },
-    {  85, 255, 255, 255 },
-    { 255,  85,  85, 255 },
-    { 255,  85, 255, 255 },
-    { 255, 255,  85, 255 },
-    { 255, 255, 255, 255 }
+static uint8_t ega_palette[64] = {
+      0,   0,   0, 255,
+      0,   0, 170, 255,
+      0, 170,   0, 255,
+      0, 170, 170, 255,
+    170,   0,   0, 255,
+    170,   0, 170, 255,
+    170,  85,   0, 255,
+    170, 170, 170, 255,
+     85,  85,  85, 255,
+     85,  85, 255, 255,
+     85, 255,  85, 255,
+     85, 255, 255, 255,
+    255,  85,  85, 255,
+    255,  85, 255, 255,
+    255, 255,  85, 255,
+    255, 255, 255, 255
 };
 
 static const uint32_t s_pcx_v5_info_size = 128;
@@ -3801,7 +3801,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* pdstsize, uint32_t codec,
     // palette
     if (srcbytes == 1) {
         uint32_t palnum = 0;
-        rgba_t* palptr = NULL;
+        uint8_t* palptr = NULL;
         switch (depth)
         {
         case 1:
@@ -3810,22 +3810,21 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* pdstsize, uint32_t codec,
         {
             dstbuf = egaptr;            // 16-Color EGA Palette
             palnum = 16;
-            palptr = (ppalette == NULL) ? ega_palette : ppalette->data;
+            palptr = (ppalette == NULL) ? ega_palette : ppalette->entry;
         } break;
         case 8:
         {
             *dstbuf++ = 0x0C;           // 256-Color Palette Code
             bytesencoded++;
             palnum = 256;
-            palptr = ppalette->data;
+            palptr = ppalette->entry;
         } break;
         }
         if (ppalette != NULL) {
-            for (uint32_t i = 0; i < palnum; ++i)
-            {
-                *dstbuf++ = palptr[i].r;
-                *dstbuf++ = palptr[i].g;
-                *dstbuf++ = palptr[i].b;
+            for (uint32_t i = 0; i < palnum; ++i) {
+                *dstbuf++ = palptr[i*4+0];
+                *dstbuf++ = palptr[i*4+1];
+                *dstbuf++ = palptr[i*4+2];
             }
             bytesencoded += dstpalettesize;
         }
@@ -3995,12 +3994,11 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
         } break;
         }
         if (ppalette != NULL) {
-            for (uint32_t i = 0; i < palnum; ++i)
-            {
-                ppalette->data[i].r = *palptr++;
-                ppalette->data[i].g = *palptr++;
-                ppalette->data[i].b = *palptr++;
-                ppalette->data[i].a = 255;
+            for (uint32_t i = 0; i < palnum; ++i) {
+                ppalette->entry[i*4+0] = *palptr++;
+                ppalette->entry[i*4+1] = *palptr++;
+                ppalette->entry[i*4+2] = *palptr++;
+                ppalette->entry[i*4+3] = 255;
             }
             ppalette->size = palnum;
             ppalette->bits = 24;
@@ -4485,7 +4483,7 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
         // palette
         if (ppalette != NULL && format == GEUL_COLOUR_INDEX && result == true) {
             for (uint32_t i = 0; i < palette.size; ++i) {
-                ppalette->data[i] = palette.data[i];
+                ppalette->entry[i] = palette.entry[i];
             }
             ppalette->size = palette.size;
             ppalette->bits = palette.bits;
@@ -4501,19 +4499,19 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
                     uint8_t i0 = -1;
                     uint8_t i1 = -1;
                     for (uint32_t i = 0; i < ppalette->size; ++i) {
-                        if (ppalette->data[i].r == transparency[0] &&
-                            ppalette->data[i].g == transparency[1] &&
-                            ppalette->data[i].b == transparency[2] &&
-                            ppalette->data[i].a == transparency[3]) {
+                        if (ppalette->entry[i*4+0] == transparency[0] &&
+                            ppalette->entry[i*4+1] == transparency[1] &&
+                            ppalette->entry[i*4+2] == transparency[2] &&
+                            ppalette->entry[i*4+3] == transparency[3]) {
                             index0 = true; i0 = i;
                             break;
                         }
                     }
                     for (uint32_t i = 0; i < ppalette->size; ++i) {
-                        if (ppalette->data[i].r == pcolorkey[0] &&
-                            ppalette->data[i].g == pcolorkey[1] &&
-                            ppalette->data[i].b == pcolorkey[2] &&
-                            ppalette->data[i].a == pcolorkey[3]) {
+                        if (ppalette->entry[i*4+0] == pcolorkey[0] &&
+                            ppalette->entry[i*4+1] == pcolorkey[1] &&
+                            ppalette->entry[i*4+2] == pcolorkey[2] &&
+                            ppalette->entry[i*4+3] == pcolorkey[3]) {
                             index1 = true; i1 = i;
                             break;
                         }

@@ -62,19 +62,10 @@
 #define GEUL_PCX                0x14
 #define GEUL_TGA                0x15
 
-// rgba
-typedef struct _rgba
-{
-    uint8_t b;
-    uint8_t g;
-    uint8_t r;
-    uint8_t a;
-} rgba_t;
-
 // palette
 typedef struct _palette
 {
-    rgba_t data[256];
+    uint8_t entry[1024];            // rgba
     uint32_t size;
     uint32_t bits;
 } palette_t;
@@ -97,17 +88,17 @@ typedef struct _image
 //
 // [out   ] ppdst       - Pointer to the file in memory from which to save the
 //                        surface.
-// [in    ] ppdstsize   - Size of the file in memory, in bytes.
+// [in    ] pdstsize    - Size of the file in memory, in bytes.
 // [in    ] fileformat  - Describes the requested file format for the image.
 // [in    ] codec       - Describes the requested encoding for the image.
-// [in    ] psrcimage   - Pointer to a image_t structure containing the image
+// [in    ] pimage      - Pointer to a image_t structure containing the image
 //                        to be saved.
-// [in    ] psrcpalette - Pointer to a pallete_t structure, the source palette
+// [in    ] ppalette    - Pointer to a pallete_t structure, the source palette
 //                        of 256 colors or null.
 //-----------------------------------------------------------------------------
 GEUL_DECLSPEC bool
-SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t fileformat,
-    uint32_t codec, image_t* psrcimage, palette_t* psrcpalette);
+SaveImageToMemory(uint8_t** ppdst, uint32_t* pdstsize, uint32_t fileformat,
+    uint32_t codec, image_t* pimage, palette_t* ppalette);
 
 //-----------------------------------------------------------------------------
 // SaveImageToFile
@@ -117,14 +108,14 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t fileformat,
 // [in    ] pdstfile    - Pointer to a string that specifies the filename.
 // [in    ] fileformat  - Describes the requested file format for the image.
 // [in    ] codec       - Describes the requested encoding for the image.
-// [in    ] psrcimage   - Pointer to a image_t structure containing the image
+// [in    ] pimage      - Pointer to a image_t structure containing the image
 //                        to be saved.
-// [in    ] psrcpalette - Pointer to a pallete_t structure, the source palette
+// [in    ] ppalette    - Pointer to a pallete_t structure, the source palette
 //                        of 256 colors or null.
 //-----------------------------------------------------------------------------
 GEUL_DECLSPEC bool
 SaveImageToFile(const char* pdstfile, uint32_t fileformat, uint32_t codec,
-    image_t* psrcimage, palette_t* psrcpalette);
+    image_t* pimage, palette_t* ppalette);
 
 //-----------------------------------------------------------------------------
 // GetImageInfoFromMemory
@@ -134,10 +125,10 @@ SaveImageToFile(const char* pdstfile, uint32_t fileformat, uint32_t codec,
 // [out] psrcinfo   - Pointer to a image_t structure to be filled with the
 //                    description of the data in the source file.
 // [in ] psrc       - Pointer to source file in memory.
-// [in ] psrcsize   - Size of file in memory, in bytes.
+// [in ] srcsize    - Size of file in memory, in bytes.
 //-----------------------------------------------------------------------------
 GEUL_DECLSPEC bool
-GetImageInfoFromMemory(image_t* psrcinfo, uint8_t* psrc, uint32_t psrcsize);
+GetImageInfoFromMemory(image_t* psrcinfo, uint8_t* psrc, uint32_t srcsize);
 
 //-----------------------------------------------------------------------------
 // GetImageInfo
@@ -157,32 +148,32 @@ GetImageInfoFromFile(image_t* psrcinfo, const char* psrcfile);
 // Loads an image from a file in memory.
 //
 // [in    ] pdstimage   - Pointer to image structure. Specifies the destination
-//                      - image.
-// [in    ] pdstpalette - Pointer to a pallete_t structure, the destination
+//                        image.
+// [in    ] ppalette    - Pointer to a pallete_t structure, the destination
 //                        palette of 256 colors or null.
-// [in    ] pcolorkey   - Color value to replace with transparent black.
+// [in    ] pcolorkey   - Color value to replace with transparent black, or null.
 // [in    ] psrc        - Pointer to the file in memory from which to load the
 //                        image.
-// [in    ] psrcsize    - Size of file in memory, in bytes.
+// [in    ] srcsize     - Size of file in memory, in bytes.
 //-----------------------------------------------------------------------------
 GEUL_DECLSPEC bool
-LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, uint8_t* pcolorkey,
-    uint8_t* psrc, uint32_t psrcsize);
+LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
+    uint8_t* psrc, uint32_t srcsize);
 
 //-----------------------------------------------------------------------------
 // LoadImageFromFile
 //
 // Loads an image from a file.
 //
-// [in    ] pdstimage   - Pointer to image structure. Specifies the destination
-//                      - image.
-// [in    ] pdstpalette - Pointer to a pallete_t structure, the destination
+// [in    ] pimage      - Pointer to image structure. Specifies the destination
+//                        image.
+// [in    ] ppalette    - Pointer to a pallete_t structure, the destination
 //                        palette of 256 colors or null.
-// [in    ] pcolorkey   - Color value to replace with transparent black.
+// [in    ] pcolorkey   - Color value to replace with transparent black, or null.
 // [in    ] psrcfile    - Pointer to a string that specifies the filename.
 //-----------------------------------------------------------------------------
 GEUL_DECLSPEC bool
-LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, uint8_t* pcolorkey,
+LoadImageFromFile(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
     const char* psrcfile);
 
 #endif // #ifndef _G_TEX_H_
