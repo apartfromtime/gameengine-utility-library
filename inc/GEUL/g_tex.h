@@ -160,13 +160,13 @@ GetImageInfoFromFile(image_t* psrcinfo, const char* psrcfile);
 //                      - image.
 // [in    ] pdstpalette - Pointer to a pallete_t structure, the destination
 //                        palette of 256 colors or null.
-// [in    ] colorkey    - Color value to replace with transparent black.
+// [in    ] pcolorkey   - Color value to replace with transparent black.
 // [in    ] psrc        - Pointer to the file in memory from which to load the
 //                        image.
 // [in    ] psrcsize    - Size of file in memory, in bytes.
 //-----------------------------------------------------------------------------
 GEUL_DECLSPEC bool
-LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rgba_t colorkey,
+LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, uint8_t* pcolorkey,
     uint8_t* psrc, uint32_t psrcsize);
 
 //-----------------------------------------------------------------------------
@@ -178,11 +178,11 @@ LoadImageFromMemory(image_t* pdstimage, palette_t* pdstpalette, rgba_t colorkey,
 //                      - image.
 // [in    ] pdstpalette - Pointer to a pallete_t structure, the destination
 //                        palette of 256 colors or null.
-// [in    ] colorkey    - Color value to replace with transparent black.
+// [in    ] pcolorkey   - Color value to replace with transparent black.
 // [in    ] psrcfile    - Pointer to a string that specifies the filename.
 //-----------------------------------------------------------------------------
 GEUL_DECLSPEC bool
-LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, rgba_t colorkey,
+LoadImageFromFile(image_t* pdstimage, palette_t* pdstpalette, uint8_t* pcolorkey,
     const char* psrcfile);
 
 #endif // #ifndef _G_TEX_H_

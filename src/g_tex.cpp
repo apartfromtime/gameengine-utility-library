@@ -819,7 +819,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width, uint32_t height,
 static bool
 SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     uint8_t* psrcbuf, uint32_t psrcsize, uint32_t width, uint32_t height,
-    uint8_t depth, uint8_t sampledepth, palette_t* ppalette, rgba_t* pcolorkey)
+    uint8_t depth, uint8_t sampledepth, palette_t* ppalette, uint8_t* pcolorkey)
 {
     INLINE_OBJECT_NULL_CHK(ppdst);
     INLINE_OBJECT_NULL_CHK(ppdstsize);
@@ -977,7 +977,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             crcbuf = dstbuf;
             WriteU32ToBE(dstbuf, type); dstbuf += 4;
             byteswritten += 8;
-            WriteU16ToBE(dstbuf, pcolorkey->a); dstbuf += 2;
+            WriteU16ToBE(dstbuf, pcolorkey[3]); dstbuf += 2;
             byteswritten += 2;
         } break;
         case 2:
@@ -988,9 +988,9 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             crcbuf = dstbuf;
             WriteU32ToBE(dstbuf, type); dstbuf += 4;
             byteswritten += 8;
-            WriteU16ToBE(dstbuf, pcolorkey->r); dstbuf += 2;
-            WriteU16ToBE(dstbuf, pcolorkey->g); dstbuf += 2;
-            WriteU16ToBE(dstbuf, pcolorkey->b); dstbuf += 2;
+            WriteU16ToBE(dstbuf, pcolorkey[0]); dstbuf += 2;
+            WriteU16ToBE(dstbuf, pcolorkey[1]); dstbuf += 2;
+            WriteU16ToBE(dstbuf, pcolorkey[2]); dstbuf += 2;
             byteswritten += 6;
         } break;
         case 3:
@@ -2086,7 +2086,7 @@ ExpandPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
 static bool
 LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
     uint32_t psrcsize, uint32_t* pwidth, uint32_t* pheight, uint32_t* pdepth,
-    uint8_t* psampledepth, rgba_t* pcolorkey)
+    uint8_t* psampledepth, uint8_t* pcolorkey)
 {
     uint32_t chksize = s_png_signaturesize + s_png_headersize +
         (4 * (s_png_chunksize + s_png_crcsize));
@@ -2299,10 +2299,10 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
                         srcbuf += 2;
                     }
                     if (pcolorkey != NULL) {
-                        pcolorkey->r = colorkey[0];
-                        pcolorkey->g = colorkey[1];
-                        pcolorkey->b = colorkey[2];
-                        pcolorkey->a = 255;
+                        pcolorkey[0] = colorkey[0];
+                        pcolorkey[1] = colorkey[1];
+                        pcolorkey[2] = colorkey[2];
+                        pcolorkey[3] = 255;
                     }
                 }
             } break;
@@ -3075,7 +3075,7 @@ static const uint32_t s_bmp_v3_info_size = 40;
 static bool
 SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     uint8_t* psrcbuf, uint32_t psrcsize, uint32_t srcxsize, uint32_t srcysize,
-    uint32_t srcdepth, palette_t* ppalette, rgba_t* pcolorkey, bool invertY)
+    uint32_t srcdepth, palette_t* ppalette, uint8_t* pcolorkey, bool invertY)
 {
     INLINE_OBJECT_NULL_CHK(ppdst);
     INLINE_OBJECT_NULL_CHK(ppdstsize);
@@ -3174,10 +3174,10 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             int32_t colorkey = -1;
             if (pcolorkey != NULL && ppalette != NULL) {
                 for (uint32_t i = 0; i < dstpalettesize >> 2; ++i) {
-                    if (ppalette->data[i].r == pcolorkey->r &&
-                        ppalette->data[i].g == pcolorkey->g &&
-                        ppalette->data[i].b == pcolorkey->b &&
-                        ppalette->data[i].a == pcolorkey->a) {
+                    if (ppalette->data[i].r == pcolorkey[0] &&
+                        ppalette->data[i].g == pcolorkey[1] &&
+                        ppalette->data[i].b == pcolorkey[2] &&
+                        ppalette->data[i].a == pcolorkey[3]) {
                         colorkey = i;
                         break;
                     }
@@ -4015,122 +4015,45 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
 // FastFill
 //-----------------------------------------------------------------------------
 static void
-FastFill(image_t* pimage, palette_t* ppalette, rgba_t newcolor, rgba_t oldcolor)
+FastFill(image_t* pimage, uint8_t* params0, uint8_t* params1)
 {
-    uint8_t* bufdst = NULL;
-    uint32_t bytes = 1;
-    uint32_t dc = 0;
-    uint32_t sc = 0;
-    uint32_t pc = 0;
-    uint32_t x = 0;
-    uint32_t y = 0;
-
     if (pimage == NULL || pimage->pixels == NULL) {
         return;
     }
-
-    switch (pimage->format)
-    {
-    case GEUL_RGBA:
-    {
-        dc = (newcolor.a << 24) + (newcolor.b << 16) + (newcolor.g << 8) + newcolor.r;
-        sc = (oldcolor.a << 24) + (oldcolor.b << 16) + (oldcolor.g << 8) + oldcolor.r;
-    } break;
-    case GEUL_BGRA:
-    {
-        dc = (newcolor.a << 24) + (newcolor.r << 16) + (newcolor.g << 8) + newcolor.b;
-        sc = (oldcolor.a << 24) + (oldcolor.r << 16) + (oldcolor.g << 8) + oldcolor.b;
-    } break;
-    case GEUL_RGB:
-    {
-        dc = (    0 << 24) + (newcolor.b << 16) + (newcolor.g << 8) + newcolor.r;
-        sc = (    0 << 24) + (oldcolor.b << 16) + (oldcolor.g << 8) + oldcolor.r;
-    } break;
-    case GEUL_BGR:
-    {
-        dc = (    0 << 24) + (newcolor.r << 16) + (newcolor.g << 8) + newcolor.b;
-        sc = (    0 << 24) + (oldcolor.r << 16) + (oldcolor.g << 8) + oldcolor.b;
-    } break;
-    case GEUL_LUMINANCE_ALPHA:
-    {
-        // FIXME: possible rounding error?
-        dc = (newcolor.a << 8) + (uint8_t)(newcolor.r * 0.2990f +
-            newcolor.g * 0.5870f + newcolor.b * 0.1140f);
-        sc = (newcolor.a << 8) + (uint8_t)(oldcolor.r * 0.2990f +
-            oldcolor.g * 0.5870f + oldcolor.b * 0.1140f);
-    } break;
-    case GEUL_LUMINANCE:
-    {
-        // FIXME: possible rounding error?
-        dc = (    0 << 8) + (uint8_t)(newcolor.r * 0.2990f +
-            newcolor.g * 0.5870f + newcolor.b * 0.1140f);
-        sc = (    0 << 8) + (uint8_t)(oldcolor.r * 0.2990f +
-            oldcolor.g * 0.5870f + oldcolor.b * 0.1140f);
-    } break;
-    case GEUL_COLOUR_INDEX:
-    {
-        int32_t dstindex = -1;
-        int32_t srcindex = -1;
-
-        if (ppalette == NULL) {
-            return;
-        }
-
-        for (uint32_t i = 0; i < ppalette->size; ++i)
-        {
-            if (ppalette->data[i].r == newcolor.r &&
-                ppalette->data[i].g == newcolor.g &&
-                ppalette->data[i].b == newcolor.b &&
-                ppalette->data[i].a == newcolor.a) {
-                dstindex = i;
-                break;
-            }
-        }
-
-        for (uint32_t i = 0; i < ppalette->size; ++i)
-        {
-            if (ppalette->data[i].r == oldcolor.r &&
-                ppalette->data[i].g == oldcolor.g &&
-                ppalette->data[i].b == oldcolor.b &&
-                ppalette->data[i].a == oldcolor.a) {
-                srcindex = i;
-                break;
-            }
-        }
-
-        if (dstindex == -1 || srcindex == -1) {
-            return;
-        }
-
-        dc = dstindex;
-        sc = srcindex;
-    } break;
+    if (params0 == NULL || params1 == NULL) {
+        return;
     }
-
-    bufdst = pimage->pixels;
-    bytes = GetBytesForPixelFormat(pimage->format);
-
-    while (y < pimage->height)
-    {
+    uint32_t x = 0;
+    uint32_t y = 0;
+    uint32_t pixel0 = 0;
+    uint32_t pixel1 = 0;
+    uint32_t pixel2 = 0;
+    uint32_t bytes = GetBytesForPixelFormat(pimage->format);
+    for (size_t i = 0; i < bytes; i++) {
+        pixel1 |= params0[i] << (i << 3);
+        pixel2 |= params1[i] << (i << 3);
+    }
+    uint8_t* buffer = pimage->pixels;
+    while (y < pimage->height) {
         x = (pimage->width + 3) / 4;
         switch (pimage->width % 4)
         {
         case 0: do {
-                memcpy(&pc, bufdst, bytes);
-                if (pc == sc) memset(bufdst, dc, bytes);
-                bufdst += bytes;
+            memcpy(&pixel0, buffer, bytes);
+            if (pixel0 == pixel1) memset(buffer, pixel2, bytes);
+            buffer += bytes;
         case 3:
-                memcpy(&pc, bufdst, bytes);
-                if (pc == sc) memset(bufdst, dc, bytes);
-                bufdst += bytes;
+            memcpy(&pixel0, buffer, bytes);
+            if (pixel0 == pixel1) memset(buffer, pixel2, bytes);
+            buffer += bytes;
         case 2:
-                memcpy(&pc, bufdst, bytes);
-                if (pc == sc) memset(bufdst, dc, bytes);
-                bufdst += bytes;
+            memcpy(&pixel0, buffer, bytes);
+            if (pixel0 == pixel1) memset(buffer, pixel2, bytes);
+            buffer += bytes;
         case 1:
-                memcpy(&pc, bufdst, bytes);
-                if (pc == sc) memset(bufdst, dc, bytes);
-                bufdst += bytes;
+            memcpy(&pixel0, buffer, bytes);
+            if (pixel0 == pixel1) memset(buffer, pixel2, bytes);
+            buffer += bytes;
         } while (--x > 0);
         }
         y++;
@@ -4409,7 +4332,7 @@ GetImageInfoFromFile(image_t* psrcinfo, const char* psrcfile)
 // LoadImageFromMemory
 //-----------------------------------------------------------------------------
 bool
-LoadImageFromMemory(image_t* pimage, palette_t* ppalette, rgba_t colorkey,
+LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
     uint8_t* psrcbuf, uint32_t srcsize)
 {
     palette_t palette = { 0 };
@@ -4420,19 +4343,19 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, rgba_t colorkey,
     uint32_t format = 0;
     uint32_t type = GEUL_UNSIGNED_BYTE;
     uint32_t fileformat = 0;
+    uint8_t colorkey[4] = { 0 };
     bool result = false;
     if (pimage != NULL) {
-        rgba_t pngcolorkey = { 0, 0, 0, 0 };
         if ((result = LoadFromMemoryPNG(&pixels, &palette, psrcbuf, srcsize,
-            &width, &height, &depth, NULL, &pngcolorkey)) == true) {
+            &width, &height, &depth, NULL, colorkey)) == true) {
             if (depth == 32) { format = GEUL_RGBA; }
             else if (depth == 24) { format = GEUL_RGB; }
             else if (depth == 16) { format = GEUL_LUMINANCE_ALPHA; }
             else if (depth <= 8 && palette.size == 0) { format = GEUL_LUMINANCE; }
             else if (depth <= 8 && palette.size != 0) { format = GEUL_COLOUR_INDEX;
                 type = GEUL_BITMAP; }
-            if (pngcolorkey.b != 0 && pngcolorkey.g != 0 && pngcolorkey.r != 0 &&
-                pngcolorkey.a != 0) { colorkey = pngcolorkey; }
+            if (colorkey[0] != 0 && colorkey[1] != 0 && colorkey[2] != 0 &&
+                colorkey[3] != 0) { pcolorkey = &colorkey[0]; }
             fileformat = GEUL_PNG;
         } else if ((result = LoadFromMemoryBMP(&pixels, &palette, psrcbuf, srcsize,
             &width, &height, &depth)) == true) {
@@ -4456,64 +4379,87 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, rgba_t colorkey,
             else if (depth == 8 && palette.size != 0) { format = GEUL_COLOUR_INDEX;
                 type = GEUL_BITMAP; }
             fileformat = GEUL_TGA;
-        } else { fprintf(stderr, "LoadImage, Unsupported image format\n"); }
+        } else { fprintf(stderr, "LoadImage, Unsupported image format.\n"); }
         // unpack types
         if (fileformat == GEUL_TGA && depth == 16 && result == true) {
             uint8_t* buffer = (uint8_t*)malloc(width * height * 3);
-            uint8_t* pixbuf = buffer;
-            uint8_t* srcbuf = pixels;
-            uint32_t srcpitch = width * 2;
-            uint32_t x = 0;
-            uint32_t y = 0;
-            uint32_t bshift = 0;
-            uint32_t gshift = 5;
-            uint32_t rshift = 10;
-            uint32_t ashift = 15;
-            uint32_t bmask = 0x001F;
-            uint32_t gmask = 0x03E0;
-            uint32_t rmask = 0x7C00;
-            //uint32_t amask = 0x8000;
-            float color = 255.0f / 31.0f;
-            //float alpha = 255.0f;
-            uint16_t pixel = 0;
-            memset(buffer, 0, width * height * 3);
-            while (y++ < height) {
-                x = 0;
-                while (x < width) {
-                    memcpy(&pixel, (srcbuf + (x * 2)), 2);
-                    *pixbuf++ = ((pixel & bmask) >> bshift) * color;
-                    *pixbuf++ = ((pixel & gmask) >> gshift) * color;
-                    *pixbuf++ = ((pixel & rmask) >> rshift) * color;
-                    //*pixbuf++ = ((pixel & amask) >> ashift) * alpha;
-                    x++;
+            do {
+                if (buffer == NULL) {
+                    fprintf(stderr, "LoadImage, Out of memory.\n");
+                    break;
                 }
-                srcbuf += srcpitch;
-            }
-            free(pixels);
-            pixels = buffer;
-            depth = 24;
-            format = GEUL_BGR;
+                uint8_t* pixbuf = buffer;
+                uint8_t* srcbuf = pixels;
+                uint32_t srcpitch = width * 2;
+                uint32_t x = 0;
+                uint32_t y = 0;
+                uint32_t bshift = 0;
+                uint32_t gshift = 5;
+                uint32_t rshift = 10;
+                uint32_t ashift = 15;
+                uint32_t bmask = 0x001F;
+                uint32_t gmask = 0x03E0;
+                uint32_t rmask = 0x7C00;
+                //uint32_t amask = 0x8000;
+                float color = 255.0f / 31.0f;
+                //float alpha = 255.0f;
+                uint16_t pixel = 0;
+                memset(buffer, 0, width * height * 3);
+                while (y++ < height) {
+                    x = 0;
+                    while (x < width) {
+                        memcpy(&pixel, (srcbuf + (x * 2)), 2);
+                        *pixbuf++ = ((pixel & bmask) >> bshift) * color;
+                        *pixbuf++ = ((pixel & gmask) >> gshift) * color;
+                        *pixbuf++ = ((pixel & rmask) >> rshift) * color;
+                        //*pixbuf++ = ((pixel & amask) >> ashift) * alpha;
+                        x++;
+                    }
+                    srcbuf += srcpitch;
+                }
+                free(pixels);
+                pixels = buffer;
+                depth = 24;
+                format = GEUL_BGR;
+            } while (0);
         }
         if ((fileformat == GEUL_PNG || fileformat == GEUL_BMP ||
              fileformat == GEUL_PCX) && depth <= 4 && result == true) {
             uint8_t* buffer = (uint8_t*)malloc(width * height);
-            uint8_t* pixbuf = buffer;
-            uint8_t* srcbuf = pixels;
-            uint32_t x = 0;
-            uint32_t y = 0;
-            uint8_t pixelsperbyte =  8 / depth;
-            uint8_t maskbits[4] = { 0x01, 0x03, 0, 0x0F };
-            uint8_t scalebit[4] = { 0xFF, 0x55, 0, 0x11 };
-            uint8_t mask = maskbits[depth-1];
-            uint8_t resetbit = 8 - depth;
-            uint8_t bit = resetbit;
-            memset(buffer, 0, width * height);
-            while (y < height) {
-                x = (width / pixelsperbyte);
-                do {
-                    switch (pixelsperbyte)
+            do {
+                if (buffer == NULL) {
+                    fprintf(stderr, "LoadImage, Out of memory.\n");
+                    break;
+                }
+                uint8_t* pixbuf = buffer;
+                uint8_t* srcbuf = pixels;
+                uint32_t x = 0;
+                uint32_t y = 0;
+                uint8_t pixelsperbyte = 8 / depth;
+                uint8_t maskbits[4] = { 0x01, 0x03, 0, 0x0F };
+                uint8_t scalebit[4] = { 0xFF, 0x55, 0, 0x11 };
+                uint8_t mask = maskbits[depth - 1];
+                uint8_t resetbit = 8 - depth;
+                uint8_t bit = resetbit;
+                memset(buffer, 0, width * height);
+                while (y < height) {
+                    x = (width / pixelsperbyte);
+                    do {
+                        switch (pixelsperbyte)
+                        {
+                        case 8: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                        case 7: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                        case 6: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                        case 5: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                        case 4: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                        case 3: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                        case 2: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
+                        case 1: *pixbuf++ = (*srcbuf >> bit) & mask; bit = resetbit;
+                            srcbuf++;
+                        }
+                    } while (--x > 0);
+                    switch (width & (pixelsperbyte - 1))
                     {
-                    case 8: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
                     case 7: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
                     case 6: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
                     case 5: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
@@ -4523,29 +4469,18 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, rgba_t colorkey,
                     case 1: *pixbuf++ = (*srcbuf >> bit) & mask; bit = resetbit;
                         srcbuf++;
                     }
-                } while (--x > 0);
-                switch (width & (pixelsperbyte - 1))
-                {
-                case 7: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
-                case 6: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
-                case 5: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
-                case 4: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
-                case 3: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
-                case 2: *pixbuf++ = (*srcbuf >> bit) & mask; bit -= depth;
-                case 1: *pixbuf++ = (*srcbuf >> bit) & mask; bit = resetbit;
-                    srcbuf++;
+                    y++;
                 }
-                y++;
-            }
-            pixbuf = buffer;
-            if (format == GEUL_LUMINANCE) {
-                for (unsigned int i = 0; i < width * height; ++i) {
-                    *pixbuf++ *= scalebit[depth-1];
+                pixbuf = buffer;
+                if (format == GEUL_LUMINANCE) {
+                    for (unsigned int i = 0; i < width * height; ++i) {
+                        *pixbuf++ *= scalebit[depth - 1];
+                    }
                 }
-            }
-            free(pixels);
-            pixels = buffer;
-            depth = 8;
+                free(pixels);
+                pixels = buffer;
+                depth = 8;
+            } while (0);
         }
         // palette
         if (ppalette != NULL && format == GEUL_COLOUR_INDEX && result == true) {
@@ -4557,10 +4492,38 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, rgba_t colorkey,
         }
         // transparency
         if (result == true) {
-            if (colorkey.b != 0 || colorkey.g != 0 || colorkey.r != 0 ||
-                colorkey.a != 0) {
-                const rgba_t transparent_black = { 0, 0, 0, 0 };
-                FastFill(pimage, &palette, transparent_black, colorkey);
+            if (pcolorkey != NULL) {
+                uint8_t transparency[4] = { 0 };
+                if (format == GEUL_COLOUR_INDEX && type == GEUL_BITMAP &&
+                    ppalette != NULL) {
+                    bool index0 = false;
+                    bool index1 = false;
+                    uint8_t i0 = -1;
+                    uint8_t i1 = -1;
+                    for (uint32_t i = 0; i < ppalette->size; ++i) {
+                        if (ppalette->data[i].r == transparency[0] &&
+                            ppalette->data[i].g == transparency[1] &&
+                            ppalette->data[i].b == transparency[2] &&
+                            ppalette->data[i].a == transparency[3]) {
+                            index0 = true; i0 = i;
+                            break;
+                        }
+                    }
+                    for (uint32_t i = 0; i < ppalette->size; ++i) {
+                        if (ppalette->data[i].r == pcolorkey[0] &&
+                            ppalette->data[i].g == pcolorkey[1] &&
+                            ppalette->data[i].b == pcolorkey[2] &&
+                            ppalette->data[i].a == pcolorkey[3]) {
+                            index1 = true; i1 = i;
+                            break;
+                        }
+                    }
+                    if (index0 == true && index1 == true) {
+                        FastFill(pimage, &i0, &i1);
+                    }
+                } else {
+                    FastFill(pimage, transparency, pcolorkey);
+                }
             }
         }
         // dst stuff
@@ -4580,7 +4543,7 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, rgba_t colorkey,
 // LoadImageFromFile
 //-----------------------------------------------------------------------------
 bool
-LoadImageFromFile(image_t* pimage, palette_t* ppalette, rgba_t colorkey,
+LoadImageFromFile(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
     const char* psrcfile)
 {
     bool result = false;
@@ -4623,7 +4586,7 @@ LoadImageFromFile(image_t* pimage, palette_t* ppalette, rgba_t colorkey,
     }
     if (fileSize == bytesRead && bytesRead != 0) {
         // load image
-        result = LoadImageFromMemory(pimage, ppalette, colorkey, rawsrc,
+        result = LoadImageFromMemory(pimage, ppalette, pcolorkey, rawsrc,
             (uint32_t)bytesRead);
         free(srcbuf);
         srcbuf = NULL;
