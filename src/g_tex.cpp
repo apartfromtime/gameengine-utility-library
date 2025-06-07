@@ -25,6 +25,8 @@
 
 #include "..\inc\GEUL\g_geul.h"
 
+#define GEUL_CAST_TO_U16(x) (x & 0xFFFF)
+#define GEUL_CAST_TO_U8(x) (x & 0xFF)
 #define GEUL_FLT_TO_U8(x) ((uint8_t)((uint32_t)(x)))
 
 #define INLINE_OBJECT_NULL_CHK(ptr)                     \
@@ -217,7 +219,7 @@ Crc(unsigned char* buf, int len)
 //------------------------------------------------------------------------------
 static void
 ShrinkIndexInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
-    uint32_t height, uint32_t depth, uint8_t filtertype, uint8_t* psrc)
+    uint32_t height, uint8_t depth, uint8_t filtertype, uint8_t* psrc)
 {
     filtertype = 0;         // quiet compiler warning
     uint8_t* buffer = pdst;
@@ -245,7 +247,7 @@ ShrinkIndexInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
     uint8_t* pixbuf = pixptr;
     uint8_t ppb = (depth == 1 ? 3 : depth == 2 ? 2 : 1);
     uint8_t bpp = (depth == 1 ? 0 : depth == 2 ? 1 : 2);
-    uint8_t mod = 8 / depth;
+    uint8_t mod = (8 / depth) - 1;
     uint8_t cur0 = 0;
     uint8_t cur1 = 0;
     const uint8_t i_xorigin[7] = { 0, 4, 0, 2, 0, 1, 0 };
@@ -287,7 +289,7 @@ ShrinkIndexInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
 //------------------------------------------------------------------------------
 static void
 ShrinkInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
-    uint32_t height, uint32_t depth, uint8_t filtertype, uint8_t* psrc)
+    uint32_t height, uint8_t depth, uint8_t filtertype, uint8_t* psrc)
 {
     uint8_t* buffer = pdst;
     uint8_t* pixels = psrc;
@@ -345,7 +347,7 @@ ShrinkInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
             filter = (filtertype >= PNG_FILTER_COUNT) ? 0 : filtertype;
             if (filtertype == PNG_FILTER_ADAPTIVE) {
                 uint32_t sum[2] = { UINT32_MAX };
-                for (int f = PNG_FILTER_NONE; f < PNG_FILTER_COUNT - 1; ++f) {
+                for (uint8_t f = PNG_FILTER_NONE; f < PNG_FILTER_COUNT - 1; ++f) {
                     pixbuf = pixptr;
                     sum[1] = 0;
                     x = 0;
@@ -568,8 +570,9 @@ ShrinkInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
 //------------------------------------------------------------------------------
 static void
 ShrinkIndexPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width, uint32_t height,
-    uint32_t depth, uint8_t filtertype, uint8_t* psrc)
+    uint8_t depth, uint8_t filtertype, uint8_t* psrc)
 {
+    depth = 0;          // qiet compiler warning
     filtertype = 0;         // quiet compiler warning
     uint8_t* buffer = pdst;
     uint8_t* pixptr = psrc;
@@ -592,7 +595,7 @@ ShrinkIndexPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width, uint32_t height
 //------------------------------------------------------------------------------
 static void
 ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width, uint32_t height,
-    uint32_t depth, uint8_t filtertype, uint8_t* psrc)
+    uint8_t depth, uint8_t filtertype, uint8_t* psrc)
 {
     uint8_t* buffer = pdst;
     uint8_t* pixels = psrc;
@@ -627,7 +630,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width, uint32_t height,
         filter = (filtertype >= PNG_FILTER_COUNT) ? 0 : filtertype;
         if (filtertype == PNG_FILTER_ADAPTIVE) {
             uint32_t sum[2] = { UINT32_MAX };
-            for (int f = PNG_FILTER_NONE; f < PNG_FILTER_COUNT - 1; ++f) {
+            for (uint8_t f = PNG_FILTER_NONE; f < PNG_FILTER_COUNT - 1; ++f) {
                 sum[1] = 0;
                 pixbuf = pixptr;
                 x = 0;
@@ -1419,7 +1422,7 @@ GetInfoFromMemoryPNG(uint8_t* pcolormap, uint32_t* pwidth, uint32_t* pheight,
 //------------------------------------------------------------------------------
 static void
 ExpandIndexInterlacedPNG(uint8_t** ppdst, uint32_t width, uint32_t height,
-    uint32_t depth, uint8_t* psrc)
+    uint8_t depth, uint8_t* psrc)
 {
     uint8_t* pixels = *ppdst;
     uint8_t* buffer = psrc;
@@ -1603,7 +1606,7 @@ ExpandIndexInterlacedPNG(uint8_t** ppdst, uint32_t width, uint32_t height,
 //------------------------------------------------------------------------------
 static void
 ExpandInterlacedPNG(uint8_t** ppdst, uint32_t width, uint32_t height,
-    uint32_t depth, uint8_t* psrc)
+    uint8_t depth, uint8_t* psrc)
 {
     uint8_t* pixels = *ppdst;
     uint8_t* buffer = psrc;
@@ -1775,7 +1778,7 @@ ExpandInterlacedPNG(uint8_t** ppdst, uint32_t width, uint32_t height,
 // ExpandIndex
 //------------------------------------------------------------------------------
 static void
-ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
+ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint8_t depth,
     uint8_t* psrc)
 {
     uint8_t* pixels = *ppdst;
@@ -1802,6 +1805,7 @@ ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
     uint8_t cur1 = 0;
     int32_t xx = 0;
     uint8_t pixelsperbyte = 8 / depth;
+    uint8_t bpp = (depth == 1 ? 0 : depth == 2 ? 1 : 2);
     uint8_t mod = pixelsperbyte - 1;
     uint8_t* pixptr = pixels;
     uint8_t* pixbuf = pixptr;
@@ -1827,7 +1831,7 @@ ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
                 pix0 = *buffer++;
                 xx = 0;
                 while (xx < pixelsperbyte) {
-                    bit0 = (mod - (xx & mod)) * depth;
+                    bit0 = (mod - (xx & mod)) << bpp;
                     *pixbuf |= ((pix0 >> bit0) & mask) << bit0;
                     xx++;
                 }
@@ -1844,8 +1848,8 @@ ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
                 while (xx < pixelsperbyte) {
                     cur0 = ((xx - 0) & mod);
                     cur1 = ((xx - 1) & mod);
-                    bit0 = (mod - cur0) * depth;
-                    bit1 = (mod - cur1) * depth;
+                    bit0 = (mod - cur0) << bpp;
+                    bit1 = (mod - cur1) << bpp;
                     raw1 = (*filter0 >> bit1) & mask;
                     pix1 = raw1 & 0xFF;
                     *pixbuf |= (((pix0 + pix1) >> bit0) & mask) << bit0;
@@ -1863,7 +1867,7 @@ ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
                 xx = 0;
                 while (xx < pixelsperbyte) {
                     cur0 = (xx & mod);
-                    bit0 = (mod - cur0) * depth;
+                    bit0 = (mod - cur0) << bpp;
                     pri0 = (*filter1 >> bit0) & mask;
                     pix1 = pri0 & 0xFF;
                     *pixbuf |= (((pix0 + pix1) >> bit0) & mask) << bit0;
@@ -1883,8 +1887,8 @@ ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
                 while (xx < pixelsperbyte) {
                     cur0 = ((xx - 0) & mod);
                     cur1 = ((xx - 1) & mod);
-                    bit0 = (mod - cur0) * depth;
-                    bit1 = (mod - cur1) * depth;
+                    bit0 = (mod - cur0) << bpp;
+                    bit1 = (mod - cur1) << bpp;
                     raw1 = (*filter0 >> bit1) & mask;
                     pri0 = (*filter1 >> bit0) & mask;
                     pix1 = ((raw1 + pri0) >> 1) & 0xFF;
@@ -1907,8 +1911,8 @@ ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
                 while (xx < pixelsperbyte) {
                     cur0 = ((xx - 0) & mod);
                     cur1 = ((xx - 1) & mod);
-                    bit0 = (mod - cur0) * depth;
-                    bit1 = (mod - cur1) * depth;
+                    bit0 = (mod - cur0) << bpp;
+                    bit1 = (mod - cur1) << bpp;
                     raw1 = (*filter0 >> bit1) & mask;
                     pri0 = (*filter1 >> bit0) & mask;
                     pri1 = (*filter2 >> bit1) & mask;
@@ -2070,7 +2074,7 @@ ExpandPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
 //-----------------------------------------------------------------------------
 static bool
 LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
-    uint32_t psrcsize, uint32_t* pwidth, uint32_t* pheight, uint32_t* pdepth,
+    uint32_t psrcsize, uint32_t* pwidth, uint32_t* pheight, uint8_t* pdepth,
     uint8_t* psampledepth, uint8_t* pcolorkey)
 {
     uint32_t chksize = s_png_signaturesize + s_png_headersize +
@@ -2089,11 +2093,11 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
     }
     uint32_t width = 0;
     uint32_t height = 0;
-    uint32_t depth = 0;
-    uint32_t bytes = 0;
+    uint8_t depth = 0;
+    uint8_t bytes = 0;
     uint32_t pitch = 0;
     uint32_t gamma = 0;
-    uint32_t palnum = 0;
+    uint16_t palnum = 0;
     uint32_t idatasize = 0;
     uint32_t crc0 = 0;
     uint32_t crc1 = 0;
@@ -2223,8 +2227,9 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
                     return false;
                 }
                 // a chunk length not divisible by 3 is an error.
-                palnum = size / 3;
-                if ((palnum * 3) != size) {
+                palnum = GEUL_CAST_TO_U16(size) / 3;
+                uint32_t num = palnum * 3;
+                if (num != size) {
                     fprintf(stderr, "PNG, Invalid PLTE entries: %d\n", palnum);
                     return false;
                 }
@@ -2535,11 +2540,11 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
 
 #endif // #ifndef _PNG_H_
 
-uint32_t
+uint8_t
 ParseABS(uint8_t** pixels, uint32_t bytesperpixel, uint32_t maxcount)
 {
     uint8_t* buffer = *pixels;
-    uint32_t count = 1;
+    uint8_t count = 1;
     uint32_t sample0 = 0;
     uint32_t sample1 = 0;
     memcpy(&sample1, buffer, bytesperpixel);
@@ -2553,11 +2558,11 @@ ParseABS(uint8_t** pixels, uint32_t bytesperpixel, uint32_t maxcount)
     return count;
 }
 
-uint32_t
+uint8_t
 ParseRLE(uint8_t** pixels, uint32_t bytesperpixel, uint32_t maxcount)
 {
     uint8_t* buffer = *pixels;
-    uint32_t count = 1;
+    uint8_t count = 1;
     uint32_t sample0 = 0;
     uint32_t sample1 = 0;
     memcpy(&sample1, buffer, bytesperpixel);
@@ -2597,7 +2602,7 @@ static const uint32_t s_tga_file_size = 18;
 //------------------------------------------------------------------------------
 static bool
 SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
-    uint8_t* psrcbuf, uint32_t srcsize, uint32_t width, uint32_t height,
+    uint8_t* psrcbuf, uint32_t srcsize, uint16_t width, uint16_t height,
     uint8_t depth, palette_t* ppalette, bool invertX, bool invertY)
 {
     INLINE_OBJECT_NULL_CHK(ppdst);
@@ -2629,8 +2634,8 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     if (depth == 8) {
         if (ppalette != NULL) {
             colormap_type = 1;
-            colormap_length = ppalette->size;
-            colormap_size = ppalette->bits;
+            colormap_length = GEUL_CAST_TO_U16(ppalette->size);
+            colormap_size = GEUL_CAST_TO_U8(ppalette->bits);
         }
     }
     if (psrcbuf == NULL) {
@@ -2735,9 +2740,9 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
         uint32_t x = 0;
         uint32_t y = 0;
         if (codec == GEUL_RLE) {          // run-length encoding
-            uint32_t abscount = 0;
-            uint32_t rlecount = 0;
-            uint32_t runcount = 0;
+            uint8_t abscount = 0;
+            uint8_t rlecount = 0;
+            uint8_t runcount = 0;
             uint32_t maxcount = 0;
             uint32_t absbound = width - 0xFF;
             uint32_t rlebound = width - 0x80;
@@ -2858,7 +2863,7 @@ GetInfoFromMemoryTGA(uint8_t* pcolormap, uint32_t* pwidth, uint32_t* pheight,
 //-----------------------------------------------------------------------------
 static bool
 LoadFromMemoryTGA(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
-    uint32_t srcsize, uint32_t* pwidth, uint32_t* pheight, uint32_t* pdepth)
+    uint32_t srcsize, uint32_t* pwidth, uint32_t* pheight, uint8_t* pdepth)
 {
     INLINE_OBJECT_NULL_CHK(psrcbuf);
     INLINE_OBJECT_SIZE_CHK(srcsize, s_tga_file_size);
@@ -2914,7 +2919,7 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
     if (colormap_type == 1 &&
        (image_type == TGA_MAPPED || image_type == TGA_MAPPED_RLE)) {
         if (pixel_size == 8) {
-            uint32_t palnum = colormap_length < 256 ? colormap_length : 256;
+            uint16_t palnum = colormap_length < 256 ? colormap_length : 256;
             uint8_t* palptr = srcbuf + id_length;
             if (ppalette != NULL) {
                 if (colormap_size == 15 || colormap_size == 16) {
@@ -3058,7 +3063,7 @@ static const uint32_t s_bmp_v3_info_size = 40;
 static bool
 SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     uint8_t* psrcbuf, uint32_t srcsize, uint32_t srcxsize, uint32_t srcysize,
-    uint32_t srcdepth, palette_t* ppalette, uint8_t* pcolorkey, bool invertY)
+    uint8_t srcdepth, palette_t* ppalette, uint8_t* pcolorkey, bool invertY)
 {
     INLINE_OBJECT_NULL_CHK(ppdst);
     INLINE_OBJECT_NULL_CHK(ppdstsize);
@@ -3167,9 +3172,9 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
                 }
             }
             uint8_t* buffer = NULL;
-            uint32_t abscount = 0;
-            uint32_t rlecount = 0;
-            uint32_t runcount = 0;
+            uint8_t abscount = 0;
+            uint8_t rlecount = 0;
+            uint8_t runcount = 0;
             uint32_t maxcount = 0xFF;
             uint32_t maxbound = width - 0xFF;
             uint8_t sample = 0;
@@ -3221,14 +3226,14 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
                             count++;
                         }
                         if (count >= (uint32_t)width) {
-                            uint32_t dx = 0;
-                            uint32_t dy = 0;
+                            uint8_t dx = 0;
+                            uint8_t dy = 0;
                             while (count >= (uint32_t)width)
                             {
                                 count -= width;
                                 dy++;
                             }
-                            dx = count;
+                            dx = GEUL_CAST_TO_U8(count);
                             y += dy;
                             x += dx;
                             *dstbuf++ = 0x00;
@@ -3253,7 +3258,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
                         abscount = ParseABS(&buffer, 1, maxcount);
                         rlecount = ParseRLE(&buffer, 1, maxcount);
                         if (abscount >= 3 && abscount >= rlecount) {
-                            for (uint32_t i = 0; i < abscount; i++) {
+                            for (uint8_t i = 0; i < abscount; i++) {
                                 if (*(rowbuf + x + i) == colorkey) {
                                     abscount = i;
                                     break;
@@ -3305,8 +3310,8 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
                                 {
                                 case 4:
                                 {
-                                    int d1 = sample & 0xF;
-                                    int d0 = sample << 4;
+                                    uint8_t d1 = sample & 0xF;
+                                    uint8_t d0 = sample << 4;
                                     sample = d0 + d1;
                                 } break;
                                 }
@@ -3401,7 +3406,7 @@ GetInfoFromMemoryBMP(uint32_t* pwidth, uint32_t* pheight, uint32_t* pdepth,
 //------------------------------------------------------------------------------
 static bool
 LoadFromMemoryBMP(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
-    uint32_t srcsize, uint32_t* pwidth, uint32_t* pheight, uint32_t* pdepth)
+    uint32_t srcsize, uint32_t* pwidth, uint32_t* pheight, uint8_t* pdepth)
 {
     INLINE_OBJECT_NULL_CHK(psrcbuf);
     INLINE_OBJECT_SIZE_CHK(srcsize, s_bmp_file_size);
@@ -3454,7 +3459,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
     }
     if (bits == 1 || bits == 4 || bits == 8) {
         uint8_t* palptr = srcptr + s_bmp_file_size + s_bmp_v3_info_size;
-        uint32_t palnum = num_colours;
+        uint16_t palnum = GEUL_CAST_TO_U16(num_colours);
         if (ppalette != 0) {
             for (uint32_t i = 0; i < palnum; ++i) {
                 ppalette->entry[i*4+2] = *palptr++;
@@ -3678,7 +3683,7 @@ static const uint32_t s_pcx_v5_info_size = 128;
 //-----------------------------------------------------------------------------
 static bool
 SaveToMemoryPCX(uint8_t** ppdst, uint32_t* pdstsize, uint8_t* psrcbuf,
-    uint32_t srcsize, uint32_t width, uint32_t height, uint8_t depth,
+    uint32_t srcsize, uint16_t width, uint16_t height, uint8_t depth,
     palette_t* ppalette)
 {
     INLINE_OBJECT_NULL_CHK(ppdst);
@@ -3697,9 +3702,9 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* pdstsize, uint8_t* psrcbuf,
     }
     // dst stuff
     uint32_t dstdepth = (depth == 24) ? 8 : depth;
-    uint32_t dstpitch = (WidthInBytes(width, dstdepth) + 1) & ~1;           // must be an even number
+    uint16_t dstpitch = (WidthInBytes(width, dstdepth) + 1) & ~1;           // must be an even number
     // src stuff
-    uint32_t srcbytes = ((depth == 24) ? 3 : 1);
+    uint8_t srcbytes = ((depth == 24) ? 3 : 1);
     uint32_t srcpitch = WidthInBytes(width, depth);
     if (depth < 8) {
         srcwidth = srcpitch;
@@ -3749,8 +3754,8 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* pdstsize, uint8_t* psrcbuf,
     dstbuf += 54;           // Reserved2 (Always 0)
     uint32_t bytesencoded = 0;
     uint32_t colorplane = 0;
-    uint32_t rlecount = 0;
-    uint32_t runcount = 0;
+    uint8_t rlecount = 0;
+    uint8_t runcount = 0;
     uint32_t maxcount = 0x3F;
     uint32_t maxbound = srcwidth - 0x3F;
     uint32_t x = 0;
@@ -3887,7 +3892,7 @@ GetInfoFromMemoryPCX(uint32_t* pwidth, uint32_t* pheight, uint32_t* pdepth,
 //-----------------------------------------------------------------------------
 static bool
 LoadFromMemoryPCX(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
-    uint32_t srcsize, uint32_t* pwidth, uint32_t* pheight, uint32_t* pdepth)
+    uint32_t srcsize, uint32_t* pwidth, uint32_t* pheight, uint8_t* pdepth)
 {
     INLINE_OBJECT_NULL_CHK(psrcbuf);
     INLINE_OBJECT_SIZE_CHK(srcsize, s_pcx_v5_info_size);
@@ -3982,7 +3987,7 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
     }
     // palette
     if (numbitplanes == 1) {
-        uint32_t palnum = 0;
+        uint16_t palnum = 0;
         uint8_t* palptr = NULL;
         switch (bitsperpixel)
         {
@@ -4071,7 +4076,7 @@ bool
 SaveImageToMemory(uint8_t** ppdst, uint32_t* pdstsize, uint32_t fileformat,
     uint32_t codec, image_t* pimage, palette_t* ppalette)
 {
-    uint32_t depth = 8;
+    uint8_t depth = 8;
     uint32_t pixelsize = 0;
     uint32_t format = 0;
     bool result = false;
@@ -4167,16 +4172,25 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* pdstsize, uint32_t fileformat,
         } break;
         case GEUL_PCX:
         {
-            result = SaveToMemoryPCX(ppdst, pdstsize, pimage->pixels,
-                pixelsize, pimage->width, pimage->height, depth,
-                ppalette);
+            if (pimage->width < UINT16_MAX && pimage->height < UINT16_MAX) {
+                uint16_t w = GEUL_CAST_TO_U16(pimage->width);
+                uint16_t h = GEUL_CAST_TO_U16(pimage->height);
+                result = SaveToMemoryPCX(ppdst, pdstsize, pimage->pixels,
+                    pixelsize, w, h, depth, ppalette);
+            } else {
+                fprintf(stderr, "SaveImage, Image width or height exceeds maximum.\n");
+            }
         } break;
         case GEUL_TGA:
         {
-            result = SaveToMemoryTGA(ppdst, pdstsize, codec, pimage->pixels,
-                pixelsize, pimage->width, pimage->height, depth,
-                ppalette, false,
-                false);
+            if (pimage->width < UINT16_MAX && pimage->height < UINT16_MAX) {
+                uint16_t w = GEUL_CAST_TO_U16(pimage->width);
+                uint16_t h = GEUL_CAST_TO_U16(pimage->height);
+                result = SaveToMemoryTGA(ppdst, pdstsize, codec, pimage->pixels,
+                    pixelsize, w, h, depth, ppalette, false, false);
+            } else {
+                fprintf(stderr, "SaveImage, Image width or height exceeds maximum.\n");
+            }
         } break;
         }
         if (pimage->pixels != NULL) {
@@ -4341,7 +4355,7 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
 {
     palette_t palette = { 0 };
     uint8_t* pixels = NULL;
-    uint32_t depth = 0;
+    uint8_t depth = 0;
     uint32_t width = 0;
     uint32_t height = 0;
     uint32_t format = 0;
@@ -4500,7 +4514,7 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
                     bool index1 = false;
                     uint8_t i0 = 0;
                     uint8_t i1 = 0;
-                    for (uint32_t i = 0; i < ppalette->size; ++i) {
+                    for (uint8_t i = 0; i < ppalette->size; ++i) {
                         if (ppalette->entry[i*4+0] == transparency[0] &&
                             ppalette->entry[i*4+1] == transparency[1] &&
                             ppalette->entry[i*4+2] == transparency[2] &&
@@ -4509,7 +4523,7 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
                             break;
                         }
                     }
-                    for (uint32_t i = 0; i < ppalette->size; ++i) {
+                    for (uint8_t i = 0; i < ppalette->size; ++i) {
                         if (ppalette->entry[i*4+0] == pcolorkey[0] &&
                             ppalette->entry[i*4+1] == pcolorkey[1] &&
                             ppalette->entry[i*4+2] == pcolorkey[2] &&

@@ -66,8 +66,8 @@
 typedef struct _palette
 {
     uint8_t entry[1024];            // rgba
-    uint32_t size;
-    uint32_t bits;
+    uint16_t size;
+    uint8_t bits;
 } palette_t;
 
 // image

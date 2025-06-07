@@ -127,8 +127,8 @@ WriteU16ToLE(void* dst, uint16_t val)
 
     val = LittleU16(val);
 
-    p[0] = (val & 0xFF);
-    p[1] = (val & 0xFF00) >> 8;
+    p[0] = (val >> 0) & 0xFF;
+    p[1] = (val >> 8) & 0xFF;
 
     return p16;
 }
@@ -147,10 +147,10 @@ WriteU32ToLE(void* dst, uint32_t val)
 
     val = LittleU32(val);
 
-    p[0] = (val & 0xFF);
-    p[1] = (val & 0xFF00) >> 8;
-    p[2] = (val & 0xFF0000) >> 16;
-    p[3] = (val & 0xFF000000) >> 24;
+    p[0] = (val >>  0) & 0xFF;
+    p[1] = (val >>  8) & 0xFF;
+    p[2] = (val >> 16) & 0xFF;
+    p[3] = (val >> 24) & 0xFF;
 
     return p32;
 }
@@ -169,8 +169,8 @@ WriteU16ToBE(void* dst, uint16_t val)
 
     val = BigU16(val);
 
-    p[0] = (val & 0xFF);
-    p[1] = (val & 0xFF00) >> 8;
+    p[0] = (val >> 0) & 0xFF;
+    p[1] = (val >> 8) & 0xFF;
 
     return p16;
 }
@@ -189,10 +189,10 @@ WriteU32ToBE(void* dst, uint32_t val)
 
     val = BigU32(val);
 
-    p[0] = (val & 0xFF);
-    p[1] = (val & 0xFF00) >> 8;
-    p[2] = (val & 0xFF0000) >> 16;
-    p[3] = (val & 0xFF000000) >> 24;
+    p[0] = (val >>  0) & 0xFF;
+    p[1] = (val >>  8) & 0xFF;
+    p[2] = (val >> 16) & 0xFF;
+    p[3] = (val >> 24) & 0xFF;
 
     return p32;
 }
@@ -228,7 +228,7 @@ ReadU32FromLE(const void* src)
     uint8_t* p = (uint8_t*)src;
 
     v |= p[0];
-    v |= ((uint32_t)p[1]) << 8;
+    v |= ((uint32_t)p[1]) <<  8;
     v |= ((uint32_t)p[2]) << 16;
     v |= ((uint32_t)p[3]) << 24;
 
@@ -266,7 +266,7 @@ ReadU32FromBE(const void* src)
     uint8_t* p = (uint8_t*)src;
 
     v |= p[0];
-    v |= ((uint32_t)p[1]) << 8;
+    v |= ((uint32_t)p[1]) <<  8;
     v |= ((uint32_t)p[2]) << 16;
     v |= ((uint32_t)p[3]) << 24;
 
