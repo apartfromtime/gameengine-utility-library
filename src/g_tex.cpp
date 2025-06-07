@@ -221,7 +221,7 @@ ShrinkIndexInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
 {
     uint8_t* buffer = pdst;
     uint8_t* pixels = psrc;
-    uint32_t bytes = (depth + 7) >> 3;
+    //uint32_t bytes = (depth + 7) >> 3;
     uint32_t pitch = WidthInBytes(width, depth);
     uint32_t xskip = 1;
     uint32_t yskip = 1;
@@ -290,7 +290,7 @@ ShrinkInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
 {
     uint8_t* buffer = pdst;
     uint8_t* pixels = psrc;
-    float pixelsperbyte = (8.0f / (float)depth);
+    //float pixelsperbyte = (8.0f / (float)depth);
     uint32_t bytes = (depth + 7) >> 3;
     uint32_t pitch = WidthInBytes(width, depth);
     uint32_t xskip = 1;
@@ -888,7 +888,7 @@ SaveToMemoryPNG(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
         return false;
     }
     memset(bytearray, 0, bytearraysize);
-    uint8_t* dstptr = bytearray;
+    //uint8_t* dstptr = bytearray;
     uint8_t* dstbuf = bytearray;
     int byteswritten = 0;
 
@@ -1200,7 +1200,7 @@ GetInfoFromMemoryPNG(uint8_t* pcolormap, uint32_t* pwidth, uint32_t* pheight,
     INLINE_OBJECT_NULL_CHK(psrcbuf);
     INLINE_OBJECT_SIZE_CHK(psrcsize, chksize);
     uint32_t srclen = psrcsize;
-    uint8_t* srcptr = psrcbuf;
+    //uint8_t* srcptr = psrcbuf;
     uint8_t* srcbuf = psrcbuf;
     uint8_t* srcend = psrcbuf + srclen;
     for (int i = 0; i < 8; ++i) {
@@ -1605,7 +1605,7 @@ ExpandInterlacedPNG(uint8_t** ppdst, uint32_t width, uint32_t height,
 {
     uint8_t* pixels = *ppdst;
     uint8_t* buffer = psrc;
-    float pixelsperbyte = (8.0f / (float)depth);
+    //float pixelsperbyte = (8.0f / (float)depth);
     uint32_t bytes = (depth + 7) >> 3;
     uint32_t pitch = WidthInBytes(width, depth);
     uint32_t xskip = 1;
@@ -1778,7 +1778,7 @@ ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
 {
     uint8_t* pixels = *ppdst;
     uint8_t* buffer = psrc;
-    uint32_t bytes = (depth + 7) >> 3;
+    //uint32_t bytes = (depth + 7) >> 3;
     uint32_t pitch = WidthInBytes(width, depth);
     uint32_t x = 0;
     uint32_t y = 0;
@@ -1808,7 +1808,7 @@ ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
     uint8_t* filter1 = &latch;
     uint8_t* filter2 = &latch;
     uint8_t increment = 1;
-    uint8_t xinc = 0;
+    //uint8_t xinc = 0;
     uint8_t yinc = 0;
 
     y = 0;
@@ -1946,12 +1946,12 @@ ExpandPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
 {
     uint8_t* pixels = *ppdst;
     uint8_t* buffer = psrc;
-    float pixelsperbyte = (8.0f / (float)depth);
+    //float pixelsperbyte = (8.0f / (float)depth);
     uint32_t bytes = (depth + 7) >> 3;
     uint32_t pitch = WidthInBytes(width, depth);
     uint32_t x = 0;
     uint32_t y = 0;
-    uint16_t pix0 = 0;
+    //uint16_t pix0 = 0;
     uint16_t pix1 = 0;
     uint16_t pae0 = 0;
     uint16_t raw1 = 0;
@@ -2803,21 +2803,26 @@ GetInfoFromMemoryTGA(uint8_t* pcolormap, uint32_t* pwidth, uint32_t* pheight,
 {
     INLINE_OBJECT_NULL_CHK(psrcbuf);
     INLINE_OBJECT_SIZE_CHK(psrcsize, s_tga_file_size);
-    uint8_t* srcptr = psrcbuf;
+    //uint8_t* srcptr = psrcbuf;
     uint8_t* srcbuf = psrcbuf;
     // file struct
-    uint8_t  id_length          = *srcbuf++;
+    //uint8_t  id_length          = *srcbuf++;
+    srcbuf++;
     uint8_t  colormap_type      = *srcbuf++;
     uint8_t  image_type         = *srcbuf++;
-    uint16_t colormap_index     = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t colormap_length    = ReadU16FromLE(srcbuf); srcbuf += 2;
+    //uint16_t colormap_index     = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
+    //uint16_t colormap_length    = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
     uint8_t  colormap_size      = *srcbuf++;
-    uint16_t x_origin           = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t y_origin           = ReadU16FromLE(srcbuf); srcbuf += 2;
+    //uint16_t x_origin           = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
+    //uint16_t y_origin           = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
     uint16_t width              = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint16_t height             = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint8_t  pixel_size         = *srcbuf++;
-    uint8_t  image_descriptor   = *srcbuf++;
+    //uint8_t  image_descriptor   = *srcbuf++;
     if (colormap_type == 1) {
         if (image_type != TGA_MAPPED &&
             image_type != TGA_MAPPED_RLE) {
@@ -2856,21 +2861,25 @@ LoadFromMemoryTGA(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
     INLINE_OBJECT_NULL_CHK(psrcbuf);
     INLINE_OBJECT_SIZE_CHK(srcsize, s_tga_file_size);
     // src stuff
-    uint8_t* srcptr = psrcbuf;
+    //uint8_t* srcptr = psrcbuf;
     uint8_t* srcbuf = psrcbuf;
     // file struct
     uint8_t  id_length           = *srcbuf++;
     uint8_t  colormap_type       = *srcbuf++;
     uint8_t  image_type          = *srcbuf++;
-    uint16_t colormap_index      = ReadU16FromLE(srcbuf); srcbuf += 2;
+    //uint16_t colormap_index      = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
     uint16_t colormap_length     = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint8_t  colormap_size       = *srcbuf++;
-    uint16_t x_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t y_origin            = ReadU16FromLE(srcbuf); srcbuf += 2;
+    //uint16_t x_origin            = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
+    //uint16_t y_origin            = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
     uint16_t width               = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint16_t height              = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint8_t  pixel_size          = *srcbuf++;
-    uint8_t  image_descriptor    = *srcbuf++;
+    //uint8_t  image_descriptor    = *srcbuf++;
+    srcbuf++;
     if (pixel_size != 8 && pixel_size != 16 && pixel_size != 24 && pixel_size != 32) {
         fprintf(stderr, "TGA, Unsupported bits: %d.\n", pixel_size);
         return false;
@@ -3398,22 +3407,28 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
     uint8_t* srcbuf = psrcbuf;
     // file struct
     uint16_t filetype   = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint32_t filesize   = ReadU32FromLE(srcbuf); srcbuf += 4;
+    //uint32_t filesize   = ReadU32FromLE(srcbuf);
+    srcbuf += 4;
     uint16_t reserved1  = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint16_t reserved2  = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint32_t offset     = ReadU32FromLE(srcbuf); srcbuf += 4;
     // info struct
-    uint32_t infosize           = ReadU32FromLE(srcbuf); srcbuf += 4;
+    //uint32_t infosize           = ReadU32FromLE(srcbuf);
+    srcbuf += 4;
     int32_t  width              = ReadI32FromLE(srcbuf); srcbuf += 4;
     int32_t  height             = ReadI32FromLE(srcbuf); srcbuf += 4;
     uint16_t planes             = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint16_t bits               = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint32_t compression        = ReadU32FromLE(srcbuf); srcbuf += 4;
-    uint32_t imagesize          = ReadU32FromLE(srcbuf); srcbuf += 4;
-    int32_t  xresolution        = ReadI32FromLE(srcbuf); srcbuf += 4;
-    int32_t  yresolution        = ReadI32FromLE(srcbuf); srcbuf += 4;
+    //uint32_t imagesize          = ReadU32FromLE(srcbuf);
+    srcbuf += 4;
+    //int32_t  xresolution        = ReadI32FromLE(srcbuf);
+    srcbuf += 4;
+    //int32_t  yresolution        = ReadI32FromLE(srcbuf);
+    srcbuf += 4;
     uint32_t num_colours        = ReadU32FromLE(srcbuf); srcbuf += 4;
-    uint32_t num_colour_indexes = ReadU32FromLE(srcbuf); srcbuf += 4;
+    //uint32_t num_colour_indexes = ReadU32FromLE(srcbuf);
+    srcbuf += 4;
     if (filetype != BMP_IDENTIFIER) {
         fprintf(stderr, "BMP, version mismatch: %d.\n", filetype);
         return false;
@@ -3709,7 +3724,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* pdstsize, uint32_t codec,
         return false;
     }
     memset(bytearray, 0, bytearraysize);
-    uint8_t* dstptr = bytearray;
+    //uint8_t* dstptr = bytearray;
     uint8_t* dstbuf = bytearray;
     // fill in file header
     *dstbuf++ = 0x0A;           // PCX Id Number (Always 0x0A)
@@ -3821,7 +3836,7 @@ GetInfoFromMemoryPCX(uint32_t* pwidth, uint32_t* pheight, uint32_t* pdepth,
 {
     INLINE_OBJECT_NULL_CHK(psrcbuf);
     INLINE_OBJECT_SIZE_CHK(srcsize, s_pcx_v5_info_size);
-    uint8_t* srcptr = psrcbuf;
+    //uint8_t* srcptr = psrcbuf;
     uint8_t* srcbuf = psrcbuf;
     uint8_t  identifier      = *srcbuf++;
     uint8_t  version         = *srcbuf++;
@@ -3831,14 +3846,20 @@ GetInfoFromMemoryPCX(uint32_t* pwidth, uint32_t* pheight, uint32_t* pdepth,
     uint16_t yMin            = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint16_t xMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint16_t yMax            = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t horzRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t vertRes         = ReadU16FromLE(srcbuf); srcbuf += 2;
+    //uint16_t horzRes         = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
+    //uint16_t vertRes         = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
     srcbuf += 49;           // 16-Color EGA Palette + Reserved1 (Always 0)
     uint8_t  numBitPlanes    = *srcbuf++;
-    uint16_t bytesPerLine    = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t paletteType     = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t horzScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t vertScreenSize  = ReadU16FromLE(srcbuf); srcbuf += 2;
+    //uint16_t bytesPerLine    = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
+    //uint16_t paletteType     = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
+    //uint16_t horzScreenSize  = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
+    //uint16_t vertScreenSize  = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
     srcbuf += 54;           // Reserved2 (Always 0)
     if (identifier != 0x0A) {
         return false;
@@ -3868,7 +3889,7 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
 {
     INLINE_OBJECT_NULL_CHK(psrcbuf);
     INLINE_OBJECT_SIZE_CHK(srcsize, s_pcx_v5_info_size);
-    uint8_t* srcptr = psrcbuf;
+    //uint8_t* srcptr = psrcbuf;
     uint8_t* srcbuf = psrcbuf;
     uint8_t* srcend = psrcbuf + srcsize;
     uint8_t  identifier      = *srcbuf++;
@@ -3879,15 +3900,20 @@ LoadFromMemoryPCX(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
     uint16_t ymin            = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint16_t xmax            = ReadU16FromLE(srcbuf); srcbuf += 2;
     uint16_t ymax            = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t horzres         = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t vertres         = ReadU16FromLE(srcbuf); srcbuf += 2;
+    //uint16_t horzres         = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
+    //uint16_t vertres         = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
     uint8_t* egaptr = srcbuf;           // set pointer to 16-Color EGA Palette
     srcbuf += 49;           // 16-Color EGA Palette + Reserved1 (Always 0)
     uint8_t  numbitplanes    = *srcbuf++;
     uint16_t bytesperline    = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t palettetype     = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t horzscreensize  = ReadU16FromLE(srcbuf); srcbuf += 2;
-    uint16_t vertscreensize  = ReadU16FromLE(srcbuf); srcbuf += 2;
+    //uint16_t palettetype     = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
+    //uint16_t horzscreensize  = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
+    //uint16_t vertscreensize  = ReadU16FromLE(srcbuf);
+    srcbuf += 2;
     srcbuf += 54;           // Reserved2 (Always 0)
     if (identifier != 0x0A) {
         fprintf(stderr, "PCX, Invalid manufacturer code: %d.\n", identifier);
@@ -4373,7 +4399,6 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
                 uint32_t bshift = 0;
                 uint32_t gshift = 5;
                 uint32_t rshift = 10;
-                uint32_t ashift = 15;
                 uint32_t bmask = 0x001F;
                 uint32_t gmask = 0x03E0;
                 uint32_t rmask = 0x7C00;
