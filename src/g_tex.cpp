@@ -25,7 +25,7 @@
 
 #include "..\inc\GEUL\g_geul.h"
 
-#pragma warning (disable : 4244)            // conversion from <type> to <type>
+#define GEUL_FLT_TO_U8(x) ((uint8_t)((uint32_t)(x)))
 
 #define INLINE_OBJECT_NULL_CHK(ptr)                     \
     do {                                                \
@@ -247,12 +247,10 @@ ShrinkIndexInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
     uint8_t mod = 8 / depth;
     uint8_t cur0 = 0;
     uint8_t cur1 = 0;
-
     const uint8_t i_xorigin[7] = { 0, 4, 0, 2, 0, 1, 0 };
     const uint8_t i_xextent[7] = { 8, 8, 4, 4, 2, 2, 1 };
     const uint8_t i_yorigin[7] = { 0, 0, 4, 0, 2, 0, 1 };
     const uint8_t i_yextent[7] = { 8, 8, 8, 4, 4, 2, 2 };
-
     do {
         w = (width  - i_xorigin[pass] + i_xextent[pass] - 1) / i_xextent[pass];
         h = (height - i_yorigin[pass] + i_yextent[pass] - 1) / i_yextent[pass];
@@ -280,8 +278,7 @@ ShrinkIndexInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
             y++;
         }
     } while (++pass < 7);
-
-    if (pdstlen != NULL) { *pdstlen = buffer - pdst; }
+    if (pdstlen != NULL) { *pdstlen = (uint32_t)(buffer - pdst); }
 }
 
 //------------------------------------------------------------------------------
@@ -562,8 +559,7 @@ ShrinkInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
             y++;
         }
     } while (++pass < 7);
-
-    if (pdstlen != NULL) { *pdstlen = buffer - pdst; }
+    if (pdstlen != NULL) { *pdstlen = (uint32_t)(buffer - pdst); }
 }
 
 //------------------------------------------------------------------------------
@@ -586,7 +582,7 @@ ShrinkIndexPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width, uint32_t height
         buffer += width;
         pixptr += width;
     }
-    if (pdstlen != NULL) { *pdstlen = buffer - pdst; }
+    if (pdstlen != NULL) { *pdstlen = (uint32_t)(buffer - pdst); }
 }
 
 //------------------------------------------------------------------------------
@@ -622,7 +618,6 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width, uint32_t height,
     uint8_t increment = 1;
     uint8_t xinc = 0;
     uint8_t yinc = 0;
-
     filtertype = (filtertype < PNG_FILTER_COUNT) ? filtertype : 0;
     y = 0;
     while (y < height) {
@@ -719,12 +714,10 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width, uint32_t height,
                 }
             }
         }
-
         *buffer++ = filter;
         filter1 = pfilter1;
         pixbuf = pixptr;
         x = 0;
-
         switch (filter)
         {
         case 0:
@@ -809,7 +802,7 @@ ShrinkPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width, uint32_t height,
         pixptr += pitch;
         y++;
     }
-    if (pdstlen != NULL) { *pdstlen = buffer - pdst; }
+    if (pdstlen != NULL) { *pdstlen = (uint32_t)(buffer - pdst); }
 }
 
 //------------------------------------------------------------------------------
@@ -1785,7 +1778,6 @@ ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
 {
     uint8_t* pixels = *ppdst;
     uint8_t* buffer = psrc;
-    float pixelsperbyte = (8.0f / (float)depth);
     uint32_t bytes = (depth + 7) >> 3;
     uint32_t pitch = WidthInBytes(width, depth);
     uint32_t x = 0;
@@ -1807,6 +1799,7 @@ ExpandIndexPNG(uint8_t** ppdst, uint32_t width, uint32_t height, uint32_t depth,
     uint8_t cur0 = 0;
     uint8_t cur1 = 0;
     int32_t xx = 0;
+    uint8_t pixelsperbyte = 8 / depth;
     uint8_t mod = pixelsperbyte - 1;
     uint8_t* pixptr = pixels;
     uint8_t* pixbuf = pixptr;
@@ -2510,23 +2503,20 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
     dataptr = NULL;
 
     // gamma
+    const float ik = 1.0f / 255.0f;
     if (gamma > 100000) {
         float y = (gamma * (1.0f / 2.2f)) / 100000.0f;
-        // grayscale
-        if ((colortype == 0 || colortype == 4) && depth == 8) {
-            for (unsigned int i = 0; i < width * height; ++i)
-            {
-                pixbuf[0] = powf((pixbuf[0] / 255.0f), y) * 255.0f;
+        if ((colortype == 0 || colortype == 4) && depth == 8) {         // grayscale
+            for (unsigned int i = 0; i < width * height; ++i) {
+                pixbuf[0] = GEUL_FLT_TO_U8(ROUND(powf((pixbuf[0]*ik),y)*255.0f));
                 pixbuf += bytes;
             }
         }
-        // rgb
-        if ((colortype == 2 || colortype == 6) && depth == 8) {
-            for (unsigned int i = 0; i < width * height; ++i)
-            {
-                pixbuf[0] = powf((pixbuf[0] / 255.0f), y) * 255.0f;
-                pixbuf[1] = powf((pixbuf[1] / 255.0f), y) * 255.0f;
-                pixbuf[2] = powf((pixbuf[2] / 255.0f), y) * 255.0f;
+        if ((colortype == 2 || colortype == 6) && depth == 8) {         // rgb
+            for (unsigned int i = 0; i < width * height; ++i) {
+                pixbuf[0] = GEUL_FLT_TO_U8(ROUND(powf((pixbuf[0]*ik),y)*255.0f));
+                pixbuf[1] = GEUL_FLT_TO_U8(ROUND(powf((pixbuf[1]*ik),y)*255.0f));
+                pixbuf[2] = GEUL_FLT_TO_U8(ROUND(powf((pixbuf[2]*ik),y)*255.0f));
                 pixbuf += bytes;
             }
         }
@@ -4387,18 +4377,15 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
                 uint32_t bmask = 0x001F;
                 uint32_t gmask = 0x03E0;
                 uint32_t rmask = 0x7C00;
-                //uint32_t amask = 0x8000;
-                float color = 255.0f / 31.0f;
-                //float alpha = 255.0f;
+                float k5 = 255.0f / 31.0f;
                 uint16_t pixel = 0;
                 while (y++ < height) {
                     x = 0;
                     while (x < width) {
                         memcpy(&pixel, (srcbuf + (x * 2)), 2);
-                        *pixbuf++ = ((pixel & bmask) >> bshift) * color;
-                        *pixbuf++ = ((pixel & gmask) >> gshift) * color;
-                        *pixbuf++ = ((pixel & rmask) >> rshift) * color;
-                        //*pixbuf++ = ((pixel & amask) >> ashift) * alpha;
+                        *pixbuf++ = GEUL_FLT_TO_U8(((pixel&bmask)>>bshift)*k5);
+                        *pixbuf++ = GEUL_FLT_TO_U8(((pixel&gmask)>>gshift)*k5);
+                        *pixbuf++ = GEUL_FLT_TO_U8(((pixel&rmask)>>rshift)*k5);
                         x++;
                     }
                     srcbuf += srcpitch;
