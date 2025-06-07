@@ -2510,13 +2510,13 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
     dataptr = NULL;
 
     // gamma
-    if (gamma != 0) {
-        float fgamma = (gamma * (1.0f / 2.2f)) / 100000.0f;
+    if (gamma > 100000) {
+        float y = (gamma * (1.0f / 2.2f)) / 100000.0f;
         // grayscale
         if ((colortype == 0 || colortype == 4) && depth == 8) {
             for (unsigned int i = 0; i < width * height; ++i)
             {
-                pixbuf[0] = powf((pixbuf[0] / 255.0f), fgamma) * 255.0f;
+                pixbuf[0] = powf((pixbuf[0] / 255.0f), y) * 255.0f;
                 pixbuf += bytes;
             }
         }
@@ -2524,9 +2524,9 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
         if ((colortype == 2 || colortype == 6) && depth == 8) {
             for (unsigned int i = 0; i < width * height; ++i)
             {
-                pixbuf[0] = powf((pixbuf[0] / 255.0f), fgamma) * 255.0f;
-                pixbuf[1] = powf((pixbuf[1] / 255.0f), fgamma) * 255.0f;
-                pixbuf[2] = powf((pixbuf[2] / 255.0f), fgamma) * 255.0f;
+                pixbuf[0] = powf((pixbuf[0] / 255.0f), y) * 255.0f;
+                pixbuf[1] = powf((pixbuf[1] / 255.0f), y) * 255.0f;
+                pixbuf[2] = powf((pixbuf[2] / 255.0f), y) * 255.0f;
                 pixbuf += bytes;
             }
         }
@@ -4484,8 +4484,8 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
                     ppalette != NULL) {
                     bool index0 = false;
                     bool index1 = false;
-                    uint8_t i0 = -1;
-                    uint8_t i1 = -1;
+                    uint8_t i0 = 0;
+                    uint8_t i1 = 0;
                     for (uint32_t i = 0; i < ppalette->size; ++i) {
                         if (ppalette->entry[i*4+0] == transparency[0] &&
                             ppalette->entry[i*4+1] == transparency[1] &&
