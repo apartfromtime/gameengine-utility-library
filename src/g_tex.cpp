@@ -219,6 +219,7 @@ static void
 ShrinkIndexInterlacedPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width,
     uint32_t height, uint32_t depth, uint8_t filtertype, uint8_t* psrc)
 {
+    filtertype = 0;         // quiet compiler warning
     uint8_t* buffer = pdst;
     uint8_t* pixels = psrc;
     //uint32_t bytes = (depth + 7) >> 3;
@@ -569,6 +570,7 @@ static void
 ShrinkIndexPNG(uint8_t* pdst, uint32_t* pdstlen, uint32_t width, uint32_t height,
     uint32_t depth, uint8_t filtertype, uint8_t* psrc)
 {
+    filtertype = 0;         // quiet compiler warning
     uint8_t* buffer = pdst;
     uint8_t* pixptr = psrc;
     uint8_t* pixbuf = pixptr;
@@ -2600,8 +2602,8 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
 {
     INLINE_OBJECT_NULL_CHK(ppdst);
     INLINE_OBJECT_NULL_CHK(ppdstsize);
-    //INLINE_OBJECT_NULL_CHK(psrc);
-    //INLINE_OBJECT_SIZE_CHK(psrcsize, psrcsize, 0);
+    //INLINE_OBJECT_NULL_CHK(psrcbuf);
+    INLINE_OBJECT_SIZE_CHK(srcsize, 0);
     if (depth != 8 && depth != 16 && depth != 24 && depth != 32) {
         fprintf(stderr, "TGA, Unsupported depth: %d.\n", depth);
         return false;
@@ -3055,13 +3057,13 @@ static const uint32_t s_bmp_v3_info_size = 40;
 //------------------------------------------------------------------------------
 static bool
 SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
-    uint8_t* psrcbuf, uint32_t psrcsize, uint32_t srcxsize, uint32_t srcysize,
+    uint8_t* psrcbuf, uint32_t srcsize, uint32_t srcxsize, uint32_t srcysize,
     uint32_t srcdepth, palette_t* ppalette, uint8_t* pcolorkey, bool invertY)
 {
     INLINE_OBJECT_NULL_CHK(ppdst);
     INLINE_OBJECT_NULL_CHK(ppdstsize);
-    //INLINE_OBJECT_NULL_CHK(psrc);
-    //INLINE_OBJECT_SIZE_CHK(psrcsize, 0);
+    //INLINE_OBJECT_NULL_CHK(psrcbuf);
+    INLINE_OBJECT_SIZE_CHK(srcsize, 0);
     if (srcdepth !=  1 && srcdepth !=  4 && srcdepth != 8 && srcdepth != 24 &&
         srcdepth != 32) {
         fprintf(stderr, "BMP, Unsupported depth: %d.\n", srcdepth);
@@ -3675,9 +3677,9 @@ static const uint32_t s_pcx_v5_info_size = 128;
 // Save
 //-----------------------------------------------------------------------------
 static bool
-SaveToMemoryPCX(uint8_t** ppdst, uint32_t* pdstsize, uint32_t codec,
-    uint8_t* psrcbuf, uint32_t srcsize, uint32_t width, uint32_t height,
-    uint8_t depth, palette_t* ppalette)
+SaveToMemoryPCX(uint8_t** ppdst, uint32_t* pdstsize, uint8_t* psrcbuf,
+    uint32_t srcsize, uint32_t width, uint32_t height, uint8_t depth,
+    palette_t* ppalette)
 {
     INLINE_OBJECT_NULL_CHK(ppdst);
     INLINE_OBJECT_NULL_CHK(pdstsize);
@@ -4165,7 +4167,7 @@ SaveImageToMemory(uint8_t** ppdst, uint32_t* pdstsize, uint32_t fileformat,
         } break;
         case GEUL_PCX:
         {
-            result = SaveToMemoryPCX(ppdst, pdstsize, codec, pimage->pixels,
+            result = SaveToMemoryPCX(ppdst, pdstsize, pimage->pixels,
                 pixelsize, pimage->width, pimage->height, depth,
                 ppalette);
         } break;
