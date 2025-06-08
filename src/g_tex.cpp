@@ -2477,6 +2477,15 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
     free(odataptr);
     odataptr = NULL;
 
+    if (ppdst == NULL) {
+        
+        fprintf(stderr, "PNG, destination was not a valid pointer.\n");
+        free(datptr);
+        datptr = NULL;
+
+        return false;
+    }
+
     // deinterlace and filter
     uint32_t pixlen = width * height * bytes;
     uint8_t* pixels = (uint8_t*)malloc(pixlen);
