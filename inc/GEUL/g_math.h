@@ -75,9 +75,9 @@
 typedef unsigned char byte1_t;
 
 // BYTE2
-typedef union _byte2
+typedef struct _byte2
 {
-    struct
+    union
     {
         uint8_t n0;
         uint8_t n1;
@@ -86,9 +86,9 @@ typedef union _byte2
 } byte2_t;
 
 // BYTE3
-typedef union _byte3
+typedef struct _byte3
 {
-    struct
+    union
     {
         uint8_t n0;
         uint8_t n1;
@@ -99,9 +99,9 @@ typedef union _byte3
 } byte3_t;
 
 // BYTE4
-typedef union _byte4
+typedef struct _byte4
 {
-    struct
+    union
     {
         uint8_t n0;
         uint8_t n1;
@@ -145,20 +145,19 @@ typedef struct _vector3
 } vector3_t;
 
 // VECTOR4
-typedef union _vector4
+typedef struct _vector4
 {
-    struct {
+    union {
         float r;
         float g;
         float b;
         float a;
     };
-    struct {
-        float x;
-        float y;
-        float z;
-        float w;
-    };
+    float x;
+    float y;
+    float z;
+    float w;
+
     float GetIndex(byte1_t index) {
         switch (index)
         {
