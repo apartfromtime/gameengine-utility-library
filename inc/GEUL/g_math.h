@@ -79,10 +79,15 @@ typedef struct _byte2
 {
     union
     {
-        uint8_t n0;
-        uint8_t n1;
+        struct {
+            uint8_t n0;
+            uint8_t n1;
+        };
+
+        struct {
+            uint16_t n;
+        };
     };
-    uint16_t n;
 } byte2_t;
 
 // BYTE3
@@ -90,12 +95,16 @@ typedef struct _byte3
 {
     union
     {
-        uint8_t n0;
-        uint8_t n1;
-        uint8_t n2;
-        uint8_t pad;
+        struct {
+            uint8_t n0;
+            uint8_t n1;
+            uint8_t n2;
+            uint8_t pad;
+        };
+        struct {
+            uint32_t n;
+        };
     };
-    uint32_t n;
 } byte3_t;
 
 // BYTE4
@@ -103,12 +112,16 @@ typedef struct _byte4
 {
     union
     {
-        uint8_t n0;
-        uint8_t n1;
-        uint8_t n2;
-        uint8_t n3;
+        struct {
+            uint8_t n0;
+            uint8_t n1;
+            uint8_t n2;
+            uint8_t n3;
+        };
+        struct {
+            uint32_t n;
+        };
     };
-    uint32_t n;
 } byte4_t;
 
 // VECTOR2
@@ -148,15 +161,19 @@ typedef struct _vector3
 typedef struct _vector4
 {
     union {
-        float r;
-        float g;
-        float b;
-        float a;
+        struct {
+            float r;
+            float g;
+            float b;
+            float a;
+        };
+        struct {
+            float x;
+            float y;
+            float z;
+            float w;
+        };
     };
-    float x;
-    float y;
-    float z;
-    float w;
 
     float GetIndex(byte1_t index) {
         switch (index)
