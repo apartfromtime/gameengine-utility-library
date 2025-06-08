@@ -2541,7 +2541,7 @@ LoadFromMemoryPNG(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
 #endif // #ifndef _PNG_H_
 
 uint8_t
-ParseABS(uint8_t** pixels, uint32_t bytesperpixel, uint32_t maxcount)
+ParseABS(uint8_t** pixels, uint32_t bytesperpixel, uint8_t maxcount)
 {
     uint8_t* buffer = *pixels;
     uint8_t count = 1;
@@ -2559,7 +2559,7 @@ ParseABS(uint8_t** pixels, uint32_t bytesperpixel, uint32_t maxcount)
 }
 
 uint8_t
-ParseRLE(uint8_t** pixels, uint32_t bytesperpixel, uint32_t maxcount)
+ParseRLE(uint8_t** pixels, uint32_t bytesperpixel, uint8_t maxcount)
 {
     uint8_t* buffer = *pixels;
     uint8_t count = 1;
@@ -2634,8 +2634,8 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
     if (depth == 8) {
         if (ppalette != NULL) {
             colormap_type = 1;
-            colormap_length = GEUL_CAST_TO_U16(ppalette->size);
-            colormap_size = GEUL_CAST_TO_U8(ppalette->bits);
+            colormap_length = ppalette->size;
+            colormap_size = ppalette->bits;
         }
     }
     if (psrcbuf == NULL) {
@@ -2743,7 +2743,7 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             uint8_t abscount = 0;
             uint8_t rlecount = 0;
             uint8_t runcount = 0;
-            uint32_t maxcount = 0;
+            uint8_t maxcount = 0;
             uint32_t absbound = width - 0xFF;
             uint32_t rlebound = width - 0x80;
             uint32_t sample = 0;
@@ -2761,10 +2761,10 @@ SaveToMemoryTGA(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
                         memcpy(&sample, (bufptr + (x * bytesperpixel)), bytesperpixel);
                         buffer =  (bufptr + (x * bytesperpixel));
                         maxcount = 0xFF;
-                        if (x > absbound) { maxcount = width - x; };
+                        if (x > absbound) { maxcount = GEUL_CAST_TO_U8(width - x); };
                         abscount = ParseABS(&buffer, bytesperpixel, maxcount);
                         maxcount = 0x80;
-                        if (x > rlebound) { maxcount = width - x; };
+                        if (x > rlebound) { maxcount = GEUL_CAST_TO_U8(width - x); };
                         rlecount = ParseRLE(&buffer, bytesperpixel, maxcount);
                         if (abscount >= rlecount) {
                             runcount = abscount;
@@ -3175,7 +3175,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
             uint8_t abscount = 0;
             uint8_t rlecount = 0;
             uint8_t runcount = 0;
-            uint32_t maxcount = 0xFF;
+            uint8_t maxcount = 0xFF;
             uint32_t maxbound = width - 0xFF;
             uint8_t sample = 0;
             switch (dstdepth)
@@ -3254,7 +3254,7 @@ SaveToMemoryBMP(uint8_t** ppdst, uint32_t* ppdstsize, uint32_t codec,
                         sample = *(rowbuf + x);
                         buffer =  (rowbuf + x);
                         maxcount = 0xFF;
-                        if (x > maxbound) { maxcount = width - x; };
+                        if (x > maxbound) { maxcount = GEUL_CAST_TO_U8(width - x); };
                         abscount = ParseABS(&buffer, 1, maxcount);
                         rlecount = ParseRLE(&buffer, 1, maxcount);
                         if (abscount >= 3 && abscount >= rlecount) {
@@ -3518,8 +3518,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
             pixbuf = pixptr;
             bit = 4;
             x = 0;
-            while (1)
-            {    
+            while (1) {
                 unsigned char data0 = *srcbuf++;
                 unsigned char data1 = *srcbuf++;
                 // encoded modes
@@ -3617,8 +3616,7 @@ LoadFromMemoryBMP(uint8_t** ppdst, palette_t* ppalette, uint8_t* psrcbuf,
         }
     } else {          // everything else 
         int32_t y = 0;
-        while (y < ysize)
-        {
+        while (y < ysize) {
             pixbuf = pixptr;
             memcpy(pixbuf, srcbuf, ABS(pitch));
             srcbuf += ABS(pitch) + padbytes;
@@ -3756,7 +3754,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* pdstsize, uint8_t* psrcbuf,
     uint32_t colorplane = 0;
     uint8_t rlecount = 0;
     uint8_t runcount = 0;
-    uint32_t maxcount = 0x3F;
+    uint8_t maxcount = 0x3F;
     uint32_t maxbound = srcwidth - 0x3F;
     uint32_t x = 0;
     uint32_t y = 0;
@@ -3770,7 +3768,7 @@ SaveToMemoryPCX(uint8_t** ppdst, uint32_t* pdstsize, uint8_t* psrcbuf,
                 sample = *(bufptr + ((x * srcbytes) + colorplane));
                 buffer =  (bufptr + ((x * srcbytes) + colorplane));
                 maxcount = 0x3F;
-                if (x > maxbound) { maxcount = srcwidth - x; };
+                if (x > maxbound) { maxcount = GEUL_CAST_TO_U8(srcwidth - x); };
                 rlecount = ParseRLE(&buffer, srcbytes, maxcount);
                 runcount = rlecount;
                 if (rlecount == 1) {
