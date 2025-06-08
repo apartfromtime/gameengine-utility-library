@@ -4037,8 +4037,8 @@ FastFill(image_t* pimage, uint8_t* params0, uint8_t* params1)
     uint32_t pixel2 = 0;
     uint32_t bytes = GetBytesForPixelFormat(pimage->format);
     for (size_t i = 0; i < bytes; i++) {
-        pixel1 |= params0[i] << (i << 3);
         pixel2 |= params1[i] << (i << 3);
+        pixel1 |= params0[i] << (i << 3);
     }
     uint8_t* buffer = pimage->pixels;
     while (y < pimage->height) {
@@ -4502,6 +4502,15 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
             ppalette->size = palette.size;
             ppalette->bits = palette.bits;
         }
+        // dst stuff
+        if (result == true) {
+            pimage->pixels = pixels;
+            pimage->depth = depth;
+            pimage->width = width;
+            pimage->height = height;
+            pimage->format = format;
+            pimage->type = type;
+        }
         // transparency
         if (result == true) {
             if (pcolorkey != NULL) {
@@ -4537,15 +4546,6 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
                     FastFill(pimage, transparency, pcolorkey);
                 }
             }
-        }
-        // dst stuff
-        if (result == true) {
-            pimage->pixels = pixels;
-            pimage->depth = depth;
-            pimage->width = width;
-            pimage->height = height;
-            pimage->format = format;
-            pimage->type = type;
         }
     }
     return result;
