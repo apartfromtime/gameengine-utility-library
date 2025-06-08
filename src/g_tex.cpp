@@ -4037,8 +4037,8 @@ FastFill(image_t* pimage, uint8_t* params0, uint8_t* params1)
     uint32_t pixel2 = 0;
     uint32_t bytes = GetBytesForPixelFormat(pimage->format);
     for (size_t i = 0; i < bytes; i++) {
-        pixel2 |= params1[i] << (i << 3);
         pixel1 |= params0[i] << (i << 3);
+        pixel2 |= params1[i] << (i << 3);
     }
     uint8_t* buffer = pimage->pixels;
     while (y < pimage->height) {
@@ -4522,19 +4522,19 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
                     uint8_t i0 = 0;
                     uint8_t i1 = 0;
                     for (uint8_t i = 0; i < ppalette->size; ++i) {
-                        if (ppalette->entry[i*4+0] == transparency[0] &&
-                            ppalette->entry[i*4+1] == transparency[1] &&
-                            ppalette->entry[i*4+2] == transparency[2] &&
-                            ppalette->entry[i*4+3] == transparency[3]) {
+                        if (ppalette->entry[i*4+0] == pcolorkey[0] &&
+                            ppalette->entry[i*4+1] == pcolorkey[1] &&
+                            ppalette->entry[i*4+2] == pcolorkey[2] &&
+                            ppalette->entry[i*4+3] == pcolorkey[3]) {
                             index0 = true; i0 = i;
                             break;
                         }
                     }
                     for (uint8_t i = 0; i < ppalette->size; ++i) {
-                        if (ppalette->entry[i*4+0] == pcolorkey[0] &&
-                            ppalette->entry[i*4+1] == pcolorkey[1] &&
-                            ppalette->entry[i*4+2] == pcolorkey[2] &&
-                            ppalette->entry[i*4+3] == pcolorkey[3]) {
+                        if (ppalette->entry[i*4+0] == transparency[0] &&
+                            ppalette->entry[i*4+1] == transparency[1] &&
+                            ppalette->entry[i*4+2] == transparency[2] &&
+                            ppalette->entry[i*4+3] == transparency[3]) {
                             index1 = true; i1 = i;
                             break;
                         }
@@ -4543,7 +4543,7 @@ LoadImageFromMemory(image_t* pimage, palette_t* ppalette, uint8_t* pcolorkey,
                         FastFill(pimage, &i0, &i1);
                     }
                 } else {
-                    FastFill(pimage, transparency, pcolorkey);
+                    FastFill(pimage, pcolorkey, transparency);
                 }
             }
         }
